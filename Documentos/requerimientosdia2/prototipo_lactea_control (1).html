@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Láctea · Gestión de Acopiadores</title>
+<style>
+:root{
+  --bg:#f5f5f7;--card:rgba(255,255,255,.78);--text:#1d1d1f;--muted:#6e6e73;
+  --line:#e5e5e7;--blue:#0071e3;--blue2:#0a84ff;--green:#168a45;--red:#d93025;
+  --shadow:0 18px 50px rgba(0,0,0,.08);--radius:24px;
+}
+*{box-sizing:border-box} html{scroll-behavior:smooth}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
+button,input,select{font:inherit}
+button{cursor:pointer}
+.topbar{position:sticky;top:0;z-index:50;height:68px;background:rgba(255,255,255,.78);backdrop-filter:blur(22px);border-bottom:1px solid rgba(0,0,0,.07);display:flex;align-items:center;padding:0 28px;gap:28px}
+.logo{font-weight:750;font-size:20px;letter-spacing:-.5px;white-space:nowrap}.logo span{color:var(--blue)}
+.nav{display:flex;gap:4px;overflow:auto}.nav button{border:0;background:transparent;padding:10px 13px;border-radius:12px;color:#555;font-size:14px;white-space:nowrap}.nav button.active{background:#e8f2ff;color:var(--blue);font-weight:650}
+.status{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);white-space:nowrap}.dot{width:8px;height:8px;border-radius:50%;background:#24a148}
+main{max-width:1400px;margin:auto;padding:38px 28px 80px}
+.hero{display:flex;justify-content:space-between;align-items:flex-end;gap:30px;margin:18px 0 34px}.eyebrow{color:var(--blue);font-size:14px;font-weight:700;margin-bottom:9px}.hero h1{font-size:clamp(34px,5vw,60px);line-height:1.02;letter-spacing:-2.7px;margin:0 0 14px}.hero p{margin:0;color:var(--muted);font-size:17px;max-width:680px;line-height:1.55}.datebox{background:white;border:1px solid var(--line);padding:17px 20px;border-radius:20px;box-shadow:0 8px 30px rgba(0,0,0,.04);min-width:220px}.datebox small{color:var(--muted);display:block;margin-bottom:5px}.datebox strong{font-size:18px}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}.stat{background:var(--card);border:1px solid rgba(0,0,0,.06);border-radius:22px;padding:22px;box-shadow:0 8px 28px rgba(0,0,0,.045)}.stat .label{color:var(--muted);font-size:13px}.stat .value{font-size:30px;font-weight:750;letter-spacing:-1px;margin-top:7px}.stat .sub{font-size:12px;color:var(--muted);margin-top:5px}
+.section{scroll-margin-top:90px;margin-top:30px}.section-head{display:flex;justify-content:space-between;align-items:end;gap:20px;margin:0 0 15px}.section-head h2{font-size:28px;letter-spacing:-1px;margin:0}.section-head p{margin:5px 0 0;color:var(--muted);font-size:14px}
+.card{background:rgba(255,255,255,.84);border:1px solid rgba(0,0,0,.07);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}.cardpad{padding:22px}
+.btn{border:0;border-radius:13px;padding:11px 16px;font-weight:650;font-size:14px}.primary{background:var(--blue);color:#fff}.secondary{background:#eef1f5;color:#222}.danger{background:#fff0ef;color:var(--red)}
+.table-wrap{overflow:auto}.table{width:100%;border-collapse:collapse;min-width:760px}.table th{text-align:left;color:var(--muted);font-size:12px;font-weight:650;text-transform:uppercase;letter-spacing:.4px;background:#fafafa}.table th,.table td{padding:15px 18px;border-bottom:1px solid var(--line)}.table tr:last-child td{border-bottom:0}.badge{display:inline-flex;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:700}.ok{background:#e8f7ee;color:var(--green)}.bad{background:#fff0ef;color:var(--red)}.neutral{background:#eef1f5;color:#555}
+.formgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.field label{display:block;font-size:12px;color:var(--muted);margin:0 0 7px;font-weight:650}.field input,.field select{width:100%;border:1px solid #d7d7dc;background:#fff;border-radius:12px;padding:12px 13px;outline:none}.field input:focus,.field select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,113,227,.12)}
+.actions{display:flex;gap:9px;justify-content:flex-end;margin-top:16px}.toolbar{display:flex;gap:10px;flex-wrap:wrap}.toolbar input,.toolbar select{border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px 12px}
+.two{display:grid;grid-template-columns:1.35fr .65fr;gap:18px}.pay-card{padding:25px;background:linear-gradient(135deg,#fff,#f4f8ff)}.pay-total{font-size:46px;font-weight:800;letter-spacing:-2px;margin:8px 0}.pay-card p{color:var(--muted);line-height:1.5}.mini{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px}.mini div{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px}.mini span{display:block;color:var(--muted);font-size:12px}.mini strong{display:block;margin-top:4px}
+.public{background:#0f1115;color:#fff;border-radius:28px;padding:28px}.public .muted{color:#a6a6ad}.public-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.public-item{background:#191c22;border:1px solid #2a2e36;border-radius:18px;padding:18px}.public-item strong{font-size:22px}
+.empty{text-align:center;padding:38px;color:var(--muted)}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.38);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;padding:20px;z-index:100}.modal.show{display:flex}.modalbox{background:#fff;border-radius:26px;width:min(650px,100%);box-shadow:0 30px 90px rgba(0,0,0,.22);padding:25px}.modalhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}.modalhead h3{margin:0;font-size:23px}.close{border:0;background:#eee;border-radius:50%;width:34px;height:34px}
+.toast{position:fixed;right:22px;bottom:22px;background:#17181b;color:#fff;padding:13px 17px;border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.22);display:none;z-index:200}.toast.show{display:block}
+.footer{margin-top:55px;text-align:center;color:var(--muted);font-size:12px}
+@media(max-width:1000px){.grid{grid-template-columns:repeat(2,1fr)}.two{grid-template-columns:1fr}.formgrid{grid-template-columns:repeat(2,1fr)}.hero{align-items:flex-start;flex-direction:column}.datebox{width:100%}}
+@media(max-width:600px){.topbar{padding:0 15px}.logo{font-size:17px}.nav button{padding:9px 8px}.status{display:none}main{padding:25px 15px 60px}.hero h1{letter-spacing:-1.8px}.grid{grid-template-columns:1fr 1fr;gap:10px}.stat{padding:16px}.stat .value{font-size:24px}.formgrid{grid-template-columns:1fr}.public-grid{grid-template-columns:1fr}}
+@media print{.topbar,.hero,.grid,.section:not(#reporte),.footer,.no-print{display:none!important}.section#reporte{display:block!important}.card,.public{box-shadow:none;border:1px solid #ddd}.public{background:#fff;color:#000}.public-item{background:#fff;color:#000;border:1px solid #ddd}}
+
+.appview{display:none;animation:fade .35s ease}.appview.activeview{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+.page-shell{display:grid;grid-template-columns:250px 1fr;gap:25px;align-items:start}
+.sidecard{position:sticky;top:92px;background:rgba(255,255,255,.82);border:1px solid rgba(0,0,0,.06);border-radius:24px;padding:13px;box-shadow:0 12px 35px rgba(0,0,0,.06)}
+.side-title{font-size:11px;color:#999;text-transform:uppercase;letter-spacing:1px;padding:12px 12px 7px;font-weight:750}
+.side-btn{width:100%;border:0;background:transparent;text-align:left;padding:12px;border-radius:13px;color:#555;font-weight:600;margin:2px 0}
+.side-btn:hover{background:#f1f3f6}.side-btn.active{background:#e8f2ff;color:var(--blue)}
+.page-main{min-width:0}.page-header{display:flex;justify-content:space-between;gap:20px;align-items:center;margin-bottom:25px}
+.page-header h1{font-size:38px;letter-spacing:-1.8px;margin:0}.page-header p{color:var(--muted);margin:7px 0 0}
+.kicker{font-size:12px;color:var(--blue);font-weight:750;letter-spacing:.7px;text-transform:uppercase;margin-bottom:7px}
+.dashboard-hero{background:linear-gradient(135deg,#fff 0%,#edf5ff 100%);border-radius:30px;padding:34px;min-height:270px;display:flex;flex-direction:column;justify-content:flex-end;box-shadow:var(--shadow);border:1px solid rgba(0,0,0,.05)}
+.dashboard-hero h1{font-size:clamp(38px,5vw,64px);line-height:.98;letter-spacing:-3px;margin:0 0 15px}.dashboard-hero p{max-width:650px;color:var(--muted);line-height:1.55}
+.quick-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-top:16px}.quick{padding:21px;border-radius:20px;background:#fff;border:1px solid var(--line);transition:.2s;cursor:pointer}.quick:hover{transform:translateY(-2px);box-shadow:0 10px 25px rgba(0,0,0,.07)}.quick-icon{font-size:25px;margin-bottom:13px}.quick b{display:block}.quick span{color:var(--muted);font-size:13px;line-height:1.4}
+@media(max-width:850px){.page-shell{grid-template-columns:1fr}.sidecard{position:static;display:flex;overflow:auto;gap:5px}.side-title{display:none}.side-btn{white-space:nowrap;width:auto}.quick-grid{grid-template-columns:1fr}.page-header{align-items:flex-start;flex-direction:column}}
+@media(max-width:600px){.page-header h1{font-size:31px}.dashboard-hero{padding:25px}.dashboard-hero h1{letter-spacing:-2px}}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="logo">Láctea<span>·</span>Control</div>
+  <nav class="nav">
+    <button class="active" onclick="go('inicio',this)">Inicio</button>
+    <button onclick="go('acopiadores',this)">Acopiadores</button>
+    <button onclick="go('recoleccion',this)">Recolección</button>
+    <button onclick="go('pagos',this)">Pagos</button>
+    <button onclick="go('calidad',this)">Calidad</button>
+    <button onclick="go('publico',this)">Control social</button>
+  </nav>
+  <div class="status"><span class="dot"></span> Local · Sin internet</div>
+</header>
+
+<main>
+<div class="page-shell">
+  <aside class="sidecard">
+    <div class="side-title">Módulos</div>
+    <button class="side-btn active" onclick="go('inicio',this)">⌂ &nbsp; Inicio</button>
+    <button class="side-btn" onclick="go('acopiadores',this)">♙ &nbsp; Acopiadores</button>
+    <button class="side-btn" onclick="go('recoleccion',this)">◌ &nbsp; Recolección</button>
+    <button class="side-btn" onclick="go('pagos',this)">S/ &nbsp; Pagos</button>
+    <button class="side-btn" onclick="go('calidad',this)">✓ &nbsp; Calidad</button>
+    <button class="side-btn" onclick="go('publico',this)">◎ &nbsp; Control social</button>
+  </aside>
+
+  <div class="page-main">
+    <section id="inicio" class="appview activeview">
+      <div class="dashboard-hero">
+        <div class="kicker">Láctea · Control local</div>
+        <h1>Gestión lechera,<br>sin complicaciones.</h1>
+        <p>Un espacio central para administrar acopiadores, registrar la recolección, gestionar pagos y controlar la calidad. Todo queda almacenado localmente.</p>
+      </div>
+      <div class="grid" style="margin-top:16px">
+        <div class="stat"><div class="label">Acopiadores</div><div class="value" id="statAcopiadores">0</div><div class="sub">Registrados en el sistema</div></div>
+        <div class="stat"><div class="label">Litros del ciclo</div><div class="value" id="statLitros">0 L</div><div class="sub">Jueves a miércoles</div></div>
+        <div class="stat"><div class="label">Por pagar</div><div class="value" id="statPago">S/ 0.00</div><div class="sub">Precio actual: S/ 1.70/L</div></div>
+        <div class="stat"><div class="label">Controles de calidad</div><div class="value" id="statCalidad">0</div><div class="sub">Evaluaciones registradas</div></div>
+      </div>
+      <div class="quick-grid">
+        <div class="quick" onclick="openModal('acopiadorModal')"><div class="quick-icon">♙</div><b>Nuevo acopiador</b><span>Registra nombre, apellido, zona y código único.</span></div>
+        <div class="quick" onclick="openModal('recoleccionModal')"><div class="quick-icon">🥛</div><b>Registrar recolección</b><span>Agrega los litros recogidos durante el día.</span></div>
+        <div class="quick" onclick="openModal('calidadModal')"><div class="quick-icon">✓</div><b>Control de calidad</b><span>Registra si la leche es apta o adulterada.</span></div>
+      </div>
+    </section>
+
+    <section id="acopiadores" class="appview">
+      <div class="page-header"><div><div class="kicker">RF01</div><h1>Acopiadores</h1><p>Personas responsables de la recolección.</p></div><button class="btn primary" onclick="openModal('acopiadorModal')">+ Nuevo acopiador</button></div>
+      <div class="card"><div class="cardpad"><div style="font-size:14px;color:#666;margin-bottom:18px">Cada código debe ser único e irrepetible.</div></div><div class="table-wrap"><table class="table"><thead><tr><th>Código</th><th>Nombre</th><th>Zona</th><th>Registros</th><th></th></tr></thead><tbody id="acopiadoresBody"></tbody></table></div></div>
+    </section>
+
+    <section id="recoleccion" class="appview">
+      <div class="page-header"><div><div class="kicker">RF02 · RF03</div><h1>Recolección</h1><p>Control diario del ciclo jueves → miércoles.</p></div><button class="btn primary" onclick="openModal('recoleccionModal')">+ Registrar litros</button></div>
+      <div class="card cardpad">
+        <div class="toolbar no-print"><input id="searchReco" placeholder="Buscar acopiador o zona..." oninput="renderAll()"><select id="dayFilter" onchange="renderAll()"><option value="">Todos los días</option><option>Jueves</option><option>Viernes</option><option>Sábado</option><option>Domingo</option><option>Lunes</option><option>Martes</option><option>Miércoles</option></select></div>
+        <div class="table-wrap" style="margin-top:14px"><table class="table"><thead><tr><th>Fecha</th><th>Día</th><th>Acopiador</th><th>Zona</th><th>Litros</th><th>Acción</th></tr></thead><tbody id="recoleccionBody"></tbody></table></div>
+      </div>
+    </section>
+
+    <section id="pagos" class="appview">
+      <div class="page-header"><div><div class="kicker">RF04 · RF05 · RF06</div><h1>Pagos</h1><p>Cálculo semanal y generación del formato de pago.</p></div><div class="toolbar no-print"><label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#666">Precio/L <input id="price" type="number" min="0" step=".01" value="1.70" style="width:90px" onchange="savePrice()"></label><button class="btn primary" onclick="window.print()">⎙ Imprimir</button></div></div>
+      <div class="two">
+        <div class="card"><div class="table-wrap"><table class="table"><thead><tr><th>Acopiador</th><th>Código</th><th>Zona</th><th>Litros</th><th>Total</th><th>Pago</th></tr></thead><tbody id="pagosBody"></tbody></table></div></div>
+        <div class="pay-card card"><div class="eyebrow">SOBRE DE PAGO · VIERNES</div><h2 style="margin:0">Resumen del ciclo</h2><div class="pay-total" id="grandTotal">S/ 0.00</div><p>El total se obtiene multiplicando los litros por el precio configurado.</p><div class="mini"><div><span>Desde</span><strong>Jueves</strong></div><div><span>Hasta</span><strong>Miércoles</strong></div><div><span>Precio</span><strong id="priceLabel">S/ 1.70/L</strong></div><div><span>Entrega</span><strong>Viernes</strong></div></div></div>
+      </div>
+    </section>
+
+    <section id="calidad" class="appview">
+      <div class="page-header"><div><div class="kicker">RF07</div><h1>Control de calidad</h1><p>Resultados de las rondas de detección de adulteración.</p></div><button class="btn primary" onclick="openModal('calidadModal')">+ Registrar control</button></div>
+      <div class="card"><div class="table-wrap"><table class="table"><thead><tr><th>Fecha</th><th>Acopiador</th><th>Zona</th><th>Resultado</th><th>Detalle</th></tr></thead><tbody id="calidadBody"></tbody></table></div></div>
+    </section>
+
+    <section id="publico" class="appview">
+      <div class="page-header"><div><div class="kicker">RF08</div><h1>Control social</h1><p>Información pública necesaria para la transparencia del proceso.</p></div></div>
+      <div class="public"><div style="display:flex;justify-content:space-between;gap:20px;align-items:flex-end;margin-bottom:20px"><div><div class="eyebrow" style="color:#65aaff">INFORMACIÓN PÚBLICA</div><h2 style="font-size:30px;margin:0 0 7px">Transparencia</h2><div class="muted">Sin información sensible adicional.</div></div><div class="muted">Ciclo jueves → miércoles</div></div><div class="public-grid" id="publicGrid"></div></div>
+    </section>
+  </div>
+</div>
+
+<section id="reporte" class="section" style="display:none"><div class="card cardpad"><h2>Reporte semanal de pago</h2><p id="printDate"></p><div id="printContent"></div></div></section>
+<div class="footer">Prototipo local · Datos guardados en este navegador · RNF01</div>
+</main>
+
+<!-- Modals -->
+<div class="modal" id="acopiadorModal"><div class="modalbox">
+  <div class="modalhead"><h3>Nuevo acopiador</h3><button class="close" onclick="closeModal('acopiadorModal')">×</button></div>
+  <form onsubmit="addAcopiador(event)"><div class="formgrid">
+    <div class="field"><label>Código único</label><input id="aCodigo" required placeholder="AC-001"></div>
+    <div class="field"><label>Nombre</label><input id="aNombre" required placeholder="Nombre"></div>
+    <div class="field"><label>Apellido</label><input id="aApellido" required placeholder="Apellido"></div>
+    <div class="field"><label>Zona</label><input id="aZona" required placeholder="Zona"></div>
+  </div><div class="actions"><button type="button" class="btn secondary" onclick="closeModal('acopiadorModal')">Cancelar</button><button class="btn primary">Guardar</button></div></form>
+</div></div>
+
+<div class="modal" id="recoleccionModal"><div class="modalbox">
+  <div class="modalhead"><h3>Registrar recolección</h3><button class="close" onclick="closeModal('recoleccionModal')">×</button></div>
+  <form onsubmit="addReco(event)"><div class="formgrid">
+    <div class="field"><label>Acopiador</label><select id="rAcopiador" required></select></div>
+    <div class="field"><label>Fecha</label><input id="rFecha" type="date" required></div>
+    <div class="field"><label>Litros recolectados</label><input id="rLitros" type="number" min="0.01" step=".01" required placeholder="0.00"></div>
+    <div class="field"><label>Día del ciclo</label><input id="rDia" readonly></div>
+  </div><div class="actions"><button type="button" class="btn secondary" onclick="closeModal('recoleccionModal')">Cancelar</button><button class="btn primary">Registrar</button></div></form>
+</div></div>
+
+<div class="modal" id="calidadModal"><div class="modalbox">
+  <div class="modalhead"><h3>Registrar control de calidad</h3><button class="close" onclick="closeModal('calidadModal')">×</button></div>
+  <form onsubmit="addCalidad(event)"><div class="formgrid">
+    <div class="field"><label>Acopiador</label><select id="qAcopiador" required></select></div>
+    <div class="field"><label>Fecha</label><input id="qFecha" type="date" required></div>
+    <div class="field"><label>Resultado</label><select id="qResultado"><option>Leche apta</option><option>Adulterada</option></select></div>
+    <div class="field"><label>Observación</label><input id="qObs" placeholder="Opcional"></div>
+  </div><div class="actions"><button type="button" class="btn secondary" onclick="closeModal('calidadModal')">Cancelar</button><button class="btn primary">Guardar control</button></div></form>
+</div></div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const KEY='lactea_prototipo_v1';
+let db=JSON.parse(localStorage.getItem(KEY)||'null')||{
+  acopiadores:[],
+  recolecciones:[],
+  calidad:[],
+  price:1.70
+};
+const days=['Jueves','Viernes','Sábado','Domingo','Lunes','Martes','Miércoles'];
+
+function save(){localStorage.setItem(KEY,JSON.stringify(db));renderAll()}
+function money(n){return 'S/ '+Number(n||0).toFixed(2)}
+function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+function toast(t){const x=document.getElementById('toast');x.textContent=t;x.classList.add('show');setTimeout(()=>x.classList.remove('show'),2200)}
+function openModal(id){
+  document.getElementById(id).classList.add('show');
+  if(id==='recoleccionModal'||id==='calidadModal') fillAcopiadores();
+  if(id==='recoleccionModal'){document.getElementById('rFecha').value=new Date().toISOString().slice(0,10);updateDay()}
+  if(id==='calidadModal') document.getElementById('qFecha').value=new Date().toISOString().slice(0,10);
+}
+function closeModal(id){document.getElementById(id).classList.remove('show')}
+function go(id,btn){
+  document.querySelectorAll('.appview').forEach(v=>v.classList.remove('activeview'));
+  const target=document.getElementById(id); if(target) target.classList.add('activeview');
+  document.querySelectorAll('.nav button,.side-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.nav button,.side-btn').forEach(b=>{
+    if((b.getAttribute('onclick')||'').includes("'"+id+"'")) b.classList.add('active');
+  });
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function addAcopiador(e){
+ e.preventDefault();
+ const codigo=document.getElementById('aCodigo').value.trim();
+ if(db.acopiadores.some(a=>a.codigo.toLowerCase()===codigo.toLowerCase())) return toast('Ese código ya existe. Debe ser único.');
+ db.acopiadores.push({id:crypto.randomUUID(),codigo,nombre:document.getElementById('aNombre').value.trim(),apellido:document.getElementById('aApellido').value.trim(),zona:document.getElementById('aZona').value.trim()});
+ save();e.target.reset();closeModal('acopiadorModal');toast('Acopiador registrado correctamente');
+}
+function delAcopiador(id){
+ if(!confirm('¿Eliminar este acopiador? Sus registros de recolección y calidad también se eliminarán.'))return;
+ db.acopiadores=db.acopiadores.filter(x=>x.id!==id);db.recolecciones=db.recolecciones.filter(x=>x.acopiadorId!==id);db.calidad=db.calidad.filter(x=>x.acopiadorId!==id);save();toast('Acopiador eliminado');
+}
+function fillAcopiadores(){
+ const opts='<option value="">Seleccionar...</option>'+db.acopiadores.map(a=>`<option value="${a.id}">${esc(a.codigo)} · ${esc(a.nombre)} ${esc(a.apellido)}</option>`).join('');
+ document.getElementById('rAcopiador').innerHTML=opts;document.getElementById('qAcopiador').innerHTML=opts;
+}
+function cycleDay(dateStr){
+ const d=new Date(dateStr+'T12:00:00'), js=d.getDay(); // 0 domingo
+ return ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'][js];
+}
+function updateDay(){document.getElementById('rDia').value=cycleDay(document.getElementById('rFecha').value)}
+document.getElementById('rFecha').addEventListener('change',updateDay);
+function addReco(e){
+ e.preventDefault();
+ const ac=document.getElementById('rAcopiador').value, fecha=document.getElementById('rFecha').value, litros=Number(document.getElementById('rLitros').value);
+ if(!ac)return;
+ db.recolecciones.push({id:crypto.randomUUID(),acopiadorId:ac,fecha,litros});save();e.target.reset();closeModal('recoleccionModal');toast('Recolección registrada');
+}
+function addCalidad(e){
+ e.preventDefault();
+ db.calidad.push({id:crypto.randomUUID(),acopiadorId:document.getElementById('qAcopiador').value,fecha:document.getElementById('qFecha').value,resultado:document.getElementById('qResultado').value,obs:document.getElementById('qObs').value});
+ save();e.target.reset();closeModal('calidadModal');toast('Control de calidad registrado');
+}
+function savePrice(){db.price=Number(document.getElementById('price').value)||1.70;save();toast('Precio actualizado')}
+function acById(id){return db.acopiadores.find(a=>a.id===id)}
+function renderAcopiadores(){
+ const body=document.getElementById('acopiadoresBody');
+ if(!db.acopiadores.length){body.innerHTML='<tr><td colspan="5" class="empty">Aún no hay acopiadores. Registra el primero para comenzar.</td></tr>';return}
+ body.innerHTML=db.acopiadores.map(a=>{
+  const count=db.recolecciones.filter(r=>r.acopiadorId===a.id).length;
+  return `<tr><td><b>${esc(a.codigo)}</b></td><td>${esc(a.nombre)} ${esc(a.apellido)}</td><td>${esc(a.zona)}</td><td>${count} registro(s)</td><td style="text-align:right"><button class="btn danger" onclick="delAcopiador('${a.id}')">Eliminar</button></td></tr>`
+ }).join('');
+}
+function renderReco(){
+ const q=(document.getElementById('searchReco').value||'').toLowerCase(),day=document.getElementById('dayFilter').value;
+ let rows=db.recolecciones.map(r=>{const a=acById(r.acopiadorId);return {...r,a}}).filter(r=>r.a&&( !q || `${r.a.nombre} ${r.a.apellido} ${r.a.zona}`.toLowerCase().includes(q))&&(!day||cycleDay(r.fecha)===day)).sort((a,b)=>b.fecha.localeCompare(a.fecha));
+ const body=document.getElementById('recoleccionBody');
+ body.innerHTML=rows.length?rows.map(r=>`<tr><td>${esc(r.fecha)}</td><td>${cycleDay(r.fecha)}</td><td>${esc(r.a.nombre)} ${esc(r.a.apellido)}</td><td>${esc(r.a.zona)}</td><td><b>${r.litros.toFixed(2)} L</b></td><td><button class="btn danger" onclick="delReco('${r.id}')">Eliminar</button></td></tr>`).join(''):'<tr><td colspan="6" class="empty">No hay registros que mostrar.</td></tr>';
+}
+function delReco(id){db.recolecciones=db.recolecciones.filter(r=>r.id!==id);save();toast('Registro eliminado')}
+function totals(){
+ return db.acopiadores.map(a=>{
+  const rows=db.recolecciones.filter(r=>r.acopiadorId===a.id);
+  const liters=rows.reduce((s,r)=>s+r.litros,0);
+  return {a,liters,total:liters*db.price,rows};
+ })
+}
+function renderPagos(){
+ const t=totals(),body=document.getElementById('pagosBody');
+ body.innerHTML=t.length?t.map(x=>`<tr><td>${esc(x.a.nombre)} ${esc(x.a.apellido)}</td><td>${esc(x.a.codigo)}</td><td>${esc(x.a.zona)}</td><td>${x.liters.toFixed(2)} L</td><td><b>${money(x.total)}</b></td><td><span class="badge neutral">Viernes</span></td></tr>`).join(''):'<tr><td colspan="6" class="empty">Registra acopiadores para generar pagos.</td></tr>';
+ const grand=t.reduce((s,x)=>s+x.total,0);document.getElementById('grandTotal').textContent=money(grand);document.getElementById('priceLabel').textContent=money(db.price)+'/L';
+}
+function renderQuality(){
+ const body=document.getElementById('calidadBody');
+ body.innerHTML=db.calidad.length?db.calidad.slice().sort((a,b)=>b.fecha.localeCompare(a.fecha)).map(q=>{const a=acById(q.acopiadorId);return `<tr><td>${esc(q.fecha)}</td><td>${a?esc(a.nombre+' '+a.apellido):'-'}</td><td>${a?esc(a.zona):'-'}</td><td><span class="badge ${q.resultado==='Leche apta'?'ok':'bad'}">${esc(q.resultado)}</span></td><td>${esc(q.obs||'—')}</td></tr>`}).join(''):'<tr><td colspan="5" class="empty">No hay controles de calidad registrados.</td></tr>';
+}
+function renderPublic(){
+ const grid=document.getElementById('publicGrid'),t=totals();
+ grid.innerHTML=t.length?t.map(x=>`<div class="public-item"><div class="muted">${esc(x.a.zona)}</div><h3 style="margin:6px 0">${esc(x.a.nombre)} ${esc(x.a.apellido)}</h3><div style="display:flex;justify-content:space-between;gap:15px"><span class="muted">Recolección</span><strong>${x.liters.toFixed(2)} L</strong></div><div style="display:flex;justify-content:space-between;gap:15px;margin-top:8px"><span class="muted">Pago</span><strong>${money(x.total)}</strong></div></div>`).join(''):'<div class="empty" style="color:#aaa;grid-column:1/-1">La información pública aparecerá aquí cuando existan registros.</div>';
+}
+function renderStats(){
+ const liters=db.recolecciones.reduce((s,r)=>s+r.litros,0),pay=liters*db.price;
+ document.getElementById('statAcopiadores').textContent=db.acopiadores.length;
+ document.getElementById('statLitros').textContent=liters.toFixed(2)+' L';
+ document.getElementById('statPago').textContent=money(pay);
+ document.getElementById('statCalidad').textContent=db.calidad.length;
+ document.getElementById('price').value=db.price.toFixed(2);
+}
+function renderPrint(){
+ const t=totals();document.getElementById('printDate').textContent='Ciclo semanal · Jueves a miércoles · Pago: viernes · Precio: '+money(db.price)+'/L';
+ document.getElementById('printContent').innerHTML=t.map(x=>`<div style="border:1px solid #ddd;padding:15px;margin:12px 0"><b>${esc(x.a.nombre)} ${esc(x.a.apellido)}</b> · Código ${esc(x.a.codigo)} · Zona ${esc(x.a.zona)}<br><small>Cantidad total: ${x.liters.toFixed(2)} L · Total a pagar: ${money(x.total)}</small></div>`).join('');
+}
+function renderAll(){renderAcopiadores();renderReco();renderPagos();renderQuality();renderPublic();renderStats();renderPrint()}
+renderAll();
+</script>
+</body>
+</html>
