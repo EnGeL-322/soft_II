@@ -1,0 +1,12 @@
+CARPETA HISTÓRICA — NO USAR COMO FUENTE PRINCIPAL
+
+Estos archivos se incluyen para conservar contexto y poder rastrear cómo evolucionaron los requerimientos.
+
+Si existe conflicto, usar este orden:
+1) Huata_Cronograma_y_Requerimientos_FINAL.xlsx
+2) Cronograma_2026-2.xlsx / Cronograma_EDT_Historias_Usuario.txt
+3) Requerimientos_base_oficial.xlsx
+4) Documentos de contexto
+5) Esta carpeta histórica
+
+No reintroducir automáticamente módulos antiguos (quesos, Excel, zonas fijas, etc.) sin validar su vigencia.

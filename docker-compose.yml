@@ -1,0 +1,57 @@
+# Levanta todo Huata Lácteos (Fase 1) con un solo comando:
+#   docker compose up --build
+#
+# - db      → PostgreSQL 16 (el objetivo declarado en el Project Charter)
+# - backend → huata (Java 17 + Spring Boot), perfil "postgres", datos DEMO sembrados
+# - web     → huata-web (Angular) servido por nginx, que hace de proxy hacia backend en /api/
+#
+# Web queda en http://localhost:8081 y el backend (para pruebas directas / Swagger-less API) en
+# http://localhost:8080. Variables ajustables en un archivo ".env" (ver .env.example).
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: huata-postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME:-huata}
+      POSTGRES_USER: ${DB_USER:-huata}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-huata}
+    volumes:
+      - huata_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-huata} -d ${DB_NAME:-huata}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build:
+      context: ./huata
+    container_name: huata-backend
+    environment:
+      SPRING_PROFILES_ACTIVE: postgres
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-huata}
+      DB_USER: ${DB_USER:-huata}
+      DB_PASSWORD: ${DB_PASSWORD:-huata}
+      HUATA_SEED_DEMO: ${HUATA_SEED_DEMO:-true}
+      HUATA_JWT_SECRET: ${HUATA_JWT_SECRET:-huata-lacteos-clave-secreta-desarrollo-cambiar-en-produccion-1234567890}
+      HUATA_CORS_ORIGINS: http://localhost:${WEB_PORT:-8081}
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+
+  web:
+    build:
+      context: ./huata-web
+    container_name: huata-web
+    depends_on:
+      - backend
+    ports:
+      - "${WEB_PORT:-8081}:80"
+
+volumes:
+  huata_pg_data:

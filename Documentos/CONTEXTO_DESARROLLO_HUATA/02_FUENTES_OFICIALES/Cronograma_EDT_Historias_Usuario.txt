@@ -1,0 +1,106 @@
+structura del archivo (columnas correctas)
+EDT	Nombre de tarea	Comienzo	Fin	Historia de Usuario
+1.1.1	Kick off del proyecto y conformación del equipo	19/08/2026	19/08/2026	—
+1.1.2	Elaboración del Project Charter	19/08/2026	20/08/2026	—
+1.1.3	Definición de objetivos, alcance y stakeholders	20/08/2026	20/08/2026	—
+1.1.4	Elaboración de cronograma preliminar en MS Project	20/08/2026	20/08/2026	—
+1.1.5	Levantamiento de información en campo (Huata)	21/08/2026	22/08/2026	—
+1.1.6	Identificación de actores del sistema	22/08/2026	22/08/2026	—
+1.1.7	Elaboración de Requerimientos Funcionales (RF)	23/08/2026	23/08/2026	—
+1.1.8	Elaboración de Requerimientos No Funcionales (RNF)	23/08/2026	23/08/2026	—
+1.1.9	Elaboración de Historias de Usuario / Casos de Uso	24/08/2026	24/08/2026	—
+1.1.10	Priorización del Backlog (MoSCoW)	24/08/2026	24/08/2026	—
+1.1.11	Elaboración de Plan de Gestión del Proyecto	25/08/2026	25/08/2026	—
+1.1.12	Revisión y consolidación de documentos de la Sprint 1	25/08/2026	25/08/2026	—
+1.1.13	Sprint Review + Retrospectiva Sprint 1	25/08/2026	25/08/2026	—
+2.1.1	Sprint Planning Sprint 2	26/08/2026	26/08/2026	—
+2.1.2	Presentación de requerimientos (RF/RNF) al cliente	26/08/2026	26/08/2026	—
+2.1.3	Levantamiento de observaciones y ajustes a requerimientos	27/08/2026	27/08/2026	—
+2.1.4	Firma de Acta de Aprobación de Requerimientos	28/08/2026	28/08/2026	—
+2.1.5	Sprint Review + Retrospectiva Sprint 2	01/09/2026	01/09/2026	—
+2.2.1	Diseño de wireframes de baja fidelidad (Web y Móvil)	27/08/2026	27/08/2026	—
+2.2.2	Definición de guía de estilos / Design System	28/08/2026	28/08/2026	—
+2.2.3	Diseño de prototipo de alta fidelidad en Figma - Web	29/08/2026	30/08/2026	—
+2.2.4	Diseño de prototipo de alta fidelidad en Figma - Móvil	29/08/2026	30/08/2026	—
+2.2.5	Maquetación del prototipo navegable en HTML/CSS (Web)	31/08/2026	31/08/2026	—
+2.2.6	Revisión de prototipos (Figma + HTML) con el cliente	31/08/2026	31/08/2026	—
+2.2.7	Ajustes de prototipos según observaciones	01/09/2026	01/09/2026	—
+3.1.1	Sprint Planning Sprint 3	02/09/2026	02/09/2026	—
+3.1.2	Sprint Review + Retrospectiva Sprint 3	08/09/2026	08/09/2026	—
+3.2.1	Firma / Aprobación final de prototipos	02/09/2026	02/09/2026	—
+3.3.1	Diseño de la arquitectura del sistema	02/09/2026	02/09/2026	—
+3.3.2	Diseño del modelo de datos (MER)	03/09/2026	03/09/2026	—
+3.3.3	Creación de la base de datos en PostgreSQL	04/09/2026	04/09/2026	—
+3.3.4	Configuración de repositorio Git y GitFlow	03/09/2026	03/09/2026	—
+3.3.5	Configuración de entorno backend (Java 21, Spring Boot)	03/09/2026	03/09/2026	—
+3.3.6	Configuración de entorno frontend Angular	03/09/2026	03/09/2026	—
+3.3.7	Configuración de entorno móvil Flutter	03/09/2026	03/09/2026	—
+3.3.8	Configuración de seguridad (Spring Security + JWT)	04/09/2026	04/09/2026	—
+3.3.9	Configuración de integración continua (CI) básica	04/09/2026	04/09/2026	—
+3.4.1	HU01: Desarrollo Web: Pantalla de Login (Angular)	06/09/2026	06/09/2026	HU01: Como usuario del sistema, quiero iniciar sesión con mi correo y contraseña para acceder a mi cuenta de forma segura.
+3.4.2	HU02: Desarrollo Móvil: Pantalla de Login (Flutter)	06/09/2026	06/09/2026	HU02: Como usuario del sistema, quiero iniciar sesión desde mi dispositivo móvil para acceder a mi cuenta de forma segura.
+3.4.3	HU03: Desarrollo Backend: Módulo de Autenticación	05/09/2026	06/09/2026	HU03: Como usuario del sistema, quiero que mi sesión se mantenga activa para no tener que escribir mis credenciales cada vez que uso la aplicación.
+3.4.4	Pruebas de integración del módulo de autenticación	07/09/2026	07/09/2026	—
+4.1.1	Sprint Planning Sprint 4	09/09/2026	09/09/2026	—
+4.1.2	Sprint Review + Retrospectiva Sprint 4	15/09/2026	15/09/2026	—
+4.2.1	HU04: Backend: CRUD de Productores (API REST)	09/09/2026	10/09/2026	HU04: Como administrador, quiero registrar, listar, editar y eliminar productores de leche para mantener actualizada la base de datos de proveedores.
+4.2.2	HU05: Backend: CRUD de Acopiadores y Rutas	10/09/2026	11/09/2026	HU05: Como administrador, quiero registrar, listar, editar y eliminar acopiadores para gestionar el personal que recolecta la leche en campo.
+4.2.3	HU06: Backend: CRUD de Centros de Acopio	11/09/2026	11/09/2026	HU06: Como administrador, quiero registrar, listar, editar y eliminar centros de acopio para tener control de los puntos de recepción de leche.
+4.2.4	HU07: Web: Módulo de gestión de Productores	11/09/2026	12/09/2026	HU07: Como administrador, quiero gestionar los productores desde la web para mantener actualizada la base de datos de proveedores.
+4.2.5	HU08: Web: Módulo de gestión de Rutas y Centros de Acopio	12/09/2026	13/09/2026	HU08: Como administrador, quiero gestionar las rutas y centros de acopio desde la web para organizar la logística de recolección.
+4.2.6	HU09: Móvil: Módulo de consulta de productores asignados	11/09/2026	12/09/2026	HU09: Como acopiador, quiero consultar los productores que tengo asignados en mi ruta para saber a quiénes debo visitar durante el día.
+4.2.7	HU10: Móvil: Módulo de gestión de ruta del día	12/09/2026	13/09/2026	HU10: Como acopiador, quiero ver mi ruta del día con los productores y centros de acopio asignados para organizar mi recorrido de forma eficiente.
+4.2.8	Pruebas unitarias backend (JUnit)	14/09/2026	14/09/2026	—
+4.2.9	Pruebas funcionales módulo Productores (Web y Móvil)	14/09/2026	14/09/2026	—
+4.3.1	Documentación técnica de API (Swagger / OpenAPI)	14/09/2026	14/09/2026	—
+5.1.1	Sprint Planning Sprint 5	16/09/2026	16/09/2026	—
+5.1.2	Sprint Review + Retrospectiva Sprint 5	22/09/2026	22/09/2026	—
+5.2.1	HU11: Backend: API de Registro de Recojo de Leche	16/09/2026	17/09/2026	HU11: Como acopiador, quiero registrar la cantidad de leche recolectada de cada productor para llevar un control preciso de la producción diaria.
+5.2.2	HU12: Web: Módulo de consulta de liquidaciones	20/09/2026	20/09/2026	HU12: Como administrador, quiero consultar las liquidaciones por productor y por fecha para revisar y validar los pagos realizados.
+5.3.1	HU13: Backend: Registro de parámetros de calidad	17/09/2026	17/09/2026	HU13: Como acopiador, quiero registrar los parámetros de calidad de la leche (densidad, acidez, temperatura) para asegurar que cumple con los estándares requeridos.
+5.3.2	HU14: Backend: Cálculo de pago / liquidación	18/09/2026	19/09/2026	HU14: Como acopiador, quiero que el sistema calcule automáticamente el pago del productor según los litros recolectados para liquidar de forma rápida y sin errores.
+5.3.3	HU15: Web: Módulo de registro y consulta de recojos	18/09/2026	19/09/2026	HU15: Como administrador, quiero registrar y consultar los recojos de leche desde la web para llevar un control centralizado de la producción.
+5.3.4	HU16: Móvil: Pantalla de registro de recojo de leche (offline-first)	18/09/2026	19/09/2026	HU16: Como acopiador, quiero registrar el recojo de leche aunque no tenga conexión a internet para seguir trabajando en zonas rurales sin cobertura.
+5.3.5	HU17: Móvil: Almacenamiento local (SQLite) y sincronización	19/09/2026	20/09/2026	HU17: Como acopiador, quiero que los datos registrados sin conexión se sincronicen automáticamente cuando tenga internet para no perder información.
+5.3.6	HU18: Móvil: Captura de evidencia (firma digital / foto)	21/09/2026	21/09/2026	HU18: Como acopiador, quiero tomar una foto o capturar la firma del productor como evidencia del recojo para tener un respaldo del registro.
+5.3.7	Pruebas unitarias e integración del módulo de Recojo	21/09/2026	21/09/2026	—
+6.1.1	Sprint Planning Sprint 6	23/09/2026	23/09/2026	—
+6.1.2	Sprint Review + Retrospectiva Sprint 6	29/09/2026	29/09/2026	—
+6.2.1	HU19: Backend: Módulo de reportes gerenciales	23/09/2026	24/09/2026	HU19: Como administrador, quiero ver reportes gerenciales de producción total, por ruta y por productor para evaluar el desempeño de cada zona.
+6.2.2	HU20: Backend: Módulo de notificaciones (email / push)	24/09/2026	24/09/2026	HU20: Como administrador, quiero recibir notificaciones por correo electrónico para estar al tanto de eventos importantes del sistema.
+6.2.3	HU21: Web: Dashboard de reportes con gráficos	25/09/2026	26/09/2026	HU21: Como administrador, quiero ver un dashboard con gráficos de producción y tendencias para tener una visión rápida del estado del negocio.
+6.2.4	HU22: Web: Módulo de administración de usuarios y roles	26/09/2026	26/09/2026	HU22: Como administrador, quiero gestionar los usuarios del sistema y sus roles para controlar quién tiene acceso a cada funcionalidad.
+6.2.5	HU23: Móvil: Notificaciones push (Firebase Cloud Messaging)	25/09/2026	25/09/2026	HU23: Como acopiador, quiero recibir notificaciones push en mi dispositivo móvil para estar informado sobre novedades y alertas en el campo.
+6.2.6	HU24: Móvil: Pantalla de historial de recojos y reportes personales	25/09/2026	26/09/2026	HU24: Como acopiador, quiero consultar mi historial de recojos y reportes personales desde la app móvil para llevar un control de mi trabajo diario.
+6.2.7	Pruebas unitarias módulo de Reportes y Notificaciones	27/09/2026	27/09/2026	—
+6.3.1	Ajustes de UI/UX según pruebas internas	27/09/2026	27/09/2026	—
+6.4.1	Congelamiento de funcionalidades (Feature Freeze)	28/09/2026	28/09/2026	—
+7.1.1	Sprint Planning Sprint 7	30/09/2026	30/09/2026	—
+7.1.2	Sprint Review + Retrospectiva Sprint 7	06/10/2026	06/10/2026	—
+7.2.1	Elaboración del Plan de Pruebas y Casos de Prueba	30/09/2026	30/09/2026	—
+7.2.2	Pruebas de integración Backend - Web	01/10/2026	01/10/2026	—
+7.2.3	Pruebas de integración Backend - Móvil	01/10/2026	01/10/2026	—
+7.2.4	Pruebas funcionales completas	02/10/2026	02/10/2026	—
+7.2.5	Pruebas de aceptación de usuario (UAT)	03/10/2026	03/10/2026	—
+7.2.6	Registro y priorización de incidencias/bugs	03/10/2026	03/10/2026	—
+7.2.7	Corrección de bugs críticos y altos	04/10/2026	05/10/2026	—
+7.2.8	Pruebas de regresión	05/10/2026	05/10/2026	—
+7.2.9	Pruebas no funcionales (rendimiento, seguridad)	02/10/2026	02/10/2026	—
+7.3.1	Elaboración del Manual de Usuario (Web y Móvil)	04/10/2026	04/10/2026	—
+7.3.2	Elaboración del Manual Técnico	04/10/2026	04/10/2026	—
+8.1.1	Sprint Planning Sprint 8	07/10/2026	07/10/2026	—
+8.1.2	Sprint Review + Retrospectiva Sprint 8	13/10/2026	13/10/2026	—
+8.2.1	Preparación del entorno de producción	07/10/2026	07/10/2026	—
+8.2.2	Despliegue del Backend en producción	08/10/2026	08/10/2026	—
+8.2.3	Despliegue del Frontend Web en producción	08/10/2026	08/10/2026	—
+8.2.4	Generación y distribución de la app móvil (APK)	08/10/2026	08/10/2026	—
+8.3.1	Migración y carga inicial de datos maestros	09/10/2026	09/10/2026	—
+8.4.1	Pruebas de humo (smoke testing) en producción	09/10/2026	09/10/2026	—
+8.5.1	Elaboración de material de capacitación	08/10/2026	08/10/2026	—
+8.5.2	HU25: Capacitación a administradores del sistema (módulo Web)	10/10/2026	10/10/2026	HU25: Como administrador, quiero recibir capacitación sobre el uso del sistema web para gestionar eficientemente las operaciones.
+8.5.3	HU26: Capacitación a acopiadores / usuarios finales (App Móvil) en Huata	11/10/2026	11/10/2026	HU26: Como acopiador, quiero recibir capacitación sobre el uso de la aplicación móvil en campo para aprender a registrar los recojos de leche correctamente.
+8.5.4	HU27: Soporte post-implementación (hipercare)	11/10/2026	12/10/2026	HU27: Como usuario del sistema, quiero contar con soporte post-implementación para resolver dudas o problemas durante los primeros días de uso.
+9.1.1	Elaboración del Acta de Cierre del Proyecto	14/10/2026	14/10/2026	—
+9.1.2	Firma de conformidad final del cliente	15/10/2026	15/10/2026	—
+9.1.3	Reunión de cierre con stakeholders	15/10/2026	15/10/2026	—
+9.2.1	Entrega final de documentación	14/10/2026	14/10/2026	—
