@@ -1,12 +1,16 @@
 import { DatePipe } from '@angular/common';
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { EstadoRecojo, PageResponse, Productor, Recojo, Ruta } from '../../core/models/models';
 import { ProductoresService } from '../../core/services/productores.service';
 import { RecojoService } from '../../core/services/recojo.service';
 import { RutasService } from '../../core/services/rutas.service';
+import { UbicacionesService } from '../../core/services/ubicaciones.service';
 import { BadgeEstadoComponent } from '../../shared/ui/badge-estado.component';
 import { PaginadorComponent } from '../../shared/ui/paginador.component';
+
+/** No enviar mas de una posicion cada X segundos aunque el navegador reporte cambios mas seguido. */
+const INTERVALO_MINIMO_MS = 15_000;
 
 @Component({
   selector: 'app-recojo',
@@ -23,11 +27,20 @@ import { PaginadorComponent } from '../../shared/ui/paginador.component';
         </p>
       </div>
       <div class="actions">
+        <button type="button" class="btn" [class.btn-primary]="!compartiendoGps()" [class.btn-danger]="compartiendoGps()" (click)="alternarGps()">
+          {{ compartiendoGps() ? '◉ Compartiendo ubicación — detener' : '◎ Compartir mi ubicación (GPS)' }}
+        </button>
         <button type="button" class="btn btn-primary" (click)="mostrarForm.set(!mostrarForm())">
           + Registrar recojo
         </button>
       </div>
     </div>
+
+    @if (gpsMensaje()) {
+      <div class="note" [class.green]="compartiendoGps() && !gpsError()" [class.red]="gpsError()" style="margin-bottom:16px">
+        {{ gpsMensaje() }}
+      </div>
+    }
 
     @if (mostrarForm()) {
       <form class="card" style="margin-bottom:20px" (ngSubmit)="registrar()">
@@ -131,11 +144,17 @@ import { PaginadorComponent } from '../../shared/ui/paginador.component';
     </div>
   `,
 })
-export class RecojoComponent implements OnInit {
+export class RecojoComponent implements OnInit, OnDestroy {
   readonly pagina = signal<PageResponse<Recojo> | null>(null);
   readonly productores = signal<Productor[]>([]);
   readonly rutas = signal<Ruta[]>([]);
   readonly mostrarForm = signal(false);
+
+  readonly compartiendoGps = signal(false);
+  readonly gpsMensaje = signal('');
+  readonly gpsError = signal(false);
+  private watchId: number | null = null;
+  private ultimoEnvioGps = 0;
 
   filtroProductorId?: number;
   filtroEstado?: EstadoRecojo;
@@ -149,12 +168,71 @@ export class RecojoComponent implements OnInit {
     private readonly recojoService: RecojoService,
     private readonly productoresService: ProductoresService,
     private readonly rutasService: RutasService,
+    private readonly ubicacionesService: UbicacionesService,
   ) {}
 
   ngOnInit(): void {
     this.productoresService.listar({ size: 200 }).subscribe((pg) => this.productores.set(pg.content));
     this.rutasService.listar().subscribe((pg) => this.rutas.set(pg.content));
     this.buscar();
+  }
+
+  ngOnDestroy(): void {
+    this.detenerGps();
+  }
+
+  /** GPS real via la Geolocation API del navegador (no una simulación): pide permiso nativo al acopiador. */
+  alternarGps(): void {
+    if (this.compartiendoGps()) {
+      this.detenerGps();
+      return;
+    }
+    if (!('geolocation' in navigator)) {
+      this.gpsError.set(true);
+      this.gpsMensaje.set('Este navegador no soporta geolocalización.');
+      return;
+    }
+    this.gpsError.set(false);
+    this.gpsMensaje.set('Solicitando permiso de ubicación…');
+    this.watchId = navigator.geolocation.watchPosition(
+      (posicion) => this.onPosicion(posicion),
+      (error) => {
+        this.gpsError.set(true);
+        this.gpsMensaje.set('No se pudo obtener tu ubicación: ' + error.message);
+        this.compartiendoGps.set(false);
+      },
+      { enableHighAccuracy: true, maximumAge: 10_000, timeout: 20_000 },
+    );
+    this.compartiendoGps.set(true);
+  }
+
+  private detenerGps(): void {
+    if (this.watchId !== null) {
+      navigator.geolocation.clearWatch(this.watchId);
+      this.watchId = null;
+    }
+    this.compartiendoGps.set(false);
+    this.gpsMensaje.set('Se dejó de compartir la ubicación.');
+    this.gpsError.set(false);
+  }
+
+  private onPosicion(posicion: GeolocationPosition): void {
+    const ahora = Date.now();
+    if (ahora - this.ultimoEnvioGps < INTERVALO_MINIMO_MS) {
+      return;
+    }
+    this.ultimoEnvioGps = ahora;
+    const { latitude, longitude, accuracy } = posicion.coords;
+    this.ubicacionesService.reportar(latitude, longitude, accuracy).subscribe({
+      next: () => {
+        this.gpsError.set(false);
+        this.gpsMensaje.set('Compartiendo ubicación · última actualización ' + new Date().toLocaleTimeString());
+      },
+      error: (err) => {
+        this.gpsError.set(true);
+        this.gpsMensaje.set(err?.error?.message ?? 'No se pudo enviar la ubicación al servidor.');
+      },
+    });
   }
 
   buscar(): void {

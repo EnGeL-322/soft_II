@@ -222,6 +222,15 @@ export interface TrazabilidadItem {
   estado: string;
 }
 
+export interface UbicacionGps {
+  acopiadorId: number;
+  acopiadorNombre: string;
+  latitud: number;
+  longitud: number;
+  precisionMetros?: number;
+  fecha: string;
+}
+
 export interface ConsultaPublica {
   codigo: string;
   zona?: string;

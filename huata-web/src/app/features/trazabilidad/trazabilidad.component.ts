@@ -1,19 +1,21 @@
 import { DatePipe } from '@angular/common';
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { TrazabilidadItem } from '../../core/models/models';
+import { TrazabilidadItem, UbicacionGps } from '../../core/models/models';
 import { TrazabilidadService } from '../../core/services/trazabilidad.service';
+import { UbicacionesService } from '../../core/services/ubicaciones.service';
 import { BadgeEstadoComponent } from '../../shared/ui/badge-estado.component';
+import { MapaComponent, PuntoMapa } from '../../shared/ui/mapa.component';
 
 /**
  * Seguimiento de producción: buscador libre por código de proveedor, zona, fecha o id de
- * recepción. El panel de "ruta en seguimiento" es un esquema (no un mapa real), con el mismo
- * criterio de honestidad del prototipo: "DEMO GPS · esquema, no a escala".
+ * recepción, más un mapa GPS real (Leaflet + OpenStreetMap) con la última posición de cada
+ * acopiador que haya compartido su ubicación desde "Recepción / Acopio".
  */
 @Component({
   selector: 'app-trazabilidad',
   standalone: true,
-  imports: [FormsModule, DatePipe, BadgeEstadoComponent],
+  imports: [FormsModule, DatePipe, BadgeEstadoComponent, MapaComponent],
   template: `
     <div class="page-head">
       <div>
@@ -23,6 +25,24 @@ import { BadgeEstadoComponent } from '../../shared/ui/badge-estado.component';
       </div>
     </div>
 
+    <div class="table-title" style="margin-top:0">
+      <div>
+        <h3>Acopiadores en ruta (GPS real)</h3>
+        <p>
+          Posición reportada por el navegador del acopiador desde "Recepción / Acopio". Sin
+          simulación: si nadie compartió su ubicación todavía, el mapa aparece vacío.
+        </p>
+      </div>
+    </div>
+    <div class="card" style="height:340px; padding:0; overflow:hidden; margin-bottom:20px">
+      <app-mapa [puntos]="puntosMapa()" />
+    </div>
+    @if (ubicaciones().length === 0) {
+      <p class="muted" style="margin:-10px 0 20px">
+        Ningún acopiador ha compartido su ubicación todavía.
+      </p>
+    }
+
     <div class="toolbar">
       <input
         type="text"
@@ -30,28 +50,7 @@ import { BadgeEstadoComponent } from '../../shared/ui/badge-estado.component';
         [(ngModel)]="q"
         (ngModelChange)="buscar()"
       />
-      <span class="badge badge-gris">DEMO GPS · esquema, no a escala</span>
     </div>
-
-    @if (resultados().length > 0) {
-      <div class="card" style="margin-bottom:16px">
-        <strong style="font-size:11.5px">Ruta en seguimiento (esquemático)</strong>
-        <div style="display:flex; align-items:center; gap:4px; margin-top:14px; overflow-x:auto; padding-bottom:6px">
-          @for (r of resultados(); track r.recojoId; let last = $last) {
-            <div style="display:flex; align-items:center; gap:4px; flex:0 0 auto">
-              <div
-                title="{{ r.productorCodigo }}"
-                [style.background]="r.estado === 'CANCELLED' ? 'var(--red)' : 'var(--green2)'"
-                style="width:14px; height:14px; border-radius:50%"
-              ></div>
-              @if (!last) {
-                <div style="width:28px; height:2px; background:var(--line)"></div>
-              }
-            </div>
-          }
-        </div>
-      </div>
-    }
 
     <div class="tablebox">
       <table>
@@ -88,12 +87,27 @@ import { BadgeEstadoComponent } from '../../shared/ui/badge-estado.component';
 })
 export class TrazabilidadComponent implements OnInit {
   readonly resultados = signal<TrazabilidadItem[]>([]);
+  readonly ubicaciones = signal<UbicacionGps[]>([]);
+  readonly puntosMapa = computed<PuntoMapa[]>(() =>
+    this.ubicaciones().map((u) => ({
+      id: u.acopiadorId,
+      lat: u.latitud,
+      lng: u.longitud,
+      etiqueta: u.acopiadorNombre,
+      detalle: 'Actualizado: ' + new Date(u.fecha).toLocaleString(),
+    })),
+  );
+
   q = '';
 
-  constructor(private readonly trazabilidadService: TrazabilidadService) {}
+  constructor(
+    private readonly trazabilidadService: TrazabilidadService,
+    private readonly ubicacionesService: UbicacionesService,
+  ) {}
 
   ngOnInit(): void {
     this.buscar();
+    this.ubicacionesService.ultimas().subscribe((u) => this.ubicaciones.set(u));
   }
 
   buscar(): void {

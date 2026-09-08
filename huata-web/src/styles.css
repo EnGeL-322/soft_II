@@ -513,6 +513,18 @@ td.num {
   line-height: 1.55;
 }
 
+.note.green {
+  border-color: var(--green);
+  background: var(--green-soft);
+  color: #265b45;
+}
+
+.note.red {
+  border-color: var(--red);
+  background: var(--red-soft);
+  color: #7a382a;
+}
+
 .error-text {
   color: var(--red);
   font-size: 11.5px;

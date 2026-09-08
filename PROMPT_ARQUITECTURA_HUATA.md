@@ -57,7 +57,12 @@ soft_II/
 │       ├── liquidaciones/ (TarifaLeche, Liquidacion, LiquidacionDetalle)
 │       ├── parametros/    (ParametroNegocio: configuración general)
 │       ├── notificaciones/
-│       └── reportes/      (agregaciones de solo lectura sobre los demás módulos)
+│       ├── quesos/        (producción/venta de quesos — módulo histórico, ver sección 3)
+│       ├── auditoria/     (bitácora: quién/cuándo/qué acción)
+│       ├── portal/        (endpoints públicos, sin login: consulta de calidad por código)
+│       ├── exportacion/   (genera los .xlsx reales de "Datos y respaldo", con Apache POI)
+│       ├── Dockerfile, .dockerignore
+│       └── reportes/      (agregaciones de solo lectura: dashboard, zonas, trazabilidad)
 │
 ├── huata-web/        → WEB (Angular, modular por feature)
 │   └── src/app/
@@ -66,8 +71,12 @@ soft_II/
 │       │                    "picker" de productores/rutas/acopiadores)
 │       ├── shared/        (layout/shell, badge de estado, paginador reutilizables)
 │       └── features/      (una carpeta por pantalla: dashboard, productores, acopiadores,
-│                            rutas, recojo, calidad, liquidaciones, reportes, usuarios,
-│                            parametros, auth — cada una con su componente standalone)
+│                            rutas, recojo, calidad, liquidaciones, quesos, zonas,
+│                            trazabilidad, reportes, usuarios, parametros, datos-respaldo,
+│                            auth, portal — cada una con su componente standalone)
+│   Dockerfile, nginx.conf, proxy.conf.json
+│
+├── docker-compose.yml → levanta db + backend + web con un solo comando (sección 6)
 │
 └── huata_movil/      → MÓVIL (Flutter — se retoma en Fase 2, sin tocar en esta fase)
 ```
@@ -80,24 +89,39 @@ inventar uno nuevo.
 
 ## 3. Alcance funcional de la Fase 1 (backend + web)
 
-Prioridad tomada de `01_CONTEXTO_COMPLETO_PARA_DESARROLLO.md` y del menú del prototipo HTML:
+Prioridad tomada de `01_CONTEXTO_COMPLETO_PARA_DESARROLLO.md` y del menú del prototipo HTML.
+A pedido explícito del cliente, la Fase 1 replica **todos** los módulos visibles del prototipo,
+incluidos los que el Project Charter no exige — quedan igual construidos pero rotulados como
+"módulo histórico" donde corresponde, para que quede claro qué es alcance oficial y qué no:
 
-1. Autenticación (JWT) y usuarios/roles (ADMINISTRADOR, ACOPIADOR, CALIDAD).
+1. Autenticación (JWT) y usuarios/roles (ADMINISTRADOR, ACOPIADOR, CALIDAD), con tabla de
+   Roles (responsabilidad/acceso) y bitácora de Auditoría.
 2. Productores, Acopiadores, Rutas y Centros de acopio.
 3. Recojo de leche (registro, listado, cancelación con motivo).
 4. Calidad: parámetros configurables (densidad, punto de congelación, acidez, grasa, sólidos),
    control de calidad por recojo, evidencia (foto/voucher), historial por proveedor y
    seguimiento de incidencias/adulteraciones.
 5. Liquidaciones: tarifa configurable, cálculo por proveedor/periodo, detalle por recojo.
-6. Reportes/dashboard: producción total, por ruta, por productor, tendencia de calidad,
-   incidencias, liquidaciones — KPIs primero, con filtros.
-7. Notificaciones enlazadas a la incidencia/registro que las origina.
-8. Configuración de parámetros de negocio.
+6. Producción · Quesos — **módulo histórico** (fuera del Charter oficial), CRUD completo con
+   "total venta" nulo cuando no hay evidencia (no se inventa el monto).
+7. Zonas y rendimiento — comparativo semana actual vs. anterior por zona (la zona sigue siendo
+   texto libre de `Ruta`, no una lista fija: decisión C-05).
+8. Seguimiento de producción / Trazabilidad — buscador libre (código, zona, fecha, id de
+   recepción) **+ mapa GPS real** (Leaflet + OpenStreetMap, sin API key): el acopiador comparte su
+   ubicación desde "Recepción / Acopio" con la Geolocation API del navegador (permiso nativo del
+   dispositivo, sin simulación) y su última posición aparece en el mapa. Módulo `ubicaciones`
+   (`UbicacionGps`, ligado al `Acopiador` vía su `Usuario`).
+9. Datos y respaldo — exporta cada tabla a `.xlsx` real (Apache POI) en vez de generarlo en el
+   navegador.
+10. Portal público (`/portal`, sin login) — un proveedor consulta su propia calidad con su
+    código; no expone documento/teléfono ni datos de otros proveedores.
+11. Reportes/dashboard: producción total, por ruta, por productor, tendencia de calidad,
+    incidencias, liquidaciones — KPIs primero, con filtros.
+12. Notificaciones enlazadas a la incidencia/registro que las origina.
+13. Configuración de parámetros de negocio, rangos de calidad, roles y auditoría.
 
-**Explícitamente fuera de esta fase** (aparecen en prototipos históricos pero no en el alcance
-oficial; requieren validación/Change Request antes de construirse): producción de quesos,
-mapa/GPS en vivo, pasarelas de pago, importación/exportación Excel completa. Se documentan como
-pendientes en vez de improvisarse.
+**Se mantiene fuera** (no tiene equivalente pedido ni en el prototipo ni en el Charter):
+pasarelas de pago/transacciones financieras reales.
 
 ## 4. Identidad visual (debe verse como el prototipo)
 
@@ -124,9 +148,9 @@ Convenciones de UI que se replican en Angular:
 ## 5. Stack técnico (Fase 1)
 
 - **Backend:** Java 17, Spring Boot (ya fijado en `huata/pom.xml`), Spring Web, Spring Data JPA,
-  Spring Security + JWT, Bean Validation. Perfil `dev` con H2 en memoria (para levantar sin
-  instalar nada); perfil `postgres` con PostgreSQL (`docker-compose.yml` incluido) para acercarse
-  al objetivo declarado en el Charter.
+  Spring Security + JWT, Bean Validation, Apache POI (Excel real para "Datos y respaldo"). Perfil
+  `dev` con H2 en memoria (para levantar sin instalar nada); perfil `postgres` con PostgreSQL real
+  — el objetivo declarado en el Charter — orquestado por el `docker-compose.yml` raíz.
 - **Web:** Angular (ya scaffolded en `huata-web/`), standalone components, `HttpClient` con
   interceptor JWT, guards por rol. Se desactiva SSR (`server.ts`/`main.server.ts`): es un panel
   administrativo autenticado, no necesita SEO y SSR complica el uso de `localStorage`/JWT.
@@ -135,25 +159,44 @@ Convenciones de UI que se replican en Angular:
 
 ## 6. Cómo ejecutar
 
+### Opción A — todo con Docker (recomendada, es "lo real")
+
+Un solo comando levanta PostgreSQL + backend (Java 17/Spring Boot) + web (Angular servido por
+nginx, que hace de proxy hacia el backend en `/api/`, mismo origen, sin CORS):
+
 ```bash
-# Backend (perfil dev con H2, arranca sin dependencias externas)
+docker compose up --build -d
+```
+
+- Web: http://localhost:8081
+- Backend (API directa, opcional): http://localhost:8080
+- Variables ajustables copiando `.env.example` a `.env` (puertos, credenciales de Postgres,
+  `HUATA_SEED_DEMO`). `docker compose down` detiene todo; `docker compose down -v` además borra
+  el volumen de PostgreSQL (datos).
+- Si el build de la imagen del backend necesita el mismo ajuste de certificados de la nota de
+  abajo: `docker build --build-arg MAVEN_OPTS=-Djavax.net.ssl.trustStoreType=WINDOWS-ROOT ./huata`
+  (en esta sesión el build en Docker funcionó sin necesitarlo).
+
+### Opción B — desarrollo local sin Docker (hot-reload)
+
+```bash
+# Backend (perfil dev con H2, arranca sin dependencias externas) → http://localhost:8080
 cd huata
 ./mvnw spring-boot:run
 
-# Backend con PostgreSQL real
-docker compose -f docker-compose.yml up -d
-./mvnw spring-boot:run -Dspring-boot.run.profiles=postgres
-
-# Web (http://localhost:4200)
+# Web (ng serve usa proxy.conf.json para reenviar /api al backend) → http://localhost:4200
 cd huata-web
 npm start
 ```
 
-Usuarios DEMO sembrados en perfil `dev` (contraseña `Huata2026*` para los tres):
+Usuarios DEMO sembrados (contraseña `Huata2026*` para los tres):
 
 - `admin@huata.pe` — ADMINISTRADOR
 - `acopiador.demo@huata.pe` — ACOPIADOR
 - `calidad.demo@huata.pe` — CALIDAD
+
+Portal público de un proveedor (sin login): http://localhost:8081/portal (o `:4200/portal` en
+desarrollo), probar con el código `DEMO-001`.
 
 ### Nota de este equipo: Maven y certificados
 
