@@ -10,6 +10,8 @@ export interface QuesoRequest {
   vendidosKg?: number;
   totalVenta?: number;
   observaciones?: string;
+  comprador?: string;
+  numeroBoleta?: string;
 }
 
 @Injectable({ providedIn: 'root' })

@@ -558,6 +558,96 @@ td.num {
   color: #fff;
 }
 
+/* ---------- Centro de operación (hero + alertas/actividad) ---------- */
+
+.hero-operacion {
+  background: #133a2c;
+  color: #f2ede0;
+  border-radius: 14px;
+  padding: 26px 28px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+
+.hero-operacion .kicker {
+  color: #9fd3bb;
+}
+
+.hero-operacion h1 {
+  color: #fff;
+  font-size: 30px;
+  margin: 6px 0 6px;
+}
+
+.hero-operacion p {
+  color: #cfe3d8;
+  font-size: 12.5px;
+  margin: 0;
+  max-width: 560px;
+}
+
+.hero-fecha {
+  background: #fbf7ec;
+  border-radius: 10px;
+  padding: 14px 16px;
+  min-width: 200px;
+}
+
+.hero-fecha span {
+  display: block;
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--muted);
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.hero-fecha input[type='date'] {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px 8px;
+  font-size: 12.5px;
+  margin-bottom: 8px;
+}
+
+.list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 13px 4px;
+  border-top: 1px solid var(--line);
+}
+
+.list-item:first-child {
+  border-top: 0;
+}
+
+.list-item b {
+  display: block;
+  font-size: 12.5px;
+}
+
+.list-item span {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+.list-item a {
+  white-space: nowrap;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--green);
+}
+
 /* ---------- Login ---------- */
 
 .login-shell {

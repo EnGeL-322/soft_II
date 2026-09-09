@@ -1,4 +1,6 @@
-import { DecimalPipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
+import { finalize } from 'rxjs';
+import { ExportacionesService } from '../../core/services/exportaciones.service';
 import { Component, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { EstadoLiquidacion, Liquidacion, PageResponse, Productor, TarifaLeche } from '../../core/models/models';
@@ -10,162 +12,8 @@ import { PaginadorComponent } from '../../shared/ui/paginador.component';
 @Component({
   selector: 'app-liquidaciones',
   standalone: true,
-  imports: [FormsModule, DecimalPipe, BadgeEstadoComponent, PaginadorComponent],
-  template: `
-    <div class="page-head">
-      <div>
-        <div class="kicker">Pagos y liquidación</div>
-        <h1>Liquidaciones</h1>
-        <p>
-          El precio de leche es una tarifa configurable (no una constante): confirmar los valores vigentes con
-          Administración antes de producción.
-        </p>
-      </div>
-    </div>
-
-    <div class="tabs">
-      <button type="button" class="tab-btn" [class.active]="tab() === 'liquidaciones'" (click)="tab.set('liquidaciones')">
-        Liquidaciones
-      </button>
-      <button type="button" class="tab-btn" [class.active]="tab() === 'tarifas'" (click)="tab.set('tarifas')">
-        Tarifas
-      </button>
-    </div>
-
-    @if (tab() === 'liquidaciones') {
-      <form class="card" style="margin-bottom:16px" (ngSubmit)="calcular()">
-        <div class="form-grid">
-          <div class="field">
-            <label>Productor</label>
-            <select [(ngModel)]="calc.productorId" name="productorId" required>
-              <option [ngValue]="undefined" disabled>Seleccionar…</option>
-              @for (p of productores(); track p.id) {
-                <option [ngValue]="p.id">{{ p.codigo }} · {{ p.nombres }} {{ p.apellidos }}</option>
-              }
-            </select>
-          </div>
-          <div class="field">
-            <label>Periodo inicio</label>
-            <input type="date" [(ngModel)]="calc.periodoInicio" name="periodoInicio" required />
-          </div>
-          <div class="field">
-            <label>Periodo fin</label>
-            <input type="date" [(ngModel)]="calc.periodoFin" name="periodoFin" required />
-          </div>
-        </div>
-        <div class="actions" style="margin-top:12px">
-          <button type="submit" class="btn btn-primary">Calcular liquidación</button>
-        </div>
-      </form>
-
-      @if (ultimaCalculada(); as l) {
-        <div class="note" style="margin-bottom:16px">
-          Liquidación calculada para {{ l.productorNombre }}: {{ l.litrosTotales | number: '1.0-1' }} L ·
-          S/ {{ l.montoTotal | number: '1.2-2' }} ({{ l.detalle.length }} recojos).
-        </div>
-      }
-
-      <div class="toolbar">
-        <select [(ngModel)]="filtroEstado" (ngModelChange)="buscar()">
-          <option [ngValue]="undefined">Todos los estados</option>
-          <option value="CALCULATED">Calculada</option>
-          <option value="REVIEWED">Revisada</option>
-          <option value="CLOSED">Cerrada</option>
-        </select>
-      </div>
-
-      <div class="tablebox">
-        <table>
-          <thead>
-            <tr>
-              <th>Productor</th>
-              <th>Periodo</th>
-              <th class="num">Litros</th>
-              <th class="num">Monto (S/)</th>
-              <th>Estado</th>
-              <th class="no-print">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (l of pagina()?.content ?? []; track l.id) {
-              <tr>
-                <td>{{ l.productorNombre }}</td>
-                <td>{{ l.periodoInicio }} – {{ l.periodoFin }}</td>
-                <td class="num">{{ l.litrosTotales | number: '1.0-1' }}</td>
-                <td class="num">{{ l.montoTotal | number: '1.2-2' }}</td>
-                <td><app-badge-estado [estado]="l.estado" /></td>
-                <td style="white-space:nowrap">
-                  @if (l.estado === 'CALCULATED') {
-                    <button type="button" class="btn btn-soft" (click)="cambiarEstado(l, 'REVIEWED')">Revisar</button>
-                  }
-                  @if (l.estado === 'REVIEWED') {
-                    <button type="button" class="btn btn-primary" (click)="cambiarEstado(l, 'CLOSED')">Cerrar</button>
-                  }
-                </td>
-              </tr>
-            }
-            @if ((pagina()?.content?.length ?? 0) === 0) {
-              <tr>
-                <td colspan="6" class="muted" style="text-align:center; padding:24px">Sin liquidaciones.</td>
-              </tr>
-            }
-          </tbody>
-        </table>
-        @if (pagina(); as pg) {
-          <app-paginador
-            [page]="pg.page"
-            [totalElements]="pg.totalElements"
-            [totalPages]="pg.totalPages"
-            (anterior)="cambiarPagina(pg.page - 1)"
-            (siguiente)="cambiarPagina(pg.page + 1)"
-          />
-        }
-      </div>
-    } @else {
-      <form class="card" style="margin-bottom:16px" (ngSubmit)="crearTarifa()">
-        <div class="form-grid">
-          <div class="field">
-            <label>Precio normal (S//L)</label>
-            <input type="number" step="0.01" [(ngModel)]="nuevaTarifa.precioNormal" name="precioNormal" required />
-          </div>
-          <div class="field">
-            <label>Precio observada (S//L)</label>
-            <input type="number" step="0.01" [(ngModel)]="nuevaTarifa.precioObservada" name="precioObservada" required />
-          </div>
-          <div class="field">
-            <label>Vigente desde</label>
-            <input type="date" [(ngModel)]="nuevaTarifa.vigenteDesde" name="vigenteDesde" required />
-          </div>
-        </div>
-        <div class="actions" style="margin-top:12px">
-          <button type="submit" class="btn btn-primary">+ Nueva tarifa</button>
-        </div>
-      </form>
-
-      <div class="tablebox">
-        <table>
-          <thead>
-            <tr>
-              <th>Vigente desde</th>
-              <th>Vigente hasta</th>
-              <th class="num">Precio normal</th>
-              <th class="num">Precio observada</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (t of tarifas(); track t.id) {
-              <tr>
-                <td>{{ t.vigenteDesde }}</td>
-                <td>{{ t.vigenteHasta ?? 'Vigente' }}</td>
-                <td class="num">S/ {{ t.precioNormal | number: '1.2-2' }}</td>
-                <td class="num">S/ {{ t.precioObservada | number: '1.2-2' }}</td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-    }
-  `,
+  imports: [FormsModule, DatePipe, DecimalPipe, BadgeEstadoComponent, PaginadorComponent],
+  templateUrl: './liquidaciones.component.html',
 })
 export class LiquidacionesComponent implements OnInit {
   readonly tab = signal<'liquidaciones' | 'tarifas'>('liquidaciones');
@@ -173,6 +21,22 @@ export class LiquidacionesComponent implements OnInit {
   readonly productores = signal<Productor[]>([]);
   readonly tarifas = signal<TarifaLeche[]>([]);
   readonly ultimaCalculada = signal<Liquidacion | null>(null);
+  readonly error = signal('');
+  readonly guardando = signal(false);
+  vista: 'unico' | 'global' | 'reportes' = 'unico';
+  readonly ciclos = Array.from({ length: 52 }, (_, i) => {
+    const inicio = new Date();
+    inicio.setDate(inicio.getDate() - ((inicio.getDay() + 3) % 7) - i * 7);
+    const fin = new Date(inicio); fin.setDate(fin.getDate() + 6);
+    const local = (d: Date) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+    return { inicio: local(inicio), fin: local(fin) };
+  });
+  ciclo = 0;
+  get precioAplicado() { const l = this.ultimaCalculada(); return l?.litrosTotales ? l.montoTotal / l.litrosTotales : null; }
+  seleccionarCiclo() { this.calc.periodoInicio = this.ciclos[this.ciclo].inicio; this.calc.periodoFin = this.ciclos[this.ciclo].fin; this.ultimaCalculada.set(null); }
+  verDetalle(l: Liquidacion) { this.liquidacionesService.obtener(l.id).subscribe({ next: detalle => { this.ultimaCalculada.set(detalle); this.vista = 'unico'; }, error: () => this.error.set('No se pudo cargar el detalle.') }); }
+  imprimir() { window.print(); }
+  exportar() { this.exportaciones.descargar('Pagos').subscribe({ next: blob => { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'Huata_Pagos.xlsx'; a.click(); URL.revokeObjectURL(url); }, error: () => this.error.set('No se pudo exportar el reporte.') }); }
 
   filtroEstado?: EstadoLiquidacion;
   page = 0;
@@ -183,9 +47,11 @@ export class LiquidacionesComponent implements OnInit {
   constructor(
     private readonly liquidacionesService: LiquidacionesService,
     private readonly productoresService: ProductoresService,
+    private readonly exportaciones: ExportacionesService,
   ) {}
 
   ngOnInit(): void {
+    this.seleccionarCiclo();
     this.productoresService.listar({ size: 200 }).subscribe((pg) => this.productores.set(pg.content));
     this.liquidacionesService.tarifas().subscribe((t) => this.tarifas.set(t));
     this.buscar();
@@ -206,19 +72,22 @@ export class LiquidacionesComponent implements OnInit {
   }
 
   calcular(): void {
-    if (!this.calc.productorId) {
+    if (!this.calc.productorId || this.guardando()) {
       return;
     }
+    this.error.set('');
+    this.guardando.set(true);
     this.liquidacionesService
       .calcular({ productorId: this.calc.productorId, periodoInicio: this.calc.periodoInicio, periodoFin: this.calc.periodoFin })
-      .subscribe((l) => {
+      .pipe(finalize(() => this.guardando.set(false)))
+      .subscribe({ next: (l) => {
         this.ultimaCalculada.set(l);
         this.cargar();
-      });
+      }, error: e => this.error.set(e.error?.message ?? 'No se pudo calcular la liquidación.') });
   }
 
   cambiarEstado(l: Liquidacion, estado: EstadoLiquidacion): void {
-    this.liquidacionesService.cambiarEstado(l.id, estado).subscribe(() => this.cargar());
+    this.liquidacionesService.cambiarEstado(l.id, estado).subscribe({ next: detalle => { this.ultimaCalculada.set(detalle); this.cargar(); }, error: e => this.error.set(e.error?.message ?? 'No se pudo actualizar la liquidación.') });
   }
 
   crearTarifa(): void {

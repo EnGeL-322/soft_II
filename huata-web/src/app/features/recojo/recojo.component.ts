@@ -1,7 +1,26 @@
-import { DatePipe } from '@angular/common';
-import { Component, OnDestroy, OnInit, signal } from '@angular/core';
+import { ExportacionesService } from '../../core/services/exportaciones.service';
+import { DatePipe, DecimalPipe } from '@angular/common';
+import { Component, OnDestroy, OnInit, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { EstadoRecojo, PageResponse, Productor, Recojo, Ruta } from '../../core/models/models';
+import { ActivatedRoute } from '@angular/router';
+import {
+  Acopiador,
+  AguaAnadida,
+  Aspecto,
+  EstadoRecojo,
+  FuenteRecojo,
+  Olor,
+  PageResponse,
+  Productor,
+  Recojo,
+  ResultadoCalidad,
+  ResultadoLugol,
+  Ruta,
+  TarifaLeche,
+} from '../../core/models/models';
+import { AcopiadoresService } from '../../core/services/acopiadores.service';
+import { CalidadService } from '../../core/services/calidad.service';
+import { LiquidacionesService } from '../../core/services/liquidaciones.service';
 import { ProductoresService } from '../../core/services/productores.service';
 import { RecojoService } from '../../core/services/recojo.service';
 import { RutasService } from '../../core/services/rutas.service';
@@ -12,143 +31,64 @@ import { PaginadorComponent } from '../../shared/ui/paginador.component';
 /** No enviar mas de una posicion cada X segundos aunque el navegador reporte cambios mas seguido. */
 const INTERVALO_MINIMO_MS = 15_000;
 
+interface FormRecepcion {
+  productorId?: number;
+  fuente: FuenteRecojo;
+  rutaId?: number;
+  acopiadorId?: number;
+  fechaHoraLocal: string;
+  litros?: number;
+  numeroEnvases?: number;
+  capacidadReferenciaL?: number;
+  temperatura?: number;
+  densidad?: number;
+  puntoCongelacion?: number;
+  aguaAnadida: AguaAnadida;
+  lugol: ResultadoLugol;
+  resultado: ResultadoCalidad;
+  olor: Olor;
+  aspecto: Aspecto;
+  motivoRechazo?: string;
+  litrosAppMovil?: number;
+  responsableRecepcion?: string;
+  revisionVisual: string;
+  equipoUtilizado?: string;
+  responsableCalidad?: string;
+}
+
+const FORM_VACIO: FormRecepcion = {
+  fuente: 'RUTA',
+  fechaHoraLocal: new Date().toISOString().slice(0, 16),
+  aguaAnadida: 'NO_EVIDENCIADA',
+  lugol: 'NEGATIVA',
+  resultado: 'ACEPTADA',
+  olor: 'NORMAL',
+  aspecto: 'NORMAL',
+  revisionVisual: 'Recepción registrada en planta de acopio.',
+};
+
+/**
+ * Recepción y acopio: registro compacto por proveedor con precio, resultado y control de calidad
+ * en un solo formulario — igual que el prototipo — pero guardando en dos recursos reales
+ * (Recojo + ControlCalidad) en vez de un solo array en memoria.
+ */
 @Component({
   selector: 'app-recojo',
   standalone: true,
-  imports: [FormsModule, DatePipe, BadgeEstadoComponent, PaginadorComponent],
-  template: `
-    <div class="page-head">
-      <div>
-        <div class="kicker">Recepción / acopio</div>
-        <h1>Recojos de leche</h1>
-        <p>
-          Registro del acopio en campo. El <code>clientUuid</code> de cada recojo es la llave que evitará
-          duplicados cuando la app móvil (Fase 2) sincronice offline.
-        </p>
-      </div>
-      <div class="actions">
-        <button type="button" class="btn" [class.btn-primary]="!compartiendoGps()" [class.btn-danger]="compartiendoGps()" (click)="alternarGps()">
-          {{ compartiendoGps() ? '◉ Compartiendo ubicación — detener' : '◎ Compartir mi ubicación (GPS)' }}
-        </button>
-        <button type="button" class="btn btn-primary" (click)="mostrarForm.set(!mostrarForm())">
-          + Registrar recojo
-        </button>
-      </div>
-    </div>
-
-    @if (gpsMensaje()) {
-      <div class="note" [class.green]="compartiendoGps() && !gpsError()" [class.red]="gpsError()" style="margin-bottom:16px">
-        {{ gpsMensaje() }}
-      </div>
-    }
-
-    @if (mostrarForm()) {
-      <form class="card" style="margin-bottom:20px" (ngSubmit)="registrar()">
-        <div class="form-grid">
-          <div class="field">
-            <label>Productor</label>
-            <select [(ngModel)]="form.productorId" name="productorId" required>
-              <option [ngValue]="undefined" disabled>Seleccionar…</option>
-              @for (p of productores(); track p.id) {
-                <option [ngValue]="p.id">{{ p.codigo }} · {{ p.nombres }} {{ p.apellidos }}</option>
-              }
-            </select>
-          </div>
-          <div class="field">
-            <label>Ruta</label>
-            <select [(ngModel)]="form.rutaId" name="rutaId">
-              <option [ngValue]="undefined">Según el productor</option>
-              @for (r of rutas(); track r.id) {
-                <option [ngValue]="r.id">{{ r.nombre }}</option>
-              }
-            </select>
-          </div>
-          <div class="field">
-            <label>Fecha y hora</label>
-            <input type="datetime-local" [(ngModel)]="form.fechaHoraLocal" name="fechaHora" required />
-          </div>
-          <div class="field">
-            <label>Litros</label>
-            <input type="number" step="0.1" min="0" [(ngModel)]="form.litros" name="litros" required />
-          </div>
-          <div class="field">
-            <label>Temperatura (°C)</label>
-            <input type="number" step="0.1" [(ngModel)]="form.temperatura" name="temperatura" />
-          </div>
-        </div>
-        <div class="actions" style="margin-top:14px">
-          <button type="submit" class="btn btn-primary">Guardar recojo</button>
-          <button type="button" class="btn btn-soft" (click)="mostrarForm.set(false)">Cancelar</button>
-        </div>
-      </form>
-    }
-
-    <div class="toolbar">
-      <select [(ngModel)]="filtroProductorId" (ngModelChange)="buscar()">
-        <option [ngValue]="undefined">Todos los productores</option>
-        @for (p of productores(); track p.id) {
-          <option [ngValue]="p.id">{{ p.codigo }} · {{ p.nombres }} {{ p.apellidos }}</option>
-        }
-      </select>
-      <select [(ngModel)]="filtroEstado" (ngModelChange)="buscar()">
-        <option [ngValue]="undefined">Todos los estados</option>
-        <option value="SYNCED">Sincronizado</option>
-        <option value="PENDING_SYNC">Pendiente de sincronizar</option>
-        <option value="CANCELLED">Cancelado</option>
-      </select>
-    </div>
-
-    <div class="tablebox">
-      <table>
-        <thead>
-          <tr>
-            <th>Fecha</th>
-            <th>Productor</th>
-            <th>Ruta</th>
-            <th class="num">Litros</th>
-            <th>Estado</th>
-            <th class="no-print">Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (r of pagina()?.content ?? []; track r.id) {
-            <tr>
-              <td>{{ r.fechaHora | date: 'short' }}</td>
-              <td>{{ r.productorNombre }}</td>
-              <td>{{ r.rutaNombre ?? '—' }}</td>
-              <td class="num">{{ r.litros }}</td>
-              <td><app-badge-estado [estado]="r.estado" /></td>
-              <td>
-                @if (r.estado !== 'CANCELLED') {
-                  <button type="button" class="btn btn-danger" (click)="cancelar(r)">Cancelar</button>
-                }
-              </td>
-            </tr>
-          }
-          @if ((pagina()?.content?.length ?? 0) === 0) {
-            <tr>
-              <td colspan="6" class="muted" style="text-align:center; padding:24px">Sin resultados.</td>
-            </tr>
-          }
-        </tbody>
-      </table>
-      @if (pagina(); as pg) {
-        <app-paginador
-          [page]="pg.page"
-          [totalElements]="pg.totalElements"
-          [totalPages]="pg.totalPages"
-          (anterior)="cambiarPagina(pg.page - 1)"
-          (siguiente)="cambiarPagina(pg.page + 1)"
-        />
-      }
-    </div>
-  `,
+  imports: [FormsModule, DatePipe, DecimalPipe, BadgeEstadoComponent, PaginadorComponent],
+  templateUrl: './recojo.component.html',
 })
 export class RecojoComponent implements OnInit, OnDestroy {
+  exportar() { this.exportaciones.descargar('Recepciones').subscribe(blob=>{const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='Huata_Recepciones.xlsx';a.click();URL.revokeObjectURL(url);}); }
+
   readonly pagina = signal<PageResponse<Recojo> | null>(null);
   readonly productores = signal<Productor[]>([]);
   readonly rutas = signal<Ruta[]>([]);
+  readonly acopiadores = signal<Acopiador[]>([]);
+  readonly tarifas = signal<TarifaLeche[]>([]);
   readonly mostrarForm = signal(false);
+  readonly guardando = signal(false);
+  readonly errorForm = signal('');
 
   readonly compartiendoGps = signal(false);
   readonly gpsMensaje = signal('');
@@ -156,25 +96,66 @@ export class RecojoComponent implements OnInit, OnDestroy {
   private watchId: number | null = null;
   private ultimoEnvioGps = 0;
 
+  readonly hoyTexto = new Date().toLocaleDateString('es-PE', { day: '2-digit', month: 'short' });
+
   filtroProductorId?: number;
   filtroEstado?: EstadoRecojo;
+  filtroTexto = '';
+  filtroResultado?: ResultadoCalidad | 'PENDIENTE';
+  filtroFuente?: FuenteRecojo;
   page = 0;
 
-  form: { productorId?: number; rutaId?: number; fechaHoraLocal: string; litros?: number; temperatura?: number } = {
-    fechaHoraLocal: new Date().toISOString().slice(0, 16),
-  };
+  form: FormRecepcion = { ...FORM_VACIO };
+
+  readonly tarifaVigente = computed<TarifaLeche | null>(() => {
+    const lista = [...this.tarifas()].sort((a, b) => (a.vigenteDesde < b.vigenteDesde ? 1 : -1));
+    return lista[0] ?? null;
+  });
+
+  readonly filaVisibles = computed(() => {
+    const texto = this.filtroTexto.trim().toLowerCase();
+    return (this.pagina()?.content ?? []).filter((r) => {
+      if (texto && !`${r.productorNombre} ${r.acopiadorNombre ?? ''}`.toLowerCase().includes(texto)) return false;
+      if (this.filtroFuente && r.fuente !== this.filtroFuente) return false;
+      if (this.filtroResultado === 'PENDIENTE' && r.resultadoCalidad) return false;
+      if (this.filtroResultado && this.filtroResultado !== 'PENDIENTE' && r.resultadoCalidad !== this.filtroResultado) return false;
+      return true;
+    });
+  });
+
+  readonly recepcionesHoy = computed(() => {
+    const hoy = new Date().toDateString();
+    return (this.pagina()?.content ?? []).filter((r) => new Date(r.fechaHora).toDateString() === hoy).length;
+  });
+
+  readonly litrosHoy = computed(() => {
+    const hoy = new Date().toDateString();
+    return (this.pagina()?.content ?? [])
+      .filter((r) => new Date(r.fechaHora).toDateString() === hoy)
+      .reduce((s, r) => s + r.litros, 0);
+  });
 
   constructor(
     private readonly recojoService: RecojoService,
+    private readonly calidadService: CalidadService,
     private readonly productoresService: ProductoresService,
     private readonly rutasService: RutasService,
+    private readonly acopiadoresService: AcopiadoresService,
+    private readonly liquidacionesService: LiquidacionesService,
     private readonly ubicacionesService: UbicacionesService,
+    private readonly route: ActivatedRoute,
+    private readonly exportaciones: ExportacionesService,
   ) {}
 
   ngOnInit(): void {
     this.productoresService.listar({ size: 200 }).subscribe((pg) => this.productores.set(pg.content));
     this.rutasService.listar().subscribe((pg) => this.rutas.set(pg.content));
+    this.acopiadoresService.listar('', 0, 200).subscribe((pg) => this.acopiadores.set(pg.content));
+    this.liquidacionesService.tarifas().subscribe((t) => this.tarifas.set(t));
     this.buscar();
+    if (this.route.snapshot.queryParamMap.get('nuevo')) {
+      this.abrirFormulario();
+    }
   }
 
   ngOnDestroy(): void {
@@ -222,8 +203,8 @@ export class RecojoComponent implements OnInit, OnDestroy {
       return;
     }
     this.ultimoEnvioGps = ahora;
-    const { latitude, longitude, accuracy } = posicion.coords;
-    this.ubicacionesService.reportar(latitude, longitude, accuracy).subscribe({
+    const { latitude, longitude, accuracy, speed } = posicion.coords;
+    this.ubicacionesService.reportar(latitude, longitude, accuracy, speed ?? undefined).subscribe({
       next: () => {
         this.gpsError.set(false);
         this.gpsMensaje.set('Compartiendo ubicación · última actualización ' + new Date().toLocaleTimeString());
@@ -247,26 +228,112 @@ export class RecojoComponent implements OnInit, OnDestroy {
 
   private cargar(): void {
     this.recojoService
-      .listar({ productorId: this.filtroProductorId, estado: this.filtroEstado, page: this.page })
+      .listar({ productorId: this.filtroProductorId, estado: this.filtroEstado, page: this.page, size: 50 })
       .subscribe((pg) => this.pagina.set(pg));
+  }
+
+  abrirFormulario(): void {
+    this.form = { ...FORM_VACIO, fechaHoraLocal: new Date().toISOString().slice(0, 16) };
+    this.errorForm.set('');
+    this.mostrarForm.set(true);
+  }
+
+  /** Auto-eleva el resultado si agua añadida o lugol indican algo peor que lo seleccionado (igual que el prototipo). */
+  actualizarDecision(): void {
+    const severidad: Record<ResultadoCalidad, number> = { ACEPTADA: 0, OBSERVADA: 1, RECHAZADA: 2 };
+    let peor = this.form.resultado;
+    if (this.form.aguaAnadida === 'CONFIRMADA' || this.form.lugol === 'POSITIVA') {
+      peor = 'RECHAZADA';
+    } else if (
+      (this.form.aguaAnadida === 'SOSPECHA' || this.form.lugol === 'NO_REALIZADA') &&
+      severidad[peor] < severidad['OBSERVADA']
+    ) {
+      peor = 'OBSERVADA';
+    }
+    this.form.resultado = peor;
+  }
+
+  decisionTexto(): string {
+    switch (this.form.resultado) {
+      case 'ACEPTADA':
+        return 'Entrega apta.';
+      case 'OBSERVADA':
+        return 'Entrega observada: aplica tarifa reducida.';
+      default:
+        return 'Entrega rechazada: no se liquida a precio normal.';
+    }
+  }
+
+  precioAplicar(): number | null {
+    const tarifa = this.tarifaVigente();
+    if (!tarifa) return null;
+    return this.form.resultado === 'ACEPTADA' ? tarifa.precioNormal : tarifa.precioObservada;
+  }
+
+  montoEstimado(): number | null {
+    const precio = this.precioAplicar();
+    if (precio == null || !this.form.litros) return null;
+    return precio * this.form.litros;
   }
 
   registrar(): void {
     if (!this.form.productorId || !this.form.litros) {
+      this.errorForm.set('Selecciona el proveedor y registra los litros recibidos.');
       return;
     }
+    this.errorForm.set('');
+    this.guardando.set(true);
     this.recojoService
       .registrar({
         productorId: this.form.productorId,
         rutaId: this.form.rutaId,
+        acopiadorId: this.form.acopiadorId,
         fechaHora: new Date(this.form.fechaHoraLocal).toISOString(),
         litros: this.form.litros,
         temperatura: this.form.temperatura,
+        fuente: this.form.fuente,
+        numeroEnvases: this.form.numeroEnvases,
+        capacidadReferenciaL: this.form.capacidadReferenciaL,
+        responsableRecepcion: this.form.responsableRecepcion,
+        litrosAppMovil: this.form.litrosAppMovil,
       })
-      .subscribe(() => {
-        this.mostrarForm.set(false);
-        this.form = { fechaHoraLocal: new Date().toISOString().slice(0, 16) };
-        this.buscar();
+      .subscribe({
+        next: (recojo) => {
+          this.calidadService
+            .registrarControl({
+              recojoId: recojo.id,
+              densidad: this.form.densidad,
+              puntoCongelacion: this.form.puntoCongelacion,
+              revisionVisual: this.form.revisionVisual,
+              resultado: this.form.resultado,
+              equipoUtilizado: this.form.equipoUtilizado,
+              responsable: this.form.responsableCalidad,
+              aguaAnadida: this.form.aguaAnadida,
+              lugol: this.form.lugol,
+              olor: this.form.olor,
+              aspecto: this.form.aspecto,
+              motivoRechazo: this.form.resultado === 'RECHAZADA' ? this.form.motivoRechazo : undefined,
+            })
+            .subscribe({
+              next: () => {
+                this.guardando.set(false);
+                this.mostrarForm.set(false);
+                this.buscar();
+              },
+              error: (e) => {
+                this.guardando.set(false);
+                this.errorForm.set(
+                  'La recepción se guardó, pero no se pudo registrar la calidad: ' +
+                    (e?.error?.message ?? 'intenta desde Calidad y evidencia.'),
+                );
+                this.buscar();
+              },
+            });
+        },
+        error: (e) => {
+          this.guardando.set(false);
+          this.errorForm.set(e?.error?.message ?? 'No se pudo registrar la recepción.');
+        },
       });
   }
 

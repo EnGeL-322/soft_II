@@ -1,0 +1,138 @@
+<section id="pagos" class="view active printable">
+  <div class="print-header"><h2>Huata Lácteos · Reporte de pago semanal</h2></div>
+  <div class="page-head"><div><div class="kicker">Liquidación de proveedores</div><h1>Reportes de Pago</h1><p>Consulta el periodo de acopio de jueves a miércoles. Revisa el detalle de cada proveedor antes de cerrar su liquidación.</p></div><button class="btn btn-soft no-print" (click)="tab.set(tab() === 'tarifas' ? 'liquidaciones' : 'tarifas')">{{ tab() === 'tarifas' ? 'Volver a pagos' : 'Tarifas' }}</button></div>
+  @if (error()) { <div class="note" role="alert">{{ error() }}</div> }
+  @if (tab() === 'tarifas') {       <form class="card" style="margin-bottom:16px" (ngSubmit)="crearTarifa()">
+        <div class="form-grid">
+          <div class="field">
+            <label>Precio normal (S//L)</label>
+            <input type="number" step="0.01" [(ngModel)]="nuevaTarifa.precioNormal" name="precioNormal" required />
+          </div>
+          <div class="field">
+            <label>Precio observada (S//L)</label>
+            <input type="number" step="0.01" [(ngModel)]="nuevaTarifa.precioObservada" name="precioObservada" required />
+          </div>
+          <div class="field">
+            <label>Vigente desde</label>
+            <input type="date" [(ngModel)]="nuevaTarifa.vigenteDesde" name="vigenteDesde" required />
+          </div>
+        </div>
+        <div class="actions" style="margin-top:12px">
+          <button type="submit" class="btn btn-primary">+ Nueva tarifa</button>
+        </div>
+      </form>
+
+      <div class="tablebox">
+        <table>
+          <thead>
+            <tr>
+              <th>Vigente desde</th>
+              <th>Vigente hasta</th>
+              <th class="num">Precio normal</th>
+              <th class="num">Precio observada</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (t of tarifas(); track t.id) {
+              <tr>
+                <td>{{ t.vigenteDesde }}</td>
+                <td>{{ t.vigenteHasta ?? 'Vigente' }}</td>
+                <td class="num">S/ {{ t.precioNormal | number: '1.2-2' }}</td>
+                <td class="num">S/ {{ t.precioObservada | number: '1.2-2' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+ } @else {
+  <div class="payment-main-tabs no-print">
+    <button class="payment-main-tab" [class.active]="vista === 'unico'" (click)="vista = 'unico'"><span>💳</span> Pago único</button>
+    <button class="payment-main-tab" [class.active]="vista === 'global'" (click)="vista = 'global'"><span>👥</span> Pago global</button>
+    <button class="payment-main-tab" [class.active]="vista === 'reportes'" (click)="vista = 'reportes'"><span>▦</span> Reportes</button>
+  </div>
+  @if (vista === 'unico') {
+  <div class="payment-main-panel active">
+    <form class="payment-filter-card no-print" (ngSubmit)="calcular()">
+      <div class="payment-filter-head"><span class="payment-filter-step">1</span><div><strong>Busca al proveedor</strong><small>Elige el periodo y el proveedor que vas a liquidar</small></div></div>
+      <div class="payment-filter-grid">
+        <div class="field"><label for="pay-cycle">Periodo de acopio</label><select id="pay-cycle" name="ciclo" [(ngModel)]="ciclo" (ngModelChange)="seleccionarCiclo()">@for(c of ciclos; track c.inicio; let i = $index){<option [ngValue]="i">{{c.inicio}} — {{c.fin}}</option>}</select></div>
+        <div class="field"><label for="pay-provider">Proveedor</label><select id="pay-provider" name="productorId" [(ngModel)]="calc.productorId" (ngModelChange)="ultimaCalculada.set(null)" required><option [ngValue]="undefined" disabled>Seleccionar proveedor</option>@for(p of productores(); track p.id){<option [ngValue]="p.id">{{p.codigo}} · {{p.nombres}} {{p.apellidos}}</option>}</select></div>
+        <div class="field"><label for="pay-from">Desde</label><input id="pay-from" [value]="calc.periodoInicio" readonly></div>
+        <div class="field"><label for="pay-to">Hasta</label><input id="pay-to" [value]="calc.periodoFin" readonly></div>
+      </div><div class="actions" style="margin-top:16px"><button class="btn btn-primary" type="submit" [disabled]="guardando() || !calc.productorId">{{ guardando() ? 'Calculando…' : 'Calcular liquidación' }}</button></div>
+    </form>
+    <div class="payment-summary-grid">
+      <div class="payment-kpi"><div class="payment-kpi-icon blue">▥</div><div><span>Total acopiado</span><strong>{{ (ultimaCalculada()?.litrosTotales ?? 0) | number:'1.2-2' }} L</strong><small>Litros del proveedor en el ciclo</small></div></div>
+      <div class="payment-kpi"><div class="payment-kpi-icon green">S/</div><div><span>Precio aplicado</span><strong>{{ precioAplicado === null ? '—' : 'S/ ' + (precioAplicado | number:'1.2-2') }}</strong><small>Promedio según calidad</small></div></div>
+      <div class="payment-kpi"><div class="payment-kpi-icon violet">↗</div><div><span>Ingresos brutos</span><strong>S/ {{ (ultimaCalculada()?.montoTotal ?? 0) | number:'1.2-2' }}</strong><small>Importe de las entregas</small></div></div>
+      <div class="payment-kpi"><div class="payment-kpi-icon red">↘</div><div><span>Descuentos / ajustes</span><strong>—</strong><small>Sin registro de ajustes</small></div></div>
+      <div class="payment-kpi featured"><div class="payment-kpi-icon green">✓</div><div><span>Total liquidado</span><strong>S/ {{ (ultimaCalculada()?.montoTotal ?? 0) | number:'1.2-2' }}</strong><small>Según liquidación registrada</small></div></div>
+    </div>
+    <div class="card payment-report-card">
+      <div class="payment-report-head"><div><div class="kicker">RESUMEN DE PAGO</div><h3>{{ultimaCalculada()?.productorNombre ?? 'Proveedor · periodo'}}</h3><p>{{ultimaCalculada() ? ultimaCalculada()!.periodoInicio + ' — ' + ultimaCalculada()!.periodoFin : 'Selecciona un proveedor y calcula su liquidación.'}}</p></div><div class="payment-status">@if(ultimaCalculada(); as l){<app-badge-estado [estado]="l.estado"/>}@else{Pendiente}</div></div>
+      @if(ultimaCalculada(); as l){<div class="payment-report-footer"><div><span>Entregas del periodo</span><strong>{{l.detalle.length}}</strong></div><div><span>Importe registrado</span><strong>S/ {{l.montoTotal | number:'1.2-2'}}</strong></div><div class="no-print">@if(l.estado === 'CALCULATED'){<button class="btn btn-primary" (click)="cambiarEstado(l,'REVIEWED')">Revisar liquidación</button>}@if(l.estado === 'REVIEWED'){<button class="btn btn-primary" (click)="cambiarEstado(l,'CLOSED')">Cerrar liquidación</button>}</div></div>}
+    </div>
+    <div class="payment-actions-bar no-print"><div class="payment-actions-head"><span class="payment-filter-step">2</span><div><strong>Comprobante</strong><small>Detalle del proveedor seleccionado</small></div></div><div class="actions"><button class="btn btn-primary" [disabled]="!ultimaCalculada()" (click)="imprimir()">Imprimir detalle</button></div></div>
+    <div class="card payment-sectors-card"><div class="payment-report-head"><div><div class="kicker">DETALLE DIARIO</div><p>Registro día por día del proveedor y periodo seleccionados.</p></div></div><div class="tablebox"><table class="payment-detail-table"><thead><tr><th>Fecha</th><th>Día</th><th class="num">Litros</th><th class="num">Precio / L</th><th class="num">Subtotal</th></tr></thead><tbody>@for(d of ultimaCalculada()?.detalle ?? []; track d.recojoId){<tr><td>{{d.fechaHora | date:'yyyy-MM-dd':'-0500'}}</td><td>{{d.fechaHora | date:'EEEE':'-0500'}}</td><td class="num">{{d.litros | number:'1.2-2'}}</td><td class="num">S/ {{d.precioAplicado | number:'1.2-2'}}</td><td class="num">S/ {{d.subtotal | number:'1.2-2'}}</td></tr>}@empty{<tr><td colspan="5" class="muted">Selecciona una liquidación para consultar sus entregas.</td></tr>}</tbody></table></div></div>
+  </div>
+  } @else {
+    <div class="payment-main-panel active"><div class="card"><div class="table-title"><div><h3>{{vista === 'global' ? 'Liquidaciones de proveedores' : 'Historial de liquidaciones'}}</h3><p>Consulta el estado y abre el detalle de cada periodo.</p></div><button class="btn btn-blue no-print" (click)="exportar()">Exportar Excel</button></div>      <div class="toolbar">
+        <select [(ngModel)]="filtroEstado" (ngModelChange)="buscar()">
+          <option [ngValue]="undefined">Todos los estados</option>
+          <option value="CALCULATED">Calculada</option>
+          <option value="REVIEWED">Revisada</option>
+          <option value="CLOSED">Cerrada</option>
+        </select>
+      </div>
+
+      <div class="tablebox">
+        <table>
+          <thead>
+            <tr>
+              <th>Proveedor</th>
+              <th>Periodo</th>
+              <th class="num">Litros</th>
+              <th class="num">Monto (S/)</th>
+              <th>Estado</th>
+              <th class="no-print">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (l of pagina()?.content ?? []; track l.id) {
+              <tr>
+                <td><button class="btn btn-soft" (click)="verDetalle(l)">{{ l.productorNombre }}</button></td>
+                <td>{{ l.periodoInicio }} – {{ l.periodoFin }}</td>
+                <td class="num">{{ l.litrosTotales | number: '1.0-1' }}</td>
+                <td class="num">{{ l.montoTotal | number: '1.2-2' }}</td>
+                <td><app-badge-estado [estado]="l.estado" /></td>
+                <td style="white-space:nowrap">
+                  @if (l.estado === 'CALCULATED') {
+                    <button type="button" class="btn btn-soft" (click)="cambiarEstado(l, 'REVIEWED')">Revisar</button>
+                  }
+                  @if (l.estado === 'REVIEWED') {
+                    <button type="button" class="btn btn-primary" (click)="cambiarEstado(l, 'CLOSED')">Cerrar</button>
+                  }
+                </td>
+              </tr>
+            }
+            @if ((pagina()?.content?.length ?? 0) === 0) {
+              <tr>
+                <td colspan="6" class="muted" style="text-align:center; padding:24px">Sin liquidaciones.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        @if (pagina(); as pg) {
+          <app-paginador
+            [page]="pg.page"
+            [totalElements]="pg.totalElements"
+            [totalPages]="pg.totalPages"
+            (anterior)="cambiarPagina(pg.page - 1)"
+            (siguiente)="cambiarPagina(pg.page + 1)"
+          />
+        }
+      </div>
+</div></div>
+  }
+  }
+</section>

@@ -1,0 +1,200 @@
+<section id="rutas" class="view printable">
+  <div class="print-header"><h2>Huata Lácteos · Rutas y movilidad</h2></div>
+
+  <div class="page-head">
+    <div>
+      <div class="kicker">Logística de acopio</div>
+      <h1>Rutas y movilidad</h1>
+      <p>Control de recorridos, zonas asignadas, movilidad, avance y volumen recogido por fecha.</p>
+    </div>
+    <div class="actions no-print">
+      <label class="route-date-label-v135">Fecha <input id="routeDateV135" type="date" onchange="renderRoutesV135()"></label>
+      <button class="btn btn-blue" onclick="exportRoutesV135()">Exportar Excel</button>
+    </div>
+  </div>
+
+  <div class="mobile-app-pointer-v141 no-print">
+    <div>
+      <b>App del acopiador:</b> las zonas marcadas como recorridas se registran desde
+      <a href="huata_movil.html" target="_blank" rel="noopener">huata_movil.html</a>, el archivo aparte para el teléfono.
+      Aparecen aquí, en la bitácora de cada ruta, sin recargar la página.
+    </div>
+  </div>
+
+  <div class="route-kpis-v135 route-kpis-v136">
+    <div><span>Rutas planificadas</span><strong id="routeKpiTotalV135">0</strong><small>Configuradas</small></div>
+    <div><span>Completadas</span><strong id="routeKpiDoneV135">0</strong><small>Para la fecha</small></div>
+    <div><span>En recorrido</span><strong id="routeKpiActiveV135">0</strong><small>Seguimiento operativo</small></div>
+    <div><span>Litros por rutas</span><strong id="routeKpiLitersV135">0 L</strong><small>Según recepciones</small></div>
+    <div><span>GPS activos</span><strong id="routeKpiGpsV136">0</strong><small>Dispositivos reportando</small></div>
+    <div class="route-kpi-offline-v136"><span>Sin cobertura</span><strong id="routeKpiOfflineV136">0</strong><small>Guardando puntos offline</small></div>
+  </div>
+
+
+  <div class="card sec-tabs-card">
+    <div class="sec-tabs no-print" style="grid-template-columns:repeat(2,1fr)">
+      <button id="rutasTabSeguimiento" class="sec-tab active" onclick="switchSecTab('rutasPanelSeguimiento',this)">
+        <span>◈</span> Seguimiento GPS
+      </button>
+      <button id="rutasTabPlan" class="sec-tab" onclick="switchSecTab('rutasPanelPlan',this)">
+        <span>▤</span> Plan operativo
+      </button>
+    </div>
+
+    <div id="rutasPanelSeguimiento" class="sec-tab-panel active">
+      <div class="card route-tracking-card-v136">
+        <div class="route-tracking-head-v136">
+          <div>
+            <div class="kicker">SEGUIMIENTO GPS / GNSS</div>
+            <h3>Recorrido, cobertura y movilidad de testeo</h3>
+            <p>El GPS del teléfono continúa registrando el recorrido sin Internet. La web muestra la última ubicación sincronizada y reconstruye los puntos pendientes cuando vuelve la cobertura.</p>
+          </div>
+
+          <div class="route-tracking-selector-v136 no-print">
+            <label>Ruta seleccionada</label>
+            <select id="routeTrackingSelectV136" onchange="selectRouteTrackingV136(this.value)"></select>
+          </div>
+        </div>
+
+        <div class="route-tracking-toolbar-v136 no-print">
+          <div class="route-tracking-toggle-v136">
+            <button id="routeTrackCollectorBtnV136" class="active" onclick="setRouteTrackingModeV136('collector')">● Ver acopiador</button>
+            <button id="routeTrackTesterBtnV136" onclick="setRouteTrackingModeV136('tester')">◆ Ver movilidad de testeo</button>
+            <button id="routeTrackBothBtnV136" onclick="setRouteTrackingModeV136('both')">◎ Ver ambos</button>
+          </div>
+
+          <div class="route-tracking-actions-v136">
+            <button class="btn btn-soft" onclick="simulateRouteNextPointV136()">Simular siguiente punto</button>
+            <span id="routeTrackingDemoBadgeV136" class="badge badge-gray">DEMO GPS</span>
+          </div>
+        </div>
+
+        <div class="route-tracking-layout-v136">
+          <div class="route-map-panel-v136">
+            <div class="route-map-topline-v136">
+              <div>
+                <strong id="routeMapTitleV136">Ruta</strong>
+                <span id="routeMapSubtitleV136">Mapa operativo DEMO · esquema / no a escala</span>
+              </div>
+              <span id="routeMapConnectionV136" class="route-connection-pill-v136 online">EN LÍNEA</span>
+            </div>
+
+            <div id="routeMapV136" class="route-map-v136"></div>
+
+            <div class="route-map-legend-v136">
+              <span><i class="online"></i>Cobertura / sincronizado</span>
+              <span><i class="intermittent"></i>Conexión intermitente</span>
+              <span><i class="offline"></i>Capturado sin cobertura</span>
+              <span><i class="collector"></i>Acopiador</span>
+              <span><i class="tester"></i>Movilidad de testeo</span>
+            </div>
+          </div>
+
+          <aside class="route-live-panel-v136">
+            <div class="route-live-title-v136">
+              <div>
+                <span>SEGUIMIENTO SELECCIONADO</span>
+                <strong id="routeLiveEntityV136">Acopiador</strong>
+              </div>
+              <span id="routeLiveStatusV136" class="route-live-status-v136 online">GPS ACTIVO</span>
+            </div>
+
+            <div id="routeLiveIdentityV136" class="route-live-identity-v136"></div>
+
+            <div class="route-live-grid-v136">
+              <div><span>Última sincronización</span><strong id="routeLiveSyncV136">—</strong></div>
+              <div><span>Precisión GPS</span><strong id="routeLiveAccuracyV136">—</strong></div>
+              <div><span>Velocidad</span><strong id="routeLiveSpeedV136">—</strong></div>
+              <div><span>Batería</span><strong id="routeLiveBatteryV136">—</strong></div>
+              <div><span>Puntos pendientes</span><strong id="routeLivePendingV136">0</strong></div>
+              <div><span>Última cobertura</span><strong id="routeLiveCoverageV136">—</strong></div>
+            </div>
+
+            <div id="routeLiveOfflineNoteV136" class="route-live-offline-note-v136"></div>
+
+            <div class="route-events-head-v136">
+              <strong>Eventos del recorrido</strong>
+              <span id="routeEventsCountV136">0 eventos</span>
+            </div>
+            <div id="routeEventsV136" class="route-events-v136"></div>
+
+            <div class="route-events-head-v136" style="margin-top:14px">
+              <strong>Bitácora de zonas recorridas</strong>
+              <span id="routeZoneLogCountV140">0 zonas</span>
+            </div>
+            <div id="routeZoneLogV140" class="route-zone-log-v140"></div>
+
+            <div class="route-events-head-v136 no-print" style="margin-top:14px">
+              <strong>Editar trazabilidad de la movilidad</strong>
+            </div>
+            <div class="mobile-app-field-v140 no-print">
+              <input id="routeManualNoteV140" placeholder="Agregar observación al recorrido (ej. desvío, parada, incidencia)">
+              <button type="button" class="btn btn-soft" style="margin-top:6px" onclick="addRouteManualEventV140()">Guardar observación</button>
+            </div>
+          </aside>
+        </div>
+
+        <div class="route-map-production-note-v136">
+          <b>Producción:</b> este demo usa posiciones sintéticas para probar la interfaz. En la aplicación Flutter se guardarían latitud, longitud, precisión, velocidad, batería y hora en SQLite; al recuperar Internet se enviarían automáticamente al backend por lotes.
+        </div>
+      </div>
+    </div>
+
+    <div id="rutasPanelPlan" class="sec-tab-panel">
+      <div class="card">
+        <div class="table-title">
+          <div>
+            <h3>Plan operativo de recojo</h3>
+            <p>Las asignaciones DEMO sirven para validar el flujo. Los nombres reales de personal y movilidad deben registrarse en producción.</p>
+          </div>
+        </div>
+        <div class="tablebox">
+          <table>
+            <thead>
+              <tr>
+                <th>Ruta</th>
+                <th>Zonas</th>
+                <th>Responsable</th>
+                <th>Movilidad</th>
+                <th>Testeo</th>
+                <th>Estado</th>
+                <th class="num">Litros</th>
+                <th>Último registro</th>
+                <th class="wrap">Observación</th>
+                <th class="no-print">Acción</th>
+              </tr>
+            </thead>
+            <tbody id="routesBodyV135"></tbody>
+          </table>
+        </div>
+        <div class="smart-pagination no-print" data-pager="routesPagerV135">
+          <div class="smart-pagination-info">
+            <strong id="routesPagerV135PageInfo">Mostrando 0 rutas</strong>
+            <span id="routesPagerV135PageCount">Página 1 de 1</span>
+          </div>
+          <div class="smart-pagination-actions">
+            <div class="smart-pagination-search">
+              <span>⌕</span>
+              <input id="routesPagerV135Search" placeholder="Buscar ruta, zona, movilidad..." oninput="smartPagerSearch('routesPagerV135',this.value)">
+              <button type="button" onclick="smartPagerClearSearch('routesPagerV135')">×</button>
+            </div>
+            <label>Ver
+              <select id="routesPagerV135PageSize" onchange="smartPagerSetSize('routesPagerV135',this.value)">
+                <option value="5" selected="">5</option><option value="10">10</option><option value="25">25</option>
+              </select>
+            </label>
+            <button id="routesPagerV135First" class="smart-page-btn" onclick="smartPagerSetPage('routesPagerV135',1)">«</button>
+            <button id="routesPagerV135Prev" class="smart-page-btn" onclick="smartPagerMove('routesPagerV135',-1)">‹</button>
+            <div id="routesPagerV135Numbers" class="smart-page-numbers"></div>
+            <button id="routesPagerV135Next" class="smart-page-btn" onclick="smartPagerMove('routesPagerV135',1)">›</button>
+            <button id="routesPagerV135Last" class="smart-page-btn" onclick="smartPagerLast('routesPagerV135')">»</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="route-workflow-note-v135">
+        <b>Flujo recomendado:</b> planificar ruta → registrar recojos → confirmar llegada a planta → cerrar jornada y revisar diferencias.
+      </div>
+    </div>
+  </div>
+</section>

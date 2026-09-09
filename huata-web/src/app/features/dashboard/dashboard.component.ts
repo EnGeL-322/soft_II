@@ -1,113 +1,186 @@
-import { DecimalPipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { Component, OnInit, signal } from '@angular/core';
-import { DashboardResponse } from '../../core/models/models';
-import { ReportesService } from '../../core/services/reportes.service';
-import { BadgeEstadoComponent } from '../../shared/ui/badge-estado.component';
+import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
+import { finalize } from 'rxjs';
+import { RegistroAuditoria } from '../../core/models/models';
+import { OperacionService, ResumenOperacion } from '../../core/services/operacion.service';
+import { AuditoriaService } from '../../core/services/auditoria.service';
+import { AuthService } from '../../core/services/auth.service';
 
-/** KPIs primero, filtros/detalle despues: mismo criterio que "Reportes v1.11" del prototipo HTML. */
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [DecimalPipe, BadgeEstadoComponent],
-  template: `
-    <div class="page-head">
-      <div>
-        <div class="kicker">Panel general</div>
-        <h1>Dashboard</h1>
-        <p>Resumen de los últimos 30 días: producción, calidad, incidencias y liquidaciones pendientes.</p>
-      </div>
-    </div>
-
-    @if (data(); as d) {
-      <div class="kpi-grid">
-        <div class="kpi">
-          <span>Litros totales</span>
-          <strong>{{ d.litrosTotales | number: '1.0-1' }}</strong>
-        </div>
-        <div class="kpi">
-          <span>Recojos</span>
-          <strong>{{ d.recojosTotales }}</strong>
-        </div>
-        <div class="kpi">
-          <span>Incidencias abiertas</span>
-          <strong>{{ d.incidenciasAbiertas }}</strong>
-        </div>
-        <div class="kpi">
-          <span>Liquidaciones pendientes</span>
-          <strong>{{ d.liquidacionesPendientes }}</strong>
-        </div>
-      </div>
-
-      <div class="table-title">
-        <div><h3>Producción por ruta</h3></div>
-      </div>
-      <div class="card">
-        @if (d.produccionPorRuta.length === 0) {
-          <p class="muted">Sin recojos en el periodo.</p>
-        }
-        <div class="bars">
-          @for (r of d.produccionPorRuta; track r.clave) {
-            <div class="barrow">
-              <span>{{ r.clave }}</span>
-              <div class="bartrack"><div class="barfill" [style.width.%]="pct(r.litros, maxRuta(d))"></div></div>
-              <span class="num">{{ r.litros | number: '1.0-1' }} L</span>
-            </div>
-          }
-        </div>
-      </div>
-
-      <div class="table-title">
-        <div><h3>Producción por productor (top 15)</h3></div>
-      </div>
-      <div class="card">
-        @if (d.produccionPorProductor.length === 0) {
-          <p class="muted">Sin recojos en el periodo.</p>
-        }
-        <div class="bars">
-          @for (p of d.produccionPorProductor; track p.clave) {
-            <div class="barrow">
-              <span>{{ p.clave }}</span>
-              <div class="bartrack"><div class="barfill" [style.width.%]="pct(p.litros, maxProductor(d))"></div></div>
-              <span class="num">{{ p.litros | number: '1.0-1' }} L</span>
-            </div>
-          }
-        </div>
-      </div>
-
-      <div class="table-title">
-        <div><h3>Tendencia de calidad</h3></div>
-      </div>
-      <div class="card" style="display:flex; gap:18px; flex-wrap:wrap">
-        @for (t of d.tendenciaCalidad; track t.resultado) {
-          <div style="display:flex; align-items:center; gap:8px">
-            <app-badge-estado [estado]="t.resultado" />
-            <strong>{{ t.cantidad }}</strong>
-          </div>
-        }
-      </div>
-    } @else {
-      <p class="muted">Cargando…</p>
-    }
-  `,
+  imports: [DecimalPipe, DatePipe, FormsModule, RouterLink],
+  templateUrl: './dashboard.component.html',
+  styleUrls: ['./dashboard.component.css', './dashboard-panels.css', './dashboard-tabs.css'],
 })
 export class DashboardComponent implements OnInit {
-  readonly data = signal<DashboardResponse | null>(null);
-
-  constructor(private readonly reportes: ReportesService) {}
-
-  ngOnInit(): void {
-    this.reportes.dashboard().subscribe((d) => this.data.set(d));
+  readonly data = signal<ResumenOperacion | null>(null);
+  readonly actividad = signal<RegistroAuditoria[]>([]);
+  readonly error = signal('');
+  readonly mensaje = signal('');
+  readonly cargando = signal(false);
+  readonly guardando = signal(false);
+  errorActividad = '';
+  fecha = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Lima',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+  readonly hoy = this.fecha;
+  litrosPlanta: number | null = null;
+  observacion = '';
+  tab: 'alertas' | 'rutas' | 'actividad' = 'alertas';
+  private solicitud = 0;
+  constructor(
+    private readonly operacion: OperacionService,
+    private readonly auditoria: AuditoriaService,
+    protected readonly auth: AuthService,
+  ) {}
+  ngOnInit() {
+    this.cargar();
+    this.cargarActividad();
   }
-
-  maxRuta(d: DashboardResponse): number {
-    return Math.max(1, ...d.produccionPorRuta.map((r) => r.litros));
+  cargar() {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(this.fecha)) {
+      this.error.set('Selecciona una fecha válida.');
+      return;
+    }
+    const solicitud = ++this.solicitud;
+    this.error.set('');
+    this.mensaje.set('');
+    this.cargando.set(true);
+    this.data.set(null);
+    this.operacion.resumen(this.fecha).subscribe({
+      next: (d) => {
+        if (solicitud !== this.solicitud) return;
+        this.data.set(d);
+        this.litrosPlanta = d.cierre?.litrosPlanta ?? null;
+        this.observacion = d.cierre?.observacion ?? '';
+        this.cargando.set(false);
+      },
+      error: () => {
+        if (solicitud === this.solicitud) {
+          this.error.set(
+            'No se pudo cargar la operación. Comprueba la conexión y vuelve a intentar.',
+          );
+          this.cargando.set(false);
+        }
+      },
+    });
   }
-
-  maxProductor(d: DashboardResponse): number {
-    return Math.max(1, ...d.produccionPorProductor.map((r) => r.litros));
+  cargarActividad() {
+    if (!this.auth.tieneRol('ADMINISTRADOR')) return;
+    this.auditoria.listar(0, 6).subscribe({
+      next: (r) => {
+        this.actividad.set(r.content);
+        this.errorActividad = '';
+      },
+      error: () => (this.errorActividad = 'No se pudo cargar la actividad reciente.'),
+    });
   }
-
-  pct(valor: number, max: number): number {
-    return Math.min(100, (valor / max) * 100);
+  get cerrado() {
+    return this.data()?.cierre?.cerrado ?? false;
+  }
+  get sistema() {
+    return this.cerrado ? (this.data()?.cierre?.litrosSistema ?? 0) : (this.data()?.aceptados ?? 0);
+  }
+  get variacion() {
+    return this.litrosPlanta === null ? null : this.litrosPlanta - this.sistema;
+  }
+  get alertas() {
+    const d = this.data();
+    if (!d) return [];
+    const filas: { icono: string; titulo: string; detalle: string; ruta: string }[] = [];
+    if (!this.cerrado)
+      filas.push({
+        icono: '⌁',
+        titulo: 'Jornada pendiente de cierre',
+        detalle: 'Registra el ingreso en planta y realiza la conciliación del día.',
+        ruta: '#cierre',
+      });
+    if (d.entregasRechazadas)
+      filas.push({
+        icono: '!',
+        titulo: `${d.entregasRechazadas} entregas rechazadas`,
+        detalle: 'Revisa la calidad, la evidencia y el estado del proveedor.',
+        ruta: '/calidad',
+      });
+    if (d.controlesObservados)
+      filas.push({
+        icono: '!',
+        titulo: `${d.controlesObservados} recepciones observadas`,
+        detalle: 'La liquidación debe considerar la tarifa reducida vigente.',
+        ruta: '/calidad',
+      });
+    if (d.pendientesCalidad)
+      filas.push({
+        icono: '✓',
+        titulo: `${d.pendientesCalidad} recepciones sin control de calidad`,
+        detalle: 'Completa los controles antes de conciliar el día.',
+        ruta: '/calidad',
+      });
+    if (d.liquidacionesPendientes)
+      filas.push({
+        icono: 'S/',
+        titulo: `${d.liquidacionesPendientes} liquidaciones pendientes`,
+        detalle: 'Pendientes de todos los periodos de pago.',
+        ruta: '/liquidaciones',
+      });
+    return filas;
+  }
+  cerrar() {
+    this.error.set('');
+    this.mensaje.set('');
+    if (this.guardando() || !this.data() || this.cerrado) return;
+    if (
+      this.litrosPlanta === null ||
+      !Number.isFinite(this.litrosPlanta) ||
+      this.litrosPlanta < 0
+    ) {
+      this.error.set('Ingresa una cantidad válida de litros recibidos en planta.');
+      return;
+    }
+    if (this.data()!.pendientesCalidad > 0) {
+      this.error.set('Completa los controles de calidad pendientes antes de cerrar.');
+      return;
+    }
+    if (Math.abs(this.variacion ?? 0) > 0.01 && !this.observacion.trim()) {
+      this.error.set('Explica la diferencia de litros en la observación del cierre.');
+      return;
+    }
+    this.guardando.set(true);
+    this.operacion
+      .cerrar(this.fecha, this.litrosPlanta, this.observacion.trim())
+      .pipe(finalize(() => this.guardando.set(false)))
+      .subscribe({
+        next: (cierre) => {
+          this.data.update((d) => (d ? { ...d, cierre } : d));
+          this.mensaje.set('Conciliación diaria cerrada y guardada.');
+          this.cargarActividad();
+        },
+        error: () =>
+          this.error.set(
+            'No se pudo cerrar la conciliación. Actualiza los datos y revisa los controles pendientes.',
+          ),
+      });
+  }
+  reabrir() {
+    if (this.guardando() || !this.cerrado) return;
+    this.error.set('');
+    this.mensaje.set('');
+    this.guardando.set(true);
+    this.operacion
+      .reabrir(this.fecha)
+      .pipe(finalize(() => this.guardando.set(false)))
+      .subscribe({
+        next: () => {
+          this.cargar();
+          this.cargarActividad();
+        },
+        error: () => this.error.set('No se pudo reabrir la conciliación.'),
+      });
   }
 }

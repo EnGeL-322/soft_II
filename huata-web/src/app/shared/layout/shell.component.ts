@@ -1,4 +1,7 @@
 import { Component, OnInit, computed, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { TrazabilidadService } from '../../core/services/trazabilidad.service';
+import { TrazabilidadItem } from '../../core/models/models';
 import { RouterLink, RouterLinkActive, RouterOutlet, Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { NotificacionesService } from '../../core/services/notificaciones.service';
@@ -12,10 +15,10 @@ interface ItemNav {
 }
 
 const NAV: ItemNav[] = [
-  { ruta: 'dashboard', icono: '◆', etiqueta: 'Dashboard' },
+  { ruta: 'dashboard', icono: '◆', etiqueta: 'Centro de operación' },
   { ruta: 'recojo', icono: '◫', etiqueta: 'Recepción / Acopio' },
   { ruta: 'calidad', icono: '✓', etiqueta: 'Calidad y evidencia' },
-  { ruta: 'rutas', icono: '↝', etiqueta: 'Rutas y centros' },
+  { ruta: 'rutas', icono: '↝', etiqueta: 'Rutas y movilidad' },
   { ruta: 'productores', icono: '♙', etiqueta: 'Proveedores' },
   { ruta: 'acopiadores', icono: '☺', etiqueta: 'Acopiadores' },
   { ruta: 'liquidaciones', icono: 'S/', etiqueta: 'Pagos y liquidación' },
@@ -32,72 +35,54 @@ const NAV: ItemNav[] = [
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
-  template: `
-    <div class="shell">
-      <aside class="sidebar">
-        <div class="brand">
-          <div class="brandmark">HL</div>
-          <div>
-            <strong>Huata Lácteos</strong>
-            <small>Control de acopio</small>
-          </div>
-        </div>
-
-        @for (item of navVisible(); track item.ruta) {
-          <a class="navbtn" [routerLink]="item.ruta" routerLinkActive="active">
-            <span class="navico">{{ item.icono }}</span>{{ item.etiqueta }}
-          </a>
-        }
-      </aside>
-
-      <div class="main">
-        <header class="topbar">
-          <div></div>
-          <div class="topbar-user">
-            <div style="position: relative">
-              <button type="button" class="btn btn-soft" (click)="alternarNotificaciones()">
-                🔔 @if (noLeidas() > 0) {
-                  <span class="badge badge-rojo">{{ noLeidas() }}</span>
-                }
-              </button>
-              @if (mostrarNotificaciones()) {
-                <div
-                  class="card"
-                  style="position:absolute; right:0; top:38px; width:320px; max-height:360px; overflow:auto; z-index:20"
-                >
-                  <strong style="font-size:12px">Notificaciones</strong>
-                  @if (notificaciones().length === 0) {
-                    <p class="muted" style="margin-top:8px">Sin notificaciones.</p>
-                  }
-                  @for (n of notificaciones(); track n.id) {
-                    <div
-                      style="border-top:1px solid var(--line); padding:8px 0; cursor:pointer"
-                      (click)="abrirNotificacion(n)"
-                    >
-                      <div style="font-weight:700; font-size:11.5px">
-                        {{ n.titulo }} @if (!n.leida) {
-                          <span class="badge badge-verde">nueva</span>
-                        }
-                      </div>
-                      <div class="muted" style="font-size:11px">{{ n.mensaje }}</div>
-                    </div>
-                  }
-                </div>
-              }
-            </div>
-            <span>{{ auth.nombreCompleto() }} · {{ auth.roles().join(', ') }}</span>
-            <button type="button" class="btn btn-soft" (click)="auth.logout()">Salir</button>
-          </div>
-        </header>
-        <main class="content">
-          <router-outlet />
-        </main>
-      </div>
-    </div>
-  `,
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, FormsModule],
+  templateUrl: './shell.component.html',
+  styleUrls: ['./shell.component.css', './shell-responsive.css'],
 })
 export class ShellComponent implements OnInit {
+  consulta = '';
+  buscando = false;
+  errorBusqueda = '';
+  resultadosBusqueda: TrazabilidadItem[] | null = null;
+  protected readonly grupos = [
+    { nombre: 'Operación', rutas: ['dashboard', 'recojo', 'calidad', 'rutas'] },
+    { nombre: 'Gestión', rutas: ['productores', 'acopiadores', 'liquidaciones', 'quesos'] },
+    { nombre: 'Análisis', rutas: ['zonas', 'trazabilidad', 'reportes'] },
+    { nombre: 'Administración', rutas: ['usuarios', 'parametros', 'datos-respaldo'] },
+  ];
+  items(rutas: string[]) {
+    return this.navVisible().filter((n) => rutas.includes(n.ruta));
+  }
+  get rol() {
+    return this.auth
+      .roles()
+      .map((r) =>
+        r === 'ADMINISTRADOR'
+          ? 'Administrador'
+          : r === 'CALIDAD'
+            ? 'Calidad'
+            : r === 'ACOPIADOR'
+              ? 'Acopiador'
+              : r,
+      )
+      .join(' · ');
+  }
+  buscar() {
+    if (!this.consulta.trim() || this.buscando) return;
+    this.buscando = true;
+    this.errorBusqueda = '';
+    this.resultadosBusqueda = null;
+    this.trazabilidad.buscar(this.consulta.trim()).subscribe({
+      next: (rows) => {
+        this.resultadosBusqueda = rows;
+        this.buscando = false;
+      },
+      error: () => {
+        this.errorBusqueda = 'No se pudo realizar la búsqueda.';
+        this.buscando = false;
+      },
+    });
+  }
   protected readonly notificaciones = signal<Notificacion[]>([]);
   protected readonly mostrarNotificaciones = signal(false);
 
@@ -112,10 +97,13 @@ export class ShellComponent implements OnInit {
     protected readonly auth: AuthService,
     private readonly notificacionesService: NotificacionesService,
     private readonly router: Router,
+    private readonly trazabilidad: TrazabilidadService,
   ) {}
 
   ngOnInit(): void {
-    this.notificacionesService.listar().subscribe((lista) => this.notificaciones.set(lista));
+    this.notificacionesService
+      .listar()
+      .subscribe({ next: (lista) => this.notificaciones.set(lista), error: () => {} });
   }
 
   noLeidas(): number {
@@ -128,7 +116,9 @@ export class ShellComponent implements OnInit {
 
   abrirNotificacion(n: Notificacion): void {
     this.notificacionesService.marcarLeida(n.id).subscribe(() => {
-      this.notificaciones.update((lista) => lista.map((x) => (x.id === n.id ? { ...x, leida: true } : x)));
+      this.notificaciones.update((lista) =>
+        lista.map((x) => (x.id === n.id ? { ...x, leida: true } : x)),
+      );
     });
     this.mostrarNotificaciones.set(false);
     if (n.entidadTipo === 'INCIDENCIA_CALIDAD') {

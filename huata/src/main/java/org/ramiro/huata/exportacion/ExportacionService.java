@@ -33,6 +33,8 @@ import org.ramiro.huata.recojo.Recojo;
 import org.ramiro.huata.recojo.RecojoRepository;
 import org.ramiro.huata.reportes.ReporteService;
 import org.ramiro.huata.reportes.ZonaResumen;
+import org.ramiro.huata.rutas.PlanRutaDia;
+import org.ramiro.huata.rutas.RutaService;
 import org.springframework.stereotype.Service;
 
 /**
@@ -45,7 +47,7 @@ import org.springframework.stereotype.Service;
 public class ExportacionService {
 
     public static final List<String> HOJAS_DISPONIBLES = List.of(
-            "Proveedores", "Recepciones", "HistorialCalidad", "Pagos", "ResumenZonas", "Quesos", "Configuracion", "Auditoria");
+            "Proveedores", "Recepciones", "HistorialCalidad", "Pagos", "ResumenZonas", "Rutas", "Quesos", "Configuracion", "Auditoria");
 
     private final ProductorRepository productorRepository;
     private final RecojoRepository recojoRepository;
@@ -57,6 +59,7 @@ public class ExportacionService {
     private final AuditoriaRepository auditoriaRepository;
     private final ReporteService reporteService;
     private final AuditoriaService auditoriaService;
+    private final RutaService rutaService;
 
     public byte[] exportar(String hoja) {
         List<LinkedHashMap<String, Object>> filas =
@@ -66,6 +69,7 @@ public class ExportacionService {
                     case "HistorialCalidad" -> historialCalidad();
                     case "Pagos" -> pagos();
                     case "ResumenZonas" -> resumenZonas();
+                    case "Rutas" -> rutas();
                     case "Quesos" -> quesos();
                     case "Configuracion" -> configuracion();
                     case "Auditoria" -> auditoria();
@@ -185,12 +189,33 @@ public class ExportacionService {
                 .toList();
     }
 
+    private List<LinkedHashMap<String, Object>> rutas() {
+        return rutaService.planOperativo(java.time.LocalDate.now()).stream()
+                .map(p -> {
+                    LinkedHashMap<String, Object> m = new LinkedHashMap<>();
+                    m.put("Ruta", p.rutaNombre());
+                    m.put("Zona", p.zona());
+                    m.put("Responsable", p.acopiadorNombre());
+                    m.put("Movilidad", p.movilidad());
+                    m.put("Estado", p.estado().name());
+                    m.put("Litros", p.litros());
+                    m.put("Recepciones", p.recepciones());
+                    m.put("Ultimo_Registro", p.ultimoRegistro() != null ? String.valueOf(p.ultimoRegistro()) : "");
+                    m.put("Observacion", p.observacion());
+                    return m;
+                })
+                .toList();
+    }
+
     private List<LinkedHashMap<String, Object>> quesos() {
         return quesoRepository.findAll().stream()
+                .filter(Queso::isActivo)
                 .map(q -> {
                     LinkedHashMap<String, Object> m = new LinkedHashMap<>();
                     m.put("Fecha", String.valueOf(q.getFecha()));
                     m.put("Fuente", q.getFuente());
+                    m.put("Comprador", q.getComprador());
+                    m.put("Numero_Boleta", q.getNumeroBoleta());
                     m.put("Producidos_Kg", q.getProducidosKg());
                     m.put("Vendidos_Kg", q.getVendidosKg());
                     m.put("Diferencia_Kg", q.getProducidosKg() - q.getVendidosKg());

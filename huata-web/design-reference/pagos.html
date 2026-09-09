@@ -1,0 +1,336 @@
+<section id="pagos" class="view printable">
+  <div class="print-header"><h2>Huata Lácteos · Reporte de pago semanal</h2></div>
+
+  <div class="page-head">
+    <div>
+      <div class="kicker">Liquidación de proveedores</div>
+      <h1>Reportes de Pago</h1>
+      <p>Consulta el periodo de acopio de jueves a miércoles. El pago consolidado se programa para el viernes siguiente.</p>
+    </div>
+  </div>
+
+  <div class="payment-main-tabs no-print">
+    <button id="paymentMainTabUnico" class="payment-main-tab active" onclick="switchPaymentMainTab('unico')">
+      <span>💳</span> Pago único
+    </button>
+    <button id="paymentMainTabGlobal" class="payment-main-tab" onclick="switchPaymentMainTab('global')">
+      <span>👥</span> Pago global
+    </button>
+    <button id="paymentMainTabReportes" class="payment-main-tab" onclick="switchPaymentMainTab('reportes')">
+      <span>▦</span> Reportes
+    </button>
+  </div>
+
+  <!-- ============ PANEL 1 · PAGO ÚNICO ============ -->
+  <div id="paymentMainPanelUnico" class="payment-main-panel active">
+
+    <div class="payment-filter-card">
+    <div class="payment-filter-head">
+      <span class="payment-filter-step">1</span>
+      <div><strong>Busca al proveedor</strong><small>Elige el periodo y el proveedor que vas a liquidar</small></div>
+    </div>
+    <div class="payment-filter-grid">
+      <div class="field">
+        <label>Periodo de acopio</label>
+        <select id="paymentCycleFilter" onchange="renderPayments()"></select>
+      </div>
+      <div class="field">
+        <label>Proveedor</label>
+        <select id="paymentProviderFilter" onchange="renderPayments()"></select>
+      </div>
+      <div class="field">
+        <label>Desde</label>
+        <input id="paymentFrom" readonly="">
+      </div>
+      <div class="field">
+        <label>Hasta</label>
+        <input id="paymentTo" readonly="">
+      </div>
+    </div>
+  </div>
+
+  <div class="payment-summary-grid">
+    <div class="payment-kpi">
+      <div class="payment-kpi-icon blue">▥</div>
+      <div><span>Total acopiado</span><strong id="paymentLiters">0.00 L</strong><small>Litros del proveedor en el ciclo</small></div>
+    </div>
+    <div class="payment-kpi">
+      <div class="payment-kpi-icon green">S/</div>
+      <div><span>Precio aplicado</span><strong id="paymentPrice">S/ 1.70</strong><small id="paymentPriceNote">Tarifa según calidad</small></div>
+    </div>
+    <div class="payment-kpi">
+      <div class="payment-kpi-icon violet">↗</div>
+      <div><span>Ingresos brutos</span><strong id="paymentGross">S/ 0.00</strong><small>Antes de descuentos</small></div>
+    </div>
+    <div class="payment-kpi">
+      <div class="payment-kpi-icon red">↘</div>
+      <div><span>Descuentos / ajustes</span><strong id="paymentAdjustments">S/ 0.00</strong><small>Quesos, adelantos o penalidades</small></div>
+    </div>
+    <div class="payment-kpi featured">
+      <div class="payment-kpi-icon green">✓</div>
+      <div><span>Neto a pagar</span><strong id="paymentNet">S/ 0.00</strong><small id="paymentPayDate">Pago programado: viernes</small></div>
+    </div>
+  </div>
+
+    <div class="card payment-report-card">
+      <div class="payment-report-head">
+        <div>
+          <div class="kicker">RESUMEN DE PAGO</div>
+          <h3 id="paymentReportTitle">Proveedor · periodo</h3>
+          <p id="paymentReportMeta">Seleccione un proveedor y un periodo.</p>
+        </div>
+        <div id="paymentReportStatus" class="payment-status">Pendiente</div>
+      </div>
+      <div class="payment-report-footer">
+        <div>
+          <span>Forma de pago</span>
+          <strong id="paymentMethod">Efectivo / registro manual</strong>
+        </div>
+        <div>
+          <span>Fecha de pago</span>
+          <strong id="paymentPaidAt">Pendiente</strong>
+        </div>
+        <div class="no-print">
+          <button id="paymentToggleBtn" class="btn btn-primary" data-perm="payments.write" onclick="toggleSelectedPayment()">Marcar como pagado</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="payment-actions-bar no-print">
+      <div class="payment-actions-head">
+        <span class="payment-filter-step">2</span>
+        <div><strong>Comprobante</strong><small id="paymentActionsSelected">Acciones para el proveedor seleccionado</small></div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary" onclick="printWorkerPayment()"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"></path><path d="M14 2v6h6"></path><path d="M9 13h6"></path><path d="M9 17h4"></path></svg>Imprimir trabajador · A6</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============ PANEL 2 · PAGO GLOBAL ============ -->
+  <div id="paymentMainPanelGlobal" class="payment-main-panel">
+
+    <div class="payment-filter-card">
+      <div class="payment-filter-head">
+        <span class="payment-filter-step">👥</span>
+        <div><strong>Paga a todos el mismo viernes</strong><small>Todos los proveedores de un mismo periodo se liquidan el mismo día de pago</small></div>
+      </div>
+      <div class="payment-filter-grid" style="grid-template-columns:1.6fr .8fr .8fr">
+        <div class="field">
+          <label>Periodo de acopio</label>
+          <select id="globalPayCycleFilter" onchange="renderPaymentGlobalTabV139()"></select>
+        </div>
+        <div class="field">
+          <label>Desde</label>
+          <input id="globalPayFrom" readonly="">
+        </div>
+        <div class="field">
+          <label>Hasta</label>
+          <input id="globalPayTo" readonly="">
+        </div>
+      </div>
+    </div>
+
+    <div class="payment-summary-grid" style="grid-template-columns:repeat(4,1fr)">
+      <div class="payment-kpi">
+        <div class="payment-kpi-icon blue">▥</div>
+        <div><span>Proveedores del periodo</span><strong id="globalPayCountProviders">0 proveedor(es)</strong><small>Con acopio registrado</small></div>
+      </div>
+      <div class="payment-kpi">
+        <div class="payment-kpi-icon red">!</div>
+        <div><span>Pendientes de pago</span><strong id="globalPayCountPending">0 pendiente(s)</strong><small id="globalPayPendingNet">S/ 0.00</small></div>
+      </div>
+      <div class="payment-kpi">
+        <div class="payment-kpi-icon green">✓</div>
+        <div><span>Ya pagados</span><strong id="globalPayCountPaid">0 pagado(s)</strong><small>En este periodo</small></div>
+      </div>
+      <div class="payment-kpi featured">
+        <div class="payment-kpi-icon green">S/</div>
+        <div><span>Total neto del periodo</span><strong id="globalPayTotalNet">S/ 0.00</strong><small>Todos los proveedores</small></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="table-title">
+        <div><h3>Proveedores del periodo</h3><p>Revisa el detalle o liquida a todos en un solo paso.</p></div>
+        <button id="globalPayBtn" class="btn btn-primary no-print" data-perm="payments.write" onclick="payAllProvidersInCycleV139()">Pagar a todos</button>
+      </div>
+      <div class="tablebox">
+        <table>
+          <thead>
+            <tr>
+              <th>Proveedor</th>
+              <th>Código</th>
+              <th>Zona</th>
+              <th class="num">Litros</th>
+              <th class="num">Tarifa</th>
+              <th class="num">Neto</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody id="globalPayBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============ PANEL 3 · REPORTES ============ -->
+  <div id="paymentMainPanelReportes" class="payment-main-panel">
+
+  <div class="payment-excellence-section">
+    <div class="payment-excellence-head payment-excellence-head-v129">
+      <div>
+        <div class="kicker">PROVEEDORES EXCELENCIA</div>
+        <h3>Tarifa preferencial · <span id="paymentExcellenceRateTitle">S/ 2.00/L</span></h3>
+        <p>La categoría Excelencia la administra el rol Administrador. Si existe mala calidad en el ciclo, se suspende la tarifa preferencial y toda la semana se liquida a la tarifa reducida configurada.</p>
+      </div>
+
+      <div class="payment-excellence-head-actions">
+        <div class="payment-excellence-search no-print">
+          <span>⌕</span>
+          <input id="paymentExcellenceSearch" placeholder="Buscar Excelencia..." oninput="renderPaymentExcellenceV128()">
+        </div>
+        <span id="paymentExcellenceRateBadge" class="payment-excellence-rate">S/ 2.00/L</span>
+      </div>
+    </div>
+    <div id="paymentExcellenceGrid" class="payment-excellence-grid"></div>
+  </div>
+
+  <div class="payment-rule-strip">
+    <div class="payment-rule-item quality">
+      <span class="payment-rule-icon">!</span>
+      <div>
+        <strong>1.ª detección de mala calidad</strong>
+        <small>Todas las entregas aceptadas de esa semana se pagan a S/ 1.30/L.</small>
+      </div>
+    </div>
+    <div class="payment-rule-item retired">
+      <span class="payment-rule-icon">×</span>
+      <div>
+        <strong>2.ª detección de mala calidad</strong>
+        <small>El proveedor queda retirado y ya no puede registrar nuevas entregas.</small>
+      </div>
+    </div>
+  </div>
+
+  <div class="card payment-sectors-card">
+    <div class="payment-sector-tabs no-print">
+      <button id="paymentTabDetail" class="payment-sector-tab active" onclick="switchPaymentSector('detail')">
+        <span>▦</span> Detalle diario
+      </button>
+      <button id="paymentTabPaid" class="payment-sector-tab" onclick="switchPaymentSector('paid')">
+        <span>✓</span> Pagos realizados
+      </button>
+    </div>
+
+    <div id="paymentSectorDetail" class="payment-sector-panel active">
+      <div class="payment-report-head">
+        <div>
+          <div class="kicker">DETALLE DIARIO</div>
+          <p>Registro día por día del proveedor y periodo seleccionados en "Pago único".</p>
+        </div>
+        <div class="actions no-print">
+          <button class="btn btn-blue" onclick="exportPaymentReportExcel()">Exportar Excel</button>
+          <button class="btn btn-soft" onclick="printAdminPayment()"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V3h12v6"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="7"></rect></svg>Imprimir administrador</button>
+        </div>
+      </div>
+
+      <div class="tablebox">
+        <table class="payment-detail-table">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Día</th>
+              <th class="num">Litros</th>
+              <th class="num">Precio / L</th>
+              <th>Calidad</th>
+              <th class="num">Subtotal</th>
+              <th class="num">Descuento / ajuste</th>
+              <th class="num">Neto</th>
+            </tr>
+          </thead>
+          <tbody id="paymentDailyBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="paymentSectorPaid" class="payment-sector-panel">
+      <div class="payment-paid-head">
+        <div>
+          <div class="kicker">CONSULTA DE PAGOS</div>
+          <h3>Pagos realizados por proveedor</h3>
+          <p>Busca por nombre, código o zona. Los pagos realizados aparecen recién después de buscar un proveedor.</p>
+        </div>
+        <div class="actions no-print">
+          <button class="btn btn-blue" onclick="exportPaymentReportExcel()">Exportar Excel</button>
+          <button class="btn btn-soft" onclick="printAdminPayment()"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V3h12v6"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="7"></rect></svg>Imprimir administrador</button>
+        </div>
+      </div>
+
+      <div class="payment-paid-search no-print">
+        <div class="payment-search-icon">⌕</div>
+        <input id="paymentPaidSearch" placeholder="Buscar proveedor por nombre o código..." oninput="renderPaidProviderSearch()">
+        <button class="btn btn-soft" onclick="clearPaidProviderSearch()">Limpiar</button>
+      </div>
+
+      <div id="paymentPaidIntro" class="payment-paid-empty">
+        <div class="payment-paid-empty-icon">✓</div>
+        <strong>Busca un proveedor</strong>
+        <span>El sistema mostrará únicamente sus pagos que ya fueron realizados.</span>
+      </div>
+
+      <div id="paymentPaidResults" style="display:none">
+        <div class="payment-paid-result-summary" id="paymentPaidResultSummary"></div>
+        <div class="tablebox">
+          <table>
+            <thead>
+              <tr>
+                <th>Proveedor</th>
+                <th>Código</th>
+                <th>Zona</th>
+                <th>Periodo</th>
+                <th class="num">Litros</th>
+                <th class="num">Neto pagado</th>
+                <th>Pago viernes</th>
+                <th>Fecha realizada</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody id="paymentsBody"></tbody>
+          </table>
+        </div>
+    <div class="smart-pagination no-print" data-pager="paidPaymentsPager">
+      <div class="smart-pagination-info">
+        <strong id="paidPaymentsPagerPageInfo">Mostrando 0 pagos</strong>
+        <span id="paidPaymentsPagerPageCount">Página 1 de 1</span>
+      </div>
+      <div class="smart-pagination-actions">
+        <div class="smart-pagination-search">
+          <span>⌕</span>
+          <input id="paidPaymentsPagerSearch" placeholder="Buscar en esta tabla..." oninput="smartPagerSearch('paidPaymentsPager',this.value)">
+          <button type="button" onclick="smartPagerClearSearch('paidPaymentsPager')" title="Limpiar búsqueda">×</button>
+        </div>
+        <label>
+          Ver
+          <select id="paidPaymentsPagerPageSize" onchange="smartPagerSetSize('paidPaymentsPager',this.value)">
+            <option value="5">5</option>
+            <option value="10" selected="">10</option>
+            <option value="25">25</option>
+            <option value="50">50</option>
+          </select>
+        </label>
+        <button id="paidPaymentsPagerFirst" class="smart-page-btn" onclick="smartPagerSetPage('paidPaymentsPager',1)" title="Primera página">«</button>
+        <button id="paidPaymentsPagerPrev" class="smart-page-btn" onclick="smartPagerMove('paidPaymentsPager',-1)" title="Anterior">‹</button>
+        <div id="paidPaymentsPagerNumbers" class="smart-page-numbers"></div>
+        <button id="paidPaymentsPagerNext" class="smart-page-btn" onclick="smartPagerMove('paidPaymentsPager',1)" title="Siguiente">›</button>
+        <button id="paidPaymentsPagerLast" class="smart-page-btn" onclick="smartPagerLast('paidPaymentsPager')" title="Última página">»</button>
+      </div>
+    </div>
+      </div>
+    </div>
+  </div>
+
+  </div>
+</section>

@@ -3,6 +3,7 @@ package org.ramiro.huata.recojo;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import java.time.Instant;
+import org.ramiro.huata.calidad.ResultadoCalidad;
 
 record RecojoRequest(
         String clientUuid,
@@ -11,7 +12,12 @@ record RecojoRequest(
         Long rutaId,
         @NotNull Instant fechaHora,
         @NotNull @Positive Double litros,
-        Double temperatura) {}
+        Double temperatura,
+        FuenteRecojo fuente,
+        Integer numeroEnvases,
+        Double capacidadReferenciaL,
+        String responsableRecepcion,
+        Double litrosAppMovil) {}
 
 record RecojoCancelRequest(String motivo) {}
 
@@ -28,9 +34,15 @@ record RecojoResponse(
         Double litros,
         Double temperatura,
         EstadoRecojo estado,
-        String motivoCancelacion) {
+        String motivoCancelacion,
+        FuenteRecojo fuente,
+        Integer numeroEnvases,
+        Double capacidadReferenciaL,
+        String responsableRecepcion,
+        Double litrosAppMovil,
+        ResultadoCalidad resultadoCalidad) {
 
-    static RecojoResponse from(Recojo r) {
+    static RecojoResponse from(Recojo r, ResultadoCalidad resultadoCalidad) {
         return new RecojoResponse(
                 r.getId(),
                 r.getClientUuid(),
@@ -44,6 +56,12 @@ record RecojoResponse(
                 r.getLitros(),
                 r.getTemperatura(),
                 r.getEstado(),
-                r.getMotivoCancelacion());
+                r.getMotivoCancelacion(),
+                r.getFuente(),
+                r.getNumeroEnvases(),
+                r.getCapacidadReferenciaL(),
+                r.getResponsableRecepcion(),
+                r.getLitrosAppMovil(),
+                resultadoCalidad);
     }
 }

@@ -5,6 +5,8 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.ramiro.huata.acopiadores.Acopiador;
 import org.ramiro.huata.acopiadores.AcopiadorRepository;
+import org.ramiro.huata.calidad.ControlCalidadRepository;
+import org.ramiro.huata.calidad.ResultadoCalidad;
 import org.ramiro.huata.common.BusinessRuleException;
 import org.ramiro.huata.common.NotFoundException;
 import org.ramiro.huata.common.PageResponse;
@@ -26,9 +28,16 @@ public class RecojoService {
     private final ProductorRepository productorRepository;
     private final AcopiadorRepository acopiadorRepository;
     private final RutaRepository rutaRepository;
+    private final ControlCalidadRepository controlCalidadRepository;
 
-    public PageResponse<Recojo> buscar(
-            Long productorId, Long rutaId, EstadoRecojo estado, Instant desde, Instant hasta, Pageable pageable) {
+    public PageResponse<RecojoResponse> buscar(
+            Long productorId,
+            Long rutaId,
+            Long acopiadorId,
+            EstadoRecojo estado,
+            Instant desde,
+            Instant hasta,
+            Pageable pageable) {
         Specification<Recojo> spec = SearchSpecifications.<Recojo>alwaysTrue()
                 .and(productorId == null
                         ? SearchSpecifications.alwaysTrue()
@@ -36,6 +45,9 @@ public class RecojoService {
                 .and(rutaId == null
                         ? SearchSpecifications.alwaysTrue()
                         : (root, cq, cb) -> cb.equal(root.get("ruta").get("id"), rutaId))
+                .and(acopiadorId == null
+                        ? SearchSpecifications.alwaysTrue()
+                        : (root, cq, cb) -> cb.equal(root.get("acopiador").get("id"), acopiadorId))
                 .and(SearchSpecifications.equalsIfPresent("estado", estado))
                 .and(desde == null
                         ? SearchSpecifications.alwaysTrue()
@@ -43,11 +55,23 @@ public class RecojoService {
                 .and(hasta == null
                         ? SearchSpecifications.alwaysTrue()
                         : (root, cq, cb) -> cb.lessThanOrEqualTo(root.get("fechaHora"), hasta));
-        return PageResponse.from(recojoRepository.findAll(spec, pageable));
+        return PageResponse.from(recojoRepository.findAll(spec, pageable)).map(this::aRespuesta);
     }
 
     public Recojo obtener(Long id) {
         return recojoRepository.findById(id).orElseThrow(() -> NotFoundException.of("Recojo", id));
+    }
+
+    public RecojoResponse obtenerRespuesta(Long id) {
+        return aRespuesta(obtener(id));
+    }
+
+    private RecojoResponse aRespuesta(Recojo r) {
+        ResultadoCalidad resultado = controlCalidadRepository
+                .findByRecojoId(r.getId())
+                .map(c -> c.getResultado())
+                .orElse(null);
+        return RecojoResponse.from(r, resultado);
     }
 
     /**
@@ -77,6 +101,11 @@ public class RecojoService {
         recojo.setLitros(req.litros());
         recojo.setTemperatura(req.temperatura());
         recojo.setEstado(EstadoRecojo.SYNCED);
+        recojo.setFuente(req.fuente() != null ? req.fuente() : FuenteRecojo.RUTA);
+        recojo.setNumeroEnvases(req.numeroEnvases());
+        recojo.setCapacidadReferenciaL(req.capacidadReferenciaL());
+        recojo.setResponsableRecepcion(req.responsableRecepcion());
+        recojo.setLitrosAppMovil(req.litrosAppMovil());
 
         if (req.acopiadorId() != null) {
             Acopiador acopiador = acopiadorRepository

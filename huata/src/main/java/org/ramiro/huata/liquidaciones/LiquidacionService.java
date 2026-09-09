@@ -56,6 +56,12 @@ public class LiquidacionService {
         return liquidacionDetalleRepository.findByLiquidacionId(liquidacionId);
     }
 
+    /** Sobrecarga pública para otros módulos (p. ej. la carga de datos DEMO) sin exponer el DTO del controlador. */
+    @Transactional
+    public Liquidacion calcular(Long productorId, LocalDate periodoInicio, LocalDate periodoFin) {
+        return calcular(new LiquidacionCalcularRequest(productorId, periodoInicio, periodoFin));
+    }
+
     @Transactional
     public Liquidacion calcular(LiquidacionCalcularRequest req) {
         Productor productor = productorRepository

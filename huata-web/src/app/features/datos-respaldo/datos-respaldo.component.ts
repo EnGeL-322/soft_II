@@ -17,25 +17,7 @@ const DESCRIPCIONES: Record<string, string> = {
   selector: 'app-datos-respaldo',
   standalone: true,
   imports: [],
-  template: `
-    <div class="page-head">
-      <div>
-        <div class="kicker">Solo administración</div>
-        <h1>Datos y respaldo</h1>
-        <p>Exporta cada tabla del sistema a Excel (.xlsx) para respaldo o análisis externo.</p>
-      </div>
-    </div>
-
-    <div class="kpi-grid">
-      @for (hoja of hojas(); track hoja) {
-        <div class="card">
-          <strong>{{ hoja }}</strong>
-          <p class="muted" style="font-size:11px; margin:6px 0 12px">{{ descripcion(hoja) }}</p>
-          <button type="button" class="btn btn-blue" (click)="descargar(hoja)">Exportar Excel</button>
-        </div>
-      }
-    </div>
-  `,
+  templateUrl: './datos-respaldo.component.html',
 })
 export class DatosRespaldoComponent implements OnInit {
   readonly hojas = signal<string[]>([]);

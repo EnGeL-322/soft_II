@@ -1,0 +1,243 @@
+.zones-section {
+  padding: 100px 0;
+}
+.zone-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 30px;
+}
+.zone-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 32px;
+}
+.zone-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+.zone-heading .eyebrow {
+  margin: 2px 0 18px;
+}
+.zone-heading h2 {
+  font-size: 23px;
+}
+.status {
+  display: inline-block;
+  white-space: nowrap;
+  background: #e7eee2;
+  color: #00624d;
+  padding: 9px 11px;
+  border-radius: 3px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.zone-heading .status,
+.panel-heading > .status {
+  text-transform: uppercase;
+}
+.observado {
+  background: #f7ecd5;
+  color: #965b00;
+}
+.retirado {
+  background: #f7e6dd;
+  color: #b32a1c;
+}
+.zone-body {
+  display: flex;
+  align-items: center;
+  gap: 26px;
+  margin: 24px 0 14px;
+}
+.purity-ring {
+  width: 120px;
+  height: 120px;
+  flex: 0 0 120px;
+  border-radius: 50%;
+  padding: 11px;
+}
+.purity-ring > div {
+  height: 100%;
+  background: #fbf7ec;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 14px;
+}
+.purity-ring strong {
+  font-size: 27px;
+}
+.purity-ring small {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--subtle);
+}
+.zone-values {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 10px;
+  margin: 0;
+  flex: 1;
+}
+.zone-values > div {
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: #f5f0e2;
+  padding: 15px;
+}
+.zone-values dt {
+  font-size: 12px;
+  color: var(--subtle);
+  text-transform: uppercase;
+}
+.zone-values dd {
+  margin: 7px 0 0;
+  font-size: 20px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.zone-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.zone-counts span {
+  border: 1px solid var(--border);
+  background: #f5f0e2;
+  padding: 9px 10px;
+  border-radius: 3px;
+  font-size: 14px;
+  color: #64573f;
+}
+.controls-panel {
+  width: calc(100% - 100px);
+  max-width: 1790px;
+  margin: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.panel-heading {
+  padding: 35px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+}
+h2 {
+  font-size: 32px;
+}
+.panel-heading p:last-child {
+  color: var(--subtle);
+  font-size: 18px;
+  margin: 14px 0 3px;
+}
+.filters {
+  background: #f5f0e2;
+  padding: 26px 35px;
+  display: flex;
+  gap: 20px;
+  border-block: 1px solid var(--border);
+}
+.filters label {
+  width: 325px;
+  text-transform: uppercase;
+  color: var(--subtle);
+  font-size: 13px;
+}
+.filters select {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 14px 18px;
+  font-size: 16px;
+  background: #fbf7ec;
+  border: 1px solid #d4c29a;
+  border-radius: 7px;
+  color: #1c201c;
+}
+.table-scroll {
+  overflow: auto;
+}
+table {
+  font-size: 16px;
+  white-space: nowrap;
+}
+thead th {
+  position: static;
+  background: #f5f0e2;
+  font-size: 12px;
+  padding: 18px 20px;
+}
+tbody td {
+  padding: 18px 20px;
+  border-color: var(--border);
+}
+tbody tr:nth-child(even) {
+  background: #f5f0e2;
+}
+tbody tr:hover {
+  background: #efecde;
+}
+.numeric {
+  text-align: right;
+}
+.code {
+  display: inline-block;
+  padding: 9px 11px;
+  background: #efe7d1;
+  border-radius: 3px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #64573f;
+}
+.empty {
+  text-align: center;
+  padding: 40px;
+}
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 23px 35px;
+  border-top: 1px solid var(--border);
+  gap: 20px;
+  font-size: 11px;
+  color: #006050;
+}
+.pagination small {
+  display: block;
+  margin-top: 8px;
+  color: var(--subtle);
+}
+.page-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.page-actions button,
+.page-actions select {
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: transparent;
+  min-width: 38px;
+  height: 38px;
+  color: inherit;
+  cursor: pointer;
+}
+.page-actions select {
+  margin: 0 8px;
+  width: 65px;
+}
+.page-actions button.active {
+  background: #305d4c;
+  color: white;
+}
+.page-actions button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}

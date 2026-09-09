@@ -1,0 +1,197 @@
+<section id="zonas" class="view printable">
+  <div class="print-header"><h2>Huata Lácteos · Zonas y rendimiento</h2></div>
+
+  <div class="page-head">
+    <div>
+      <div class="kicker">Control territorial</div>
+      <h1>Zonas y rendimiento</h1>
+      <p>Rendimiento visual por periodo, con lectura de tendencia similar a un panel de trading.</p>
+    </div>
+    <div class="actions no-print">
+      <button class="btn btn-blue" onclick="exportSheet('ResumenZonas')">Exportar Excel</button>
+      <button class="btn btn-primary" onclick="openZoneTradingDetails()">Ver más</button>
+    </div>
+  </div>
+
+  
+  <div class="card sec-tabs-card">
+    <div class="sec-tabs no-print" style="grid-template-columns:repeat(3,1fr)">
+      <button id="zonasTabAnalisis" class="sec-tab active" onclick="switchSecTab('zonasPanelAnalisis',this)">
+        <span>◈</span> Análisis por proveedor
+      </button>
+      <button id="zonasTabRendimiento" class="sec-tab" onclick="switchSecTab('zonasPanelRendimiento',this)">
+        <span>◍</span> Rendimiento de acopio
+      </button>
+      <button id="zonasTabMovimiento" class="sec-tab" onclick="switchSecTab('zonasPanelMovimiento',this)">
+        <span>▤</span> Movimiento rápido
+      </button>
+    </div>
+
+    <div id="zonasPanelAnalisis" class="sec-tab-panel active">
+      <div class="card provider-insight-card">
+        <div class="provider-insight-head">
+          <div>
+            <div class="kicker">ANÁLISIS POR PROVEEDOR</div>
+            <h3>Calidad, cantidad y regularidad</h3>
+            <p>Busca un proveedor y revisa su comportamiento visual a lo largo del tiempo.</p>
+          </div>
+          <div class="provider-insight-actions no-print">
+            <div class="provider-search-combo">
+              <div class="provider-search-wrap">
+                <span>⌕</span>
+                <input id="providerInsightSearch" autocomplete="off" placeholder="Escriba nombre, código o zona..." onfocus="showProviderInsightOptions()" oninput="filterProviderInsightOptions()" onblur="setTimeout(hideProviderInsightOptions,180)" aria-label="Buscar proveedor">
+                <button type="button" class="provider-combo-toggle" onclick="toggleProviderInsightOptions()" title="Mostrar todos los proveedores">⌄</button>
+              </div>
+              <div id="providerInsightOptions" class="provider-insight-options"></div>
+            </div>
+            <div class="provider-period-switch">
+              <button id="providerInsightWeek" class="provider-period-btn active" onclick="setProviderInsightRange('week')">Semana</button>
+              <button id="providerInsightMonth" class="provider-period-btn" onclick="setProviderInsightRange('month')">Mes</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="provider-insight-summary">
+          <div class="provider-insight-ident">
+            <span id="providerInsightCode">—</span>
+            <strong id="providerInsightName">Seleccione un proveedor</strong>
+            <small id="providerInsightMeta">Zona · tipo · fuente</small>
+          </div>
+          <div class="provider-insight-status-grid">
+            <div>
+              <span>Cantidad promedio</span>
+              <strong id="providerInsightAvgLiters">0.0 L</strong>
+            </div>
+            <div>
+              <span>Calidad actual</span>
+              <strong id="providerInsightQualityNow">N/D</strong>
+            </div>
+            <div>
+              <span>Regularidad</span>
+              <strong id="providerInsightRegularity">0%</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="provider-insight-chart-head">
+          <div>
+            <h4 id="providerInsightChartTitle">Evolución del proveedor</h4>
+            <p id="providerInsightChartSubtitle">Índices visuales normalizados de 0 a 100.</p>
+          </div>
+          <div class="provider-insight-legend">
+            <span><i class="provider-line-dot qty"></i>Cantidad</span>
+            <span><i class="provider-line-dot quality"></i>Calidad</span>
+            <span><i class="provider-line-dot regularity"></i>Regularidad</span>
+          </div>
+        </div>
+
+        <div class="provider-insight-chart-wrap">
+          <div class="provider-insight-y-label">Índice visual</div>
+          <div id="providerInsightChart" class="provider-insight-chart"></div>
+          <div id="providerInsightTooltip" class="provider-insight-tooltip" role="status" aria-live="polite"></div>
+        </div>
+
+        <div class="provider-insight-note" id="providerInsightNote">
+          La línea de cantidad representa el volumen relativo del proveedor; calidad representa el estado operativo registrado; regularidad mide qué tan estable es su entrega respecto a su propio promedio.
+        </div>
+      </div>
+    </div>
+
+    <div id="zonasPanelRendimiento" class="sec-tab-panel">
+      <div class="zone-trading-toolbar">
+        <div class="zone-trading-symbol">
+          <div class="zone-symbol-icon">◍</div>
+          <div>
+            <span>RENDIMIENTO DE ACOPIO</span>
+            <strong id="zoneTradingTitle">Todas las zonas</strong>
+          </div>
+        </div>
+
+        <div class="zone-trading-controls no-print">
+          <select id="zoneTradingZone" onchange="renderZoneTrading()"></select>
+          <div class="zone-range-switch">
+            <button id="zoneRangeWeek" class="zone-range-btn active" onclick="setZoneTradingRange('week')">Semana</button>
+            <button id="zoneRangeMonth" class="zone-range-btn" onclick="setZoneTradingRange('month')">Mes</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="zone-trading-kpis">
+        <article class="zt-kpi">
+          <span>Volumen actual</span>
+          <strong id="ztCurrent">0.00 L</strong>
+          <small id="ztCurrentLabel">Último punto disponible</small>
+        </article>
+        <article class="zt-kpi">
+          <span>Variación</span>
+          <strong id="ztChange">0.00%</strong>
+          <small id="ztChangeLiters">0.00 L</small>
+        </article>
+        <article class="zt-kpi">
+          <span>Máximo</span>
+          <strong id="ztMax">0.00 L</strong>
+          <small id="ztMaxLabel">—</small>
+        </article>
+        <article class="zt-kpi">
+          <span>Mínimo</span>
+          <strong id="ztMin">0.00 L</strong>
+          <small id="ztMinLabel">—</small>
+        </article>
+      </div>
+
+      <div class="zone-trading-grid">
+        <div class="card zone-market-card">
+          <div class="zone-market-head">
+            <div>
+              <div class="kicker">TENDENCIA</div>
+              <h3 id="zoneMarketHeading">Evolución semanal</h3>
+              <p id="zoneMarketSource">Datos históricos disponibles del rendimiento.</p>
+            </div>
+            <div id="zoneMarketDirection" class="market-direction neutral">SIN CAMBIO</div>
+          </div>
+
+          <div class="zone-market-chart-wrap">
+            <div class="zone-market-y-label">Litros</div>
+            <div id="zoneTradingChart" class="zone-market-chart"></div>
+          </div>
+
+          <div class="zone-market-footer">
+            <div><i class="market-dot current"></i><span id="zoneLegendLabel">Volumen de leche</span></div>
+            <small>Pasa el cursor sobre los puntos para ver el valor exacto.</small>
+          </div>
+        </div>
+
+        <div class="card zone-ranking-card">
+          <div class="zone-market-head">
+            <div>
+              <div class="kicker">RANKING</div>
+              <h3>Participación por zona</h3>
+              <p id="zoneRankingCaption">Comparativo del periodo visible.</p>
+            </div>
+          </div>
+          <div id="zoneTradingRanking" class="zone-trading-ranking"></div>
+        </div>
+      </div>
+
+      <div class="zone-state-board" style="margin-top:10px">
+        <div class="zone-state good"><i></i><div><strong id="zoneUpCount">0</strong><span>Aumentaron</span></div></div>
+        <div class="zone-state watch"><i></i><div><strong id="zoneStableCount">0</strong><span>Estables</span></div></div>
+        <div class="zone-state down"><i></i><div><strong id="zoneDownCount">0</strong><span>Disminuyeron</span></div></div>
+      </div>
+    </div>
+
+    <div id="zonasPanelMovimiento" class="sec-tab-panel">
+      <div class="card zone-cards-card">
+        <div class="zone-market-head">
+          <div>
+            <div class="kicker">9 ZONAS</div>
+            <h3>Movimiento rápido</h3>
+            <p>Vista compacta del cambio entre los dos registros comparativos disponibles.</p>
+          </div>
+          <button class="dash-link no-print" onclick="openZoneTradingDetails()">Ver todos los datos</button>
+        </div>
+        <div id="zoneMarketCards" class="zone-market-cards"></div>
+      </div>
+    </div>
+  </div>
+</section>

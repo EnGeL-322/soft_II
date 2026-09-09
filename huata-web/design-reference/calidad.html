@@ -1,0 +1,94 @@
+<section id="calidad" class="view printable">
+  <div class="print-header"><h2>Huata Lácteos · Calidad e historial</h2></div>
+  <div class="page-head">
+    <div>
+      <div class="kicker">Control de calidad</div>
+      <h1>Calidad e historial</h1>
+      <p>Seguimiento superior por proveedor. La incidencia se registra como Observación o Adulteración.</p>
+    </div>
+    <div class="actions no-print">
+      <button class="btn btn-amber" data-perm="quality.write" onclick="openIncidentModal()">+ Registrar adulteración</button>
+      <button class="btn btn-blue" onclick="exportSheet('HistorialCalidad')">Exportar Excel</button>
+    </div>
+  </div>
+
+  <div class="compact-summary">
+    <div><span>Densidad</span><strong>28–32</strong></div>
+    <div><span>Agua añadida</span><strong>No / sospecha / confirmada</strong></div>
+    <div><span>Lugol</span><strong>Negativa / positiva</strong></div>
+    <div><span>Congelación</span><strong>Según voucher</strong></div>
+  </div>
+
+  <div class="card sec-tabs-card" style="margin-top:12px">
+    <div class="sec-tabs no-print" style="grid-template-columns:repeat(2,1fr)">
+      <button id="qualityTabSeguimiento" class="sec-tab active" onclick="switchSecTab('qualityPanelSeguimiento',this)">
+        <span>◎</span> Seguimiento por proveedor
+      </button>
+      <button id="qualityTabHistorial" class="sec-tab" onclick="switchSecTab('qualityPanelHistorial',this)">
+        <span>▤</span> Historial de calidad
+      </button>
+    </div>
+
+    <div id="qualityPanelSeguimiento" class="sec-tab-panel active">
+      <div class="kicker">SEGUIMIENTO</div>
+      <h3 style="margin:5px 0 10px">Resumen histórico por proveedor</h3>
+      <div id="qualitySummary"></div>
+
+      <div class="kicker" style="margin-top:22px">SEGUIMIENTO DIARIO</div>
+      <div class="table-title" style="padding:0 0 10px">
+        <div><h3>Seguimiento por proveedor del día</h3><p>Cada proveedor que entregó en la fecha seleccionada, con su resultado de calidad.</p></div>
+        <div class="toolbar no-print">
+          <label class="route-date-label-v135">Fecha <input id="qualityDailyDateV140" type="date" onchange="renderDailyProviderFollowupV140()"></label>
+        </div>
+      </div>
+      <div id="qualityDailyFollowupV140"></div>
+    </div>
+
+    <div id="qualityPanelHistorial" class="sec-tab-panel">
+      <div class="table-title" style="padding:0 0 14px">
+        <div><h3>Historial de calidad</h3><p>Fuente: Planta o Ruta.</p></div>
+        <div class="toolbar no-print">
+          <input id="qualitySearch" placeholder="Buscar proveedor..." oninput="renderQualityHistory()">
+          <select id="qualityTypeFilter" onchange="renderQualityHistory()">
+            <option value="">Todos</option><option>Observación</option><option>Adulteración</option>
+          </select>
+        </div>
+      </div>
+      <div class="tablebox">
+        <table>
+          <thead><tr>
+            <th>Fecha</th><th>Proveedor</th><th>Zona</th><th>Fuente</th><th>Incidencia</th><th class="wrap">Observación</th><th>Voucher</th>
+          </tr></thead>
+          <tbody id="qualityHistoryBody"></tbody>
+        </table>
+      </div>
+      <div class="smart-pagination no-print" data-pager="qualityPager">
+        <div class="smart-pagination-info">
+          <strong id="qualityPagerPageInfo">Mostrando 0 controles</strong>
+          <span id="qualityPagerPageCount">Página 1 de 1</span>
+        </div>
+        <div class="smart-pagination-actions">
+          <div class="smart-pagination-search">
+            <span>⌕</span>
+            <input id="qualityPagerSearch" placeholder="Buscar en esta tabla..." oninput="smartPagerSearch('qualityPager',this.value)">
+            <button type="button" onclick="smartPagerClearSearch('qualityPager')" title="Limpiar búsqueda">×</button>
+          </div>
+          <label>
+            Ver
+            <select id="qualityPagerPageSize" onchange="smartPagerSetSize('qualityPager',this.value)">
+              <option value="5">5</option>
+              <option value="10" selected="">10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+            </select>
+          </label>
+          <button id="qualityPagerFirst" class="smart-page-btn" onclick="smartPagerSetPage('qualityPager',1)" title="Primera página">«</button>
+          <button id="qualityPagerPrev" class="smart-page-btn" onclick="smartPagerMove('qualityPager',-1)" title="Anterior">‹</button>
+          <div id="qualityPagerNumbers" class="smart-page-numbers"></div>
+          <button id="qualityPagerNext" class="smart-page-btn" onclick="smartPagerMove('qualityPager',1)" title="Siguiente">›</button>
+          <button id="qualityPagerLast" class="smart-page-btn" onclick="smartPagerLast('qualityPager')" title="Última página">»</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

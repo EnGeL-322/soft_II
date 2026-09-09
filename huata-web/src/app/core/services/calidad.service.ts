@@ -1,7 +1,17 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { API_BASE_URL } from '../config/api-config';
-import { ControlCalidad, EstadoIncidencia, IncidenciaCalidad, ParametroCalidad, ResultadoCalidad } from '../models/models';
+import {
+  Aspecto,
+  AguaAnadida,
+  ControlCalidad,
+  EstadoIncidencia,
+  IncidenciaCalidad,
+  Olor,
+  ParametroCalidad,
+  ResultadoCalidad,
+  ResultadoLugol,
+} from '../models/models';
 
 export interface ControlCalidadRequest {
   recojoId: number;
@@ -16,6 +26,11 @@ export interface ControlCalidadRequest {
   resultado: ResultadoCalidad;
   equipoUtilizado?: string;
   responsable?: string;
+  aguaAnadida?: AguaAnadida;
+  lugol?: ResultadoLugol;
+  olor?: Olor;
+  aspecto?: Aspecto;
+  motivoRechazo?: string;
 }
 
 @Injectable({ providedIn: 'root' })

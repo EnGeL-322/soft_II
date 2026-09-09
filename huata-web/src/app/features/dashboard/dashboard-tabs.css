@@ -1,0 +1,166 @@
+.operation-tabs {
+  border: 1px solid #d6c399;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-top: 18px;
+}
+.tab-buttons {
+  display: flex;
+  background: #eee3c9;
+}
+.tab-buttons button {
+  flex: 1;
+  border: 0;
+  border-bottom: 4px solid transparent;
+  background: none;
+  padding: 19px 10px;
+  color: #80765b;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+}
+.tab-buttons button.active {
+  background: #fbf7ec;
+  border-bottom-color: #195c3c;
+  color: #195c3c;
+}
+.tab-buttons span {
+  color: #539f87;
+  margin-right: 7px;
+}
+.tab-buttons b {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 8px 11px;
+  border-radius: 3px;
+  color: #996521;
+  background: #f7ecd5;
+}
+.tab-panel {
+  padding: 24px;
+}
+.panel-description {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  color: #8c7557;
+  font-size: 13px;
+  margin: 0 0 15px;
+}
+.panel-description a {
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 600;
+}
+.activity-list {
+  background: #fafbfc;
+}
+.alert-row,
+.activity-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px;
+  border-bottom: 1px solid #dddcd3;
+  font-size: 11px;
+  min-height: 53px;
+}
+.alert-row:last-child,
+.activity-row:last-child {
+  border: 0;
+}
+.alert-row > div,
+.activity-row > div {
+  flex: 1;
+  min-width: 0;
+}
+.alert-row strong,
+.activity-row strong {
+  font-size: 11px;
+}
+.alert-row small,
+.activity-row small {
+  display: block;
+  margin-top: 6px;
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.alert-icon {
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  background: #e4e2d8;
+  color: #9d7736;
+  font-size: 22px;
+  font-weight: 600;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+}
+.alert-row a {
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.activity-row time {
+  color: var(--muted);
+  font-size: 10px;
+  white-space: nowrap;
+}
+.empty {
+  padding: 25px;
+  color: var(--muted);
+  font-size: 13px;
+}
+@media (max-width: 600px) {
+  .reconciliation-values {
+    grid-template-columns: 1fr;
+  }
+  .closing-actions {
+    flex-wrap: wrap;
+  }
+  .closing-actions small {
+    max-width: 100%;
+    width: 100%;
+  }
+  .closing-actions button {
+    flex: 1;
+    padding: 12px;
+  }
+  .tab-buttons button {
+    font-size: 11px;
+    padding: 14px 6px;
+  }
+  .tab-buttons span {
+    display: none;
+  }
+  .tab-buttons b {
+    margin: 4px;
+    padding: 4px 7px;
+  }
+  .tab-panel {
+    padding: 15px;
+  }
+  .panel-description {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .activity-row {
+    align-items: flex-start;
+  }
+  .activity-row time {
+    white-space: normal;
+  }
+  .alert-row {
+    gap: 9px;
+  }
+  .alert-row small {
+    font-size: 9px;
+  }
+  .reconciliation {
+    scroll-margin-top: 20px;
+  }
+}

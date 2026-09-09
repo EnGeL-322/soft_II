@@ -62,10 +62,11 @@ export class LoginComponent {
         this.cargando.set(false);
         this.router.navigateByUrl('/dashboard');
       },
-      error: () => {
+      error: (e) => {
         this.cargando.set(false);
-        this.error.set('Usuario o contraseña incorrectos.');
+        this.error.set(e.status === 401 ? 'Usuario o contraseña incorrectos.' : (e.error?.message ?? 'No se pudo conectar con el servidor. Intenta nuevamente.'));
       },
     });
   }
 }
+

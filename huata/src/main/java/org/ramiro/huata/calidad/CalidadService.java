@@ -76,6 +76,11 @@ public class CalidadService {
         control.setResultado(req.resultado());
         control.setEquipoUtilizado(req.equipoUtilizado());
         control.setResponsable(req.responsable());
+        control.setAguaAnadida(req.aguaAnadida());
+        control.setLugol(req.lugol());
+        control.setOlor(req.olor());
+        control.setAspecto(req.aspecto());
+        control.setMotivoRechazo(req.motivoRechazo());
     }
 
     /** Historial de calidad de un proveedor (boton "Historial de calidad" del UI/UX). */

@@ -30,4 +30,11 @@ public class AsignacionRuta extends BaseEntity {
 
     @Column(nullable = false)
     private LocalDate fecha;
+
+    /** Texto libre, opcional: no se inventa una flota de vehiculos, solo se anota si se conoce. */
+    @Column(length = 120)
+    private String movilidad;
+
+    @Column(length = 500)
+    private String observacion;
 }

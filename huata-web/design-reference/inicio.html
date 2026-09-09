@@ -1,0 +1,119 @@
+<section id="inicio" class="view active">
+  <div class="ops-hero-v135">
+    <div>
+      <div class="hero-badge">CENTRO DE OPERACIÓN</div>
+      <h1 id="opsGreetingV135">Control diario de Huata Lácteos</h1>
+      <p id="opsRoleDescriptionV135">Indicadores, pendientes y acciones según el rol activo.</p>
+    </div>
+
+    <div class="ops-date-box-v135 no-print">
+      <label>Fecha operativa</label>
+      <input id="opsDateV135" type="date" onchange="renderHome()">
+      <span id="opsDayStatusV135" class="ops-day-status-v135 open">Jornada abierta</span>
+    </div>
+  </div>
+
+  <div id="opsQuickActionsV135" class="ops-quick-actions-v135 no-print"></div>
+
+  <div class="ops-kpis-v135">
+    <article class="ops-kpi-v135">
+      <span>Acopio aceptado</span>
+      <strong id="opsAcceptedV135">0 L</strong>
+      <small id="opsAcceptedCountV135">0 recepciones</small>
+    </article>
+    <article class="ops-kpi-v135">
+      <span>Leche observada</span>
+      <strong id="opsObservedV135">0 L</strong>
+      <small id="opsObservedCountV135">0 controles</small>
+    </article>
+    <article class="ops-kpi-v135 danger">
+      <span>Rechazada</span>
+      <strong id="opsRejectedV135">0 L</strong>
+      <small id="opsRejectedCountV135">0 entregas</small>
+    </article>
+    <article class="ops-kpi-v135">
+      <span>Proveedores atendidos</span>
+      <strong id="opsProvidersV135">0</strong>
+      <small id="opsZonesV135">0 zonas</small>
+    </article>
+    <article class="ops-kpi-v135 money">
+      <span>Compra estimada</span>
+      <strong id="opsPurchaseV135">S/ 0.00</strong>
+      <small>Según reglas de pago vigentes</small>
+    </article>
+  </div>
+
+  <!-- CIERRE DE ACOPIO · ahora es el bloque principal: ancho completo,
+       justo debajo de los KPIs, porque desde aquí se controla el cierre
+       de la jornada. -->
+  <div class="card ops-close-card-v135 ops-principal-v2">
+    <div class="ops-card-head-v135">
+      <div>
+        <span class="ops-principal-badge-v2">Módulo principal</span>
+        <div class="kicker">CIERRE Y RECONCILIACIÓN</div>
+        <h3>Cierre diario de acopio</h3>
+        <p>Compara litros aceptados contra el peso/volumen recibido en planta. El cierre de la jornada se controla desde aquí.</p>
+      </div>
+      <span id="opsCloseBadgeV135" class="badge badge-green">ABIERTO</span>
+    </div>
+
+    <div class="ops-reconciliation-v135">
+      <div><span>Sistema</span><strong id="opsSystemLitersV135">0 L</strong><small>Litros aceptados</small></div>
+      <div>
+        <span>Ingreso en planta</span>
+        <input id="opsPlantLitersV135" type="number" min="0" step=".1" placeholder="Registrar litros">
+        <small>Dato de cierre</small>
+      </div>
+      <div><span>Variación</span><strong id="opsVarianceV135">—</strong><small id="opsVariancePctV135">Sin comparar</small></div>
+    </div>
+
+    <div class="field ops-close-note-v135">
+      <label>Observación del cierre</label>
+      <input id="opsCloseNoteV135" placeholder="Ej. diferencia por medición, derrame o ajuste documentado">
+    </div>
+
+    <div class="ops-close-actions-v135 no-print">
+      <button id="opsCloseDayBtnV135" class="btn btn-primary" onclick="closeOperationalDayV135()">Cerrar jornada</button>
+      <button id="opsReopenDayBtnV135" class="btn btn-soft" onclick="reopenOperationalDayV135()">Reabrir</button>
+    </div>
+  </div>
+
+  <!-- ALERTAS · RUTAS · ACTIVIDAD RECIENTE · en pestañas, para no
+       obligar a bajar por toda la página como antes. -->
+  <div class="card ops-tabs-card-v2">
+    <div class="ops-tabs-v2 no-print">
+      <button id="opsTabAlertasV2" class="ops-tab-v2 active" onclick="switchOpsTabV2('alertas')">
+        <span>▲</span> Alertas y pendientes <span id="opsAlertCountV135" class="badge badge-amber">0</span>
+      </button>
+      <button id="opsTabRutasV2" class="ops-tab-v2" onclick="switchOpsTabV2('rutas')">
+        <span>↝</span> Rutas
+      </button>
+      <button id="opsTabActividadV2" class="ops-tab-v2" onclick="switchOpsTabV2('actividad')">
+        <span>▤</span> Actividad reciente
+      </button>
+    </div>
+
+    <div id="opsPanelAlertasV2" class="ops-tab-panel-v2 active">
+      <div class="ops-tab-panel-head-v2">
+        <p>El sistema prioriza lo que requiere acción, evitando repetir los mismos gráficos de otros módulos.</p>
+      </div>
+      <div id="opsAlertsV135" class="ops-alert-list-v135"></div>
+    </div>
+
+    <div id="opsPanelRutasV2" class="ops-tab-panel-v2">
+      <div class="ops-tab-panel-head-v2">
+        <p id="opsRouteCaptionV135">Resumen de rutas del día.</p>
+        <button class="dash-link no-print" onclick="go('rutas')">Gestionar rutas →</button>
+      </div>
+      <div id="opsRouteSummaryV135" class="ops-route-summary-v135"></div>
+    </div>
+
+    <div id="opsPanelActividadV2" class="ops-tab-panel-v2">
+      <div class="ops-tab-panel-head-v2">
+        <p>Recepción, calidad, pagos y configuración.</p>
+        <button class="dash-link no-print" onclick="go('trazabilidad')">Ver trazabilidad →</button>
+      </div>
+      <div id="opsRecentV135" class="ops-recent-v135"></div>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,206 @@
+<section id="proveedores" class="view printable">
+  <div class="print-header"><h2>Huata Lácteos · Proveedores</h2></div>
+
+  <div class="page-head">
+    <div>
+      <div class="kicker">Gestión de proveedores</div>
+      <h1>Proveedores</h1>
+      <p>Consulta la información operativa en tabla o cambia a una vista gráfica para analizar distribución, volumen, calidad y tendencia.</p>
+    </div>
+    <div class="actions no-print">
+      <button class="btn btn-primary" data-perm="providers.write" onclick="openProviderModal()">+ Nuevo proveedor</button>
+      <button class="btn btn-blue" onclick="exportSheet('Proveedores')">Exportar Excel</button>
+    </div>
+  </div>
+
+  <div class="provider-view-card">
+    <div class="provider-view-tabs no-print">
+      <button id="providerTabCharts" class="provider-view-tab active" onclick="switchProviderView('charts')">
+        <span class="provider-tab-icon">↗</span>
+        <span>Análisis gráfico</span>
+      </button>
+      <button id="providerTabData" class="provider-view-tab" onclick="switchProviderView('data')">
+        <span class="provider-tab-icon">▤</span>
+        <span>Datos de proveedores</span>
+      </button>
+    </div>
+
+    <!-- PESTAÑA 1: DATOS -->
+    <div id="providerDataPanel" class="provider-view-panel">
+      <div class="provider-panel-head">
+        <div>
+          <div class="kicker">REGISTRO GENERAL</div>
+          <h3>Maestro de proveedores</h3>
+          <p>Información administrativa, procedencia y seguimiento.</p>
+        </div>
+        <div class="provider-table-search no-print">
+          <span>⌕</span>
+          <input id="providerSearch" placeholder="Buscar código, nombre, sector, zona, contacto u observación..." oninput="renderProviders()">
+        </div>
+        <div class="provider-data-search-help-v132 no-print">
+          Busca por código, nombre, sector/procedencia, zona, tipo, observaciones, último control o contacto.
+        </div>
+      </div>
+
+      <div class="tablebox provider-master-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Proveedor</th>
+              <th>Zona</th>
+              <th>Tipo</th>
+              <th class="no-print">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="providersBody"></tbody>
+        </table>
+      </div>
+    <div class="smart-pagination no-print" data-pager="providersPager">
+      <div class="smart-pagination-info">
+        <strong id="providersPagerPageInfo">Mostrando 0 proveedores</strong>
+        <span id="providersPagerPageCount">Página 1 de 1</span>
+      </div>
+      <div class="smart-pagination-actions">
+        <div class="smart-pagination-search">
+          <span>⌕</span>
+          <input id="providersPagerSearch" placeholder="Buscar en esta tabla..." oninput="smartPagerSearch('providersPager',this.value)">
+          <button type="button" onclick="smartPagerClearSearch('providersPager')" title="Limpiar búsqueda">×</button>
+        </div>
+        <label>
+          Ver
+          <select id="providersPagerPageSize" onchange="smartPagerSetSize('providersPager',this.value)">
+            <option value="5">5</option>
+            <option value="10" selected="">10</option>
+            <option value="25">25</option>
+            <option value="50">50</option>
+          </select>
+        </label>
+        <button id="providersPagerFirst" class="smart-page-btn" onclick="smartPagerSetPage('providersPager',1)" title="Primera página">«</button>
+        <button id="providersPagerPrev" class="smart-page-btn" onclick="smartPagerMove('providersPager',-1)" title="Anterior">‹</button>
+        <div id="providersPagerNumbers" class="smart-page-numbers"></div>
+        <button id="providersPagerNext" class="smart-page-btn" onclick="smartPagerMove('providersPager',1)" title="Siguiente">›</button>
+        <button id="providersPagerLast" class="smart-page-btn" onclick="smartPagerLast('providersPager')" title="Última página">»</button>
+      </div>
+    </div>
+    </div>
+
+    <!-- PESTAÑA 2: GRÁFICOS -->
+    <div id="providerChartsPanel" class="provider-view-panel active">
+      <div class="provider-analytics-head">
+        <div>
+          <div class="kicker">ANÁLISIS VISUAL</div>
+          <h3>Rendimiento de proveedores</h3>
+          <p>Los mismos registros se convierten en indicadores y gráficos para una lectura rápida.</p>
+        </div>
+
+        <div class="provider-chart-search no-print">
+          <label>Analizar proveedor</label>
+          <div class="provider-chart-search-control">
+            <span>⌕</span>
+            <input id="providerChartSearch" list="providerChartList" placeholder="Código, nombre, sector o zona..." oninput="resolveProviderChartSearch()">
+            <button type="button" onclick="clearProviderChartSearch()" title="Ver todos">Todos</button>
+          </div>
+          <datalist id="providerChartList"></datalist>
+        </div>
+      </div>
+
+      <div class="provider-analytics-kpis">
+        <article class="provider-analytics-kpi">
+          <span>Proveedores</span>
+          <strong id="providerKpiCount">0</strong>
+          <small id="providerKpiCountNote">registrados</small>
+        </article>
+        <article class="provider-analytics-kpi">
+          <span>Litros registrados</span>
+          <strong id="providerKpiLiters">0 L</strong>
+          <small>acopio digital disponible</small>
+        </article>
+        <article class="provider-analytics-kpi">
+          <span>Calidad apta</span>
+          <strong id="providerKpiQuality">0%</strong>
+          <small id="providerKpiQualityNote">sobre controles digitales</small>
+        </article>
+        <article class="provider-analytics-kpi">
+          <span>Observaciones</span>
+          <strong id="providerKpiIncidents">0</strong>
+          <small>registros de calidad</small>
+        </article>
+      </div>
+
+      <div class="provider-selected-day-bar">
+        <div>
+          <span>ANÁLISIS DEL DÍA</span>
+          <strong id="providerSelectedDateText">—</strong>
+        </div>
+        <small id="providerSelectedDateSub">Haz clic en un punto del gráfico de volumen.</small>
+      </div>
+
+      <div class="provider-analytics-grid provider-analytics-grid-v123">
+        <article class="provider-chart-card provider-chart-wide">
+          <div class="provider-chart-head">
+            <div>
+              <div class="kicker">VOLUMEN</div>
+              <h4 id="providerTrendTitle">Evolución del acopio</h4>
+              <p id="providerTrendCaption">Haz clic en cualquier punto para analizar ese día.</p>
+            </div>
+            <span id="providerTrendBadge" class="provider-chart-badge">TODOS</span>
+          </div>
+          <div id="providerTrendChart" class="provider-trend-chart"></div>
+        </article>
+
+        <article class="provider-chart-card provider-quality-compact-card">
+          <div class="provider-chart-head">
+            <div>
+              <div class="kicker">CALIDAD</div>
+              <h4>Distribución del día</h4>
+              <p>Apta, observada y retirada.</p>
+            </div>
+          </div>
+          <div class="provider-quality-visual provider-quality-visual-compact">
+            <div id="providerQualityDonut" class="provider-quality-donut provider-quality-donut-compact"></div>
+            <div id="providerQualityLegend" class="provider-quality-chart-legend provider-quality-legend-compact"></div>
+          </div>
+        </article>
+
+        <article class="provider-chart-card provider-lab-card">
+          <div class="provider-chart-head">
+            <div>
+              <div class="kicker">ANÁLISIS DE LECHE</div>
+              <h4 id="providerLabTitle">Resultados del día</h4>
+              <p id="providerLabCaption">Valores del analizador o del control digital disponible.</p>
+            </div>
+            <span id="providerLabStatus" class="provider-chart-badge">—</span>
+          </div>
+          <div id="providerLabSamples" class="provider-lab-samples"></div>
+          <div id="providerLabResult" class="provider-lab-result"></div>
+        </article>
+
+        <article class="provider-chart-card provider-zone-daily-card">
+          <div class="provider-chart-head">
+            <div>
+              <div class="kicker">ZONAS</div>
+              <h4>Proveedores por zona</h4>
+              <p id="providerZoneCaption">Ubicación registrada para el día seleccionado.</p>
+            </div>
+          </div>
+          <div id="providerZoneChart" class="provider-horizontal-chart provider-zone-chart-daily"></div>
+        </article>
+
+        <article class="provider-chart-card provider-ranking-daily-card">
+          <div class="provider-chart-head">
+            <div>
+              <div class="kicker">RANKING DEL DÍA</div>
+              <h4>Volumen entregado</h4>
+              <p id="providerRankingCaption">Proveedores con mayor volumen en la fecha seleccionada.</p>
+            </div>
+          </div>
+          <div id="providerVolumeRanking" class="provider-horizontal-chart"></div>
+        </article>
+      </div>
+      <div id="providerChartDataNote" class="provider-chart-note">
+        Los gráficos utilizan los registros disponibles en el sistema. Los controles o cantidades que no existen en la evidencia no se inventan.
+      </div>
+    </div>
+  </div>
+</section>

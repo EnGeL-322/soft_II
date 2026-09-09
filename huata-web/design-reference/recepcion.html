@@ -1,0 +1,89 @@
+<section id="recepcion" class="view printable">
+  <div class="print-header"><h2>Huata Lácteos · Recepción y acopio</h2></div>
+  <div class="page-head">
+    <div>
+      <div class="kicker">Recepción diaria</div>
+      <h1>Recepción y acopio</h1>
+      <p>Registro compacto por proveedor, con precio, resultado y control de calidad.</p>
+    </div>
+    <div class="actions no-print">
+      <button class="btn btn-primary" data-perm="reception.write" onclick="openReceptionModal()">+ Nueva recepción</button>
+      <button class="btn btn-blue" onclick="exportSheet('Recepciones')">Exportar Excel</button>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="label">Precio normal</div><div class="value">S/ 1.70</div><div class="sub">Leche apta.</div></div>
+    <div class="stat alert"><div class="label">Baja calidad / sospecha</div><div class="value">S/ 1.30</div><div class="sub">Tarifa reducida.</div></div>
+    <div class="stat"><div class="label">Envases de referencia</div><div class="value">22 / 35 L</div><div class="sub">Seleccionables.</div></div>
+    <div class="stat info"><div class="label">Horario de acopio</div><div class="value">08:40–10:00</div><div class="sub">Furgón / cierre.</div></div>
+  </div>
+
+  <div class="mobile-app-pointer-v141 no-print">
+    <div>
+      <b>App del acopiador:</b> los recojos en ruta se registran desde un archivo aparte —
+      <a href="huata_movil.html" target="_blank" rel="noopener">huata_movil.html</a> —
+      pensado para el teléfono. Lo que se envía ahí aparece abajo, listo para validar.
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="table-title">
+      <div><h3>Recepciones registradas</h3><p>Filtra por nombre, resultado o fuente.</p></div>
+      <div class="toolbar no-print">
+        <input id="receptionSearch" placeholder="Buscar por nombre, proveedor o acopiador..." oninput="renderReceptions()">
+        <select id="receptionQualityFilter" onchange="renderReceptions()">
+          <option value="">Todos</option><option>Apta</option><option>Baja calidad</option><option>Adulterada</option>
+        </select>
+        <select id="receptionSourceFilter" onchange="renderReceptions()">
+          <option value="">Planta y ruta</option><option>PLANTA</option><option>RUTA</option>
+        </select>
+        <select id="receptionCollectorFilterV140" onchange="renderReceptions()">
+          <option value="">Todos los acopiadores</option>
+        </select>
+      </div>
+      <div class="toolbar no-print" style="margin-top:8px">
+        <label class="route-date-label-v135">Desde <input id="receptionDateFromV140" type="date" onchange="renderReceptions()"></label>
+        <label class="route-date-label-v135">Hasta <input id="receptionDateToV140" type="date" onchange="renderReceptions()"></label>
+        <button type="button" class="btn btn-soft" onclick="clearReceptionDateFilterV140()">Limpiar fechas</button>
+      </div>
+    </div>
+    <div id="mobilePendingPickupsCardV140" class="mobile-pending-card-v140 no-print"></div>
+    <div class="tablebox">
+      <table>
+        <thead><tr>
+          <th>Código</th><th>Fecha</th><th>Proveedor</th><th>Zona</th>
+          <th class="num">Litros</th><th>Resultado</th><th class="no-print">Acciones</th>
+        </tr></thead>
+        <tbody id="receptionsBody"></tbody>
+      </table>
+    </div>
+    <div class="smart-pagination no-print" data-pager="receptionsPager">
+      <div class="smart-pagination-info">
+        <strong id="receptionsPagerPageInfo">Mostrando 0 recepciones</strong>
+        <span id="receptionsPagerPageCount">Página 1 de 1</span>
+      </div>
+      <div class="smart-pagination-actions">
+        <div class="smart-pagination-search">
+          <span>⌕</span>
+          <input id="receptionsPagerSearch" placeholder="Buscar en esta tabla..." oninput="smartPagerSearch('receptionsPager',this.value)">
+          <button type="button" onclick="smartPagerClearSearch('receptionsPager')" title="Limpiar búsqueda">×</button>
+        </div>
+        <label>
+          Ver
+          <select id="receptionsPagerPageSize" onchange="smartPagerSetSize('receptionsPager',this.value)">
+            <option value="5">5</option>
+            <option value="10" selected="">10</option>
+            <option value="25">25</option>
+            <option value="50">50</option>
+          </select>
+        </label>
+        <button id="receptionsPagerFirst" class="smart-page-btn" onclick="smartPagerSetPage('receptionsPager',1)" title="Primera página">«</button>
+        <button id="receptionsPagerPrev" class="smart-page-btn" onclick="smartPagerMove('receptionsPager',-1)" title="Anterior">‹</button>
+        <div id="receptionsPagerNumbers" class="smart-page-numbers"></div>
+        <button id="receptionsPagerNext" class="smart-page-btn" onclick="smartPagerMove('receptionsPager',1)" title="Siguiente">›</button>
+        <button id="receptionsPagerLast" class="smart-page-btn" onclick="smartPagerLast('receptionsPager')" title="Última página">»</button>
+      </div>
+    </div>
+  </div>
+</section>

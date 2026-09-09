@@ -23,7 +23,12 @@ record ControlCalidadRequest(
         String revisionVisual,
         @NotNull ResultadoCalidad resultado,
         String equipoUtilizado,
-        String responsable) {}
+        String responsable,
+        AguaAnadida aguaAnadida,
+        ResultadoLugol lugol,
+        Olor olor,
+        Aspecto aspecto,
+        String motivoRechazo) {}
 
 record ControlCalidadResponse(
         Long id,
@@ -41,6 +46,11 @@ record ControlCalidadResponse(
         ResultadoCalidad resultado,
         String equipoUtilizado,
         String responsable,
+        AguaAnadida aguaAnadida,
+        ResultadoLugol lugol,
+        Olor olor,
+        Aspecto aspecto,
+        String motivoRechazo,
         Instant fecha) {
 
     static ControlCalidadResponse from(ControlCalidad c) {
@@ -60,6 +70,11 @@ record ControlCalidadResponse(
                 c.getResultado(),
                 c.getEquipoUtilizado(),
                 c.getResponsable(),
+                c.getAguaAnadida(),
+                c.getLugol(),
+                c.getOlor(),
+                c.getAspecto(),
+                c.getMotivoRechazo(),
                 c.getCreatedAt());
     }
 }

@@ -2,22 +2,30 @@ package org.ramiro.huata.config;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.ramiro.huata.acopiadores.Acopiador;
 import org.ramiro.huata.acopiadores.AcopiadorRepository;
 import org.ramiro.huata.auditoria.AuditoriaService;
+import org.ramiro.huata.calidad.AguaAnadida;
+import org.ramiro.huata.calidad.Aspecto;
 import org.ramiro.huata.calidad.ControlCalidad;
 import org.ramiro.huata.calidad.ControlCalidadRepository;
 import org.ramiro.huata.calidad.EstadoIncidencia;
 import org.ramiro.huata.calidad.IncidenciaCalidad;
 import org.ramiro.huata.calidad.IncidenciaCalidadRepository;
+import org.ramiro.huata.calidad.Olor;
 import org.ramiro.huata.calidad.ParametroCalidad;
 import org.ramiro.huata.calidad.ParametroCalidadRepository;
 import org.ramiro.huata.calidad.ResultadoCalidad;
+import org.ramiro.huata.calidad.ResultadoLugol;
+import org.ramiro.huata.liquidaciones.LiquidacionService;
 import org.ramiro.huata.liquidaciones.TarifaLeche;
 import org.ramiro.huata.liquidaciones.TarifaLecheRepository;
 import org.ramiro.huata.notificaciones.NotificacionService;
@@ -29,6 +37,7 @@ import org.ramiro.huata.productores.ProductorRepository;
 import org.ramiro.huata.quesos.Queso;
 import org.ramiro.huata.quesos.QuesoRepository;
 import org.ramiro.huata.recojo.EstadoRecojo;
+import org.ramiro.huata.recojo.FuenteRecojo;
 import org.ramiro.huata.recojo.Recojo;
 import org.ramiro.huata.recojo.RecojoRepository;
 import org.ramiro.huata.rutas.AsignacionRuta;
@@ -37,6 +46,8 @@ import org.ramiro.huata.rutas.CentroAcopio;
 import org.ramiro.huata.rutas.CentroAcopioRepository;
 import org.ramiro.huata.rutas.Ruta;
 import org.ramiro.huata.rutas.RutaRepository;
+import org.ramiro.huata.ubicaciones.UbicacionGps;
+import org.ramiro.huata.ubicaciones.UbicacionGpsRepository;
 import org.ramiro.huata.usuarios.Rol;
 import org.ramiro.huata.usuarios.RolRepository;
 import org.ramiro.huata.usuarios.Usuario;
@@ -48,15 +59,25 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Siembra datos DEMO solo cuando huata.seed.demo-data=true (perfil dev por defecto; jamas en
- * postgres/produccion salvo que se fuerce explicitamente). Sigue la misma convencion que ya usa
- * el prototipo HTML de Huata: todo dato sintetico se identifica como "DEMO" para no confundirlo
- * jamas con datos reales de la cooperativa (ver 00_LEEME_PRIMERO.md).
+ * Siembra un conjunto de datos DEMO completo (14 días de operación real: rutas, proveedores,
+ * recepciones, calidad, incidencias, liquidaciones, quesos y GPS) para que todas las pantallas
+ * tengan contenido con el que trabajar.
+ *
+ * <p>Solo corre cuando huata.seed.demo-data=true y la base está vacía. Todo dato sintético se
+ * identifica como DEMO — misma convención del prototipo HTML — para no confundirlo jamás con datos
+ * reales de la cooperativa (00_LEEME_PRIMERO.md).
  */
 @Component
 @RequiredArgsConstructor
 @ConditionalOnProperty(prefix = "huata.seed", name = "demo-data", havingValue = "true")
 public class DemoDataSeeder implements CommandLineRunner {
+
+    private static final ZoneId ZONA_HORARIA = ZoneId.of("America/Lima");
+    private static final int DIAS_DE_HISTORIA = 14;
+
+    /** Coordenada aproximada del distrito de Huata (Puno) usada solo para ubicar puntos GPS DEMO. */
+    private static final double LAT_BASE = -15.652;
+    private static final double LON_BASE = -69.985;
 
     private final RolRepository rolRepository;
     private final UsuarioRepository usuarioRepository;
@@ -75,6 +96,11 @@ public class DemoDataSeeder implements CommandLineRunner {
     private final NotificacionService notificacionService;
     private final QuesoRepository quesoRepository;
     private final AuditoriaService auditoriaService;
+    private final UbicacionGpsRepository ubicacionGpsRepository;
+    private final LiquidacionService liquidacionService;
+
+    /** Semilla fija: los datos DEMO salen iguales en cada instalación limpia. */
+    private final Random random = new Random(20260819L);
 
     @Override
     @Transactional
@@ -88,99 +114,258 @@ public class DemoDataSeeder implements CommandLineRunner {
                 "Administra el sistema; supervisa y consulta, no duplica el registro de campo/planta.",
                 "Todo el sistema"));
         Rol acopiadorRol = rolRepository.save(new Rol(
-                Rol.ACOPIADOR,
-                "Registra recojos en ruta desde la aplicacion (movil en Fase 2).",
-                "Recepción de ruta"));
+                Rol.ACOPIADOR, "Registra recojos en ruta desde la aplicacion (movil en Fase 2).", "Recepción de ruta"));
         Rol calidadRol = rolRepository.save(new Rol(
                 Rol.CALIDAD,
                 "Registra densidad/adulteracion, resultado y observaciones; consulta historial.",
                 "Calidad y consulta"));
 
-        Usuario usuarioAdmin = crearUsuario("Administrador Huata", "admin@huata.pe", Set.of(admin));
-        Usuario usuarioAcopiador = crearUsuario("Acopiador Demo A", "acopiador.demo@huata.pe", Set.of(acopiadorRol));
+        crearUsuario("Administrador Huata", "admin@huata.pe", Set.of(admin));
+        Usuario usuarioAcopiador = crearUsuario("Acopiador Demo 1", "acopiador.demo@huata.pe", Set.of(acopiadorRol));
         crearUsuario("Responsable Calidad Demo", "calidad.demo@huata.pe", Set.of(calidadRol));
 
-        Ruta ruta1 = crearRuta("Ruta 1", "Quillallaka", "Ruta DEMO de referencia (validar contra rutas reales de Huata).");
-        Ruta ruta2 = crearRuta("Ruta 2", "I Collana", "Ruta DEMO de referencia (validar contra rutas reales de Huata).");
+        // ---- Rutas y zonas (las 9 zonas históricas viven como texto configurable, no como enum) ----
+        Ruta r1 = crearRuta("R-01", "Quillallaka / Santa Bárbara", "Ruta norte, salida 05:30.");
+        Ruta r2 = crearRuta("R-02", "I Collana", "Ruta centro, entrega directa en planta.");
+        Ruta r3 = crearRuta("R-03", "II Collana", "Ruta centro-sur.");
+        Ruta r4 = crearRuta("R-04", "Faon y Yasin", "Ruta este, incluye Yasin Uchuy.");
+        Ruta r5 = crearRuta("R-05", "Pancha Pampa", "Ruta sur, incluye Moro Viejo.");
+        List<Ruta> rutas = List.of(r1, r2, r3, r4, r5);
 
-        CentroAcopio centro1 = crearCentro("Centro Quillallaka", "Quillallaka, Huata", ruta1);
-        crearCentro("Centro I Collana", "I Collana, Huata", ruta2);
+        crearCentro("Centro Quillallaka", "Quillallaka, Huata", r1);
+        crearCentro("Centro I Collana", "I Collana, Huata", r2);
+        crearCentro("Centro II Collana", "II Collana, Huata", r3);
+        crearCentro("Acopio Faon", "Faon y Yasin, Huata", r4);
+        crearCentro("Planta Huata Lácteos", "Planta central, Huata", null);
 
-        Acopiador acopiadorDemoA = crearAcopiador("Demo", "Acopiador A", usuarioAcopiador);
-        crearAcopiador("Demo", "Acopiador B", null);
+        // ---- Acopiadores ----
+        List<Acopiador> acopiadores = new ArrayList<>();
+        acopiadores.add(crearAcopiador("Acopiador", "DEMO 1", usuarioAcopiador));
+        for (int i = 2; i <= 5; i++) {
+            acopiadores.add(crearAcopiador("Acopiador", "DEMO " + i, null));
+        }
 
-        AsignacionRuta asignacion = new AsignacionRuta();
-        asignacion.setRuta(ruta1);
-        asignacion.setAcopiador(acopiadorDemoA);
-        asignacion.setFecha(LocalDate.now());
-        asignacionRutaRepository.save(asignacion);
+        // ---- Proveedores: 18 repartidos entre las rutas ----
+        String[] zonasProveedor = {
+            "Quillallaka", "Santa Bárbara", "I Collana", "II Collana", "Faon y Yasin",
+            "Yasin Uchuy", "Pancha Pampa", "Moro Viejo", "Planta"
+        };
+        List<Productor> productores = new ArrayList<>();
+        for (int i = 1; i <= 18; i++) {
+            Ruta ruta = rutas.get((i - 1) % rutas.size());
+            EstadoProductor estado = (i == 5 || i == 12) ? EstadoProductor.EN_REVISION : EstadoProductor.ACTIVO;
+            productores.add(crearProductor(
+                    String.format("DEMO-%03d", i),
+                    "Proveedor",
+                    "Demo " + (char) ('A' + ((i - 1) % 26)),
+                    ruta,
+                    estado,
+                    "Registro sintético DEMO · zona de referencia " + zonasProveedor[(i - 1) % zonasProveedor.length]));
+        }
 
-        Productor productorA = crearProductor("DEMO-001", "Proveedor", "Demo A", ruta1, centro1, EstadoProductor.ACTIVO);
-        Productor productorB = crearProductor("DEMO-002", "Proveedor", "Demo B", ruta1, centro1, EstadoProductor.ACTIVO);
-        Productor productorC = crearProductor("DEMO-003", "Proveedor", "Demo C", ruta2, null, EstadoProductor.EN_REVISION);
-
-        crearParametroCalidad("Densidad", 1.0296, 1.0340, "g/mL a 15°C", "Referencia operativa DEMO (seccion 5 del contexto); confirmar con Huata antes de produccion.");
-        crearParametroCalidad("Punto de congelacion", -0.560, -0.520, "°C", "Valor de referencia ~-0.540°C; se mueve hacia 0°C si se agrega agua.");
+        // ---- Parámetros de calidad (rangos de referencia configurables) ----
+        crearParametroCalidad("Densidad", 1.0296, 1.0340, "g/mL a 15°C", "Referencia operativa DEMO; confirmar con Huata.");
+        crearParametroCalidad("Punto de congelacion", -0.560, -0.520, "°C", "~-0.540 °C; se acerca a 0 si hay agua añadida.");
         crearParametroCalidad("Acidez", 0.13, 0.17, "%", "Rango de referencia DEMO.");
-        crearParametroCalidad("Grasa", 3.2, null, "%", "Minimo de referencia DEMO.");
-        crearParametroCalidad("Solidos no grasos", 8.2, null, "%", "Minimo de referencia DEMO.");
-        crearParametroCalidad("Solidos totales", 11.4, null, "%", "Minimo de referencia DEMO.");
+        crearParametroCalidad("Grasa", 3.2, null, "%", "Mínimo de referencia DEMO.");
+        crearParametroCalidad("Solidos no grasos", 8.2, null, "%", "Mínimo de referencia DEMO.");
+        crearParametroCalidad("Solidos totales", 11.4, null, "%", "Mínimo de referencia DEMO.");
 
+        // ---- Tarifa vigente (valores del levantamiento; configurables, pendientes de confirmar) ----
         TarifaLeche tarifa = new TarifaLeche();
-        tarifa.setPrecioNormal(1.75);
+        tarifa.setPrecioNormal(1.70);
         tarifa.setPrecioObservada(1.30);
-        tarifa.setVigenteDesde(LocalDate.of(2026, 8, 19));
+        tarifa.setVigenteDesde(LocalDate.now(ZONA_HORARIA).minusMonths(2));
         tarifaLecheRepository.save(tarifa);
 
         crearParametroNegocio(
-                "TEMPERATURA_LIMITE_TRANSPORTE_C", "8",
-                "Limite referencial DEMO de temperatura de transporte; pendiente de confirmar con Huata (C-03).");
-        crearParametroNegocio(
-                "CANAL_NOTIFICACIONES", "EMAIL",
-                "Canal por defecto DEMO; falta confirmar si sera email, push o ambos.");
+                "TEMPERATURA_LIMITE_TRANSPORTE_C", "8", "Límite referencial DEMO; pendiente de confirmar con Huata (C-03).");
+        crearParametroNegocio("CANAL_NOTIFICACIONES", "EMAIL", "Canal por defecto DEMO; falta confirmar email/push/ambos.");
+        crearParametroNegocio("HORARIO_ACOPIO", "08:40-10:00", "Horario referencial DEMO de recepción en planta.");
+        crearParametroNegocio("ENVASES_REFERENCIA_L", "22, 35", "Capacidades de envase usadas como referencia.");
 
-        Recojo recojo1 = registrarRecojo(productorA, acopiadorDemoA, ruta1, 5, 68.5, EstadoRecojo.SYNCED);
-        Recojo recojo2 = registrarRecojo(productorB, acopiadorDemoA, ruta1, 4, 54.0, EstadoRecojo.SYNCED);
-        Recojo recojo3 = registrarRecojo(productorC, acopiadorDemoA, ruta2, 3, 39.5, EstadoRecojo.SYNCED);
-        registrarRecojo(productorA, acopiadorDemoA, ruta1, 1, 71.0, EstadoRecojo.SYNCED);
+        // ---- 14 días de operación: asignaciones, recepciones y controles de calidad ----
+        LocalDate hoy = LocalDate.now(ZONA_HORARIA);
+        List<Recojo> recojosObservados = new ArrayList<>();
 
-        guardarControl(recojo1, ResultadoCalidad.ACEPTADA, "Aspecto normal, sin observaciones.", 1.0310, -0.535);
-        guardarControl(recojo3, ResultadoCalidad.OBSERVADA, "Olor agrio y presencia de grumos.", 1.0270, -0.480);
+        for (int diasAtras = DIAS_DE_HISTORIA; diasAtras >= 0; diasAtras--) {
+            LocalDate dia = hoy.minusDays(diasAtras);
 
-        IncidenciaCalidad incidencia = new IncidenciaCalidad();
-        incidencia.setProductor(productorC);
-        incidencia.setRecojo(recojo3);
-        incidencia.setTipo("Adulteracion");
-        incidencia.setDescripcion("Caso sintetico DEMO para probar el flujo de seguimiento de incidencias.");
-        incidencia.setFecha(Instant.now());
-        incidencia.setEstado(EstadoIncidencia.ABIERTA);
-        IncidenciaCalidad incidenciaGuardada = incidenciaCalidadRepository.save(incidencia);
+            for (int i = 0; i < rutas.size(); i++) {
+                Ruta ruta = rutas.get(i);
+                Acopiador acopiador = acopiadores.get(i % acopiadores.size());
 
-        notificacionService.crear(
-                null,
-                "Incidencia de calidad registrada",
-                "Se registro una incidencia DEMO para " + productorC.getCodigo() + " (" + productorC.getNombres() + ").",
-                "INCIDENCIA_CALIDAD",
-                incidenciaGuardada.getId());
+                AsignacionRuta asignacion = new AsignacionRuta();
+                asignacion.setRuta(ruta);
+                asignacion.setAcopiador(acopiador);
+                asignacion.setFecha(dia);
+                asignacion.setMovilidad(i % 2 == 0 ? "Camioneta DEMO" : "Motocarro DEMO");
+                asignacionRutaRepository.save(asignacion);
 
-        crearQueso(LocalDate.now().minusDays(3), "Leche propia", 42.0, 30.0, 450.0, "Lote DEMO para probar el modulo de produccion de quesos.");
-        crearQueso(LocalDate.now().minusDays(1), "Leche propia", 18.5, 0.0, null, "Produccion DEMO sin venta registrada todavia.");
+                List<Productor> deLaRuta = productores.stream()
+                        .filter(p -> p.getRuta() != null && p.getRuta().getId().equals(ruta.getId()))
+                        .filter(p -> p.getEstado() != EstadoProductor.INACTIVO)
+                        .toList();
 
+                for (Productor productor : deLaRuta) {
+                    // Un proveedor no entrega absolutamente todos los días.
+                    if (random.nextInt(10) < 2) {
+                        continue;
+                    }
+
+                    double litros = redondear(18 + random.nextDouble() * 55);
+                    Instant fechaHora = dia.atTime(LocalTime.of(6 + random.nextInt(4), random.nextInt(60)))
+                            .atZone(ZONA_HORARIA)
+                            .toInstant();
+
+                    Recojo recojo = new Recojo();
+                    recojo.setClientUuid(UUID.randomUUID().toString());
+                    recojo.setProductor(productor);
+                    recojo.setAcopiador(acopiador);
+                    recojo.setRuta(ruta);
+                    recojo.setFechaHora(fechaHora);
+                    recojo.setLitros(litros);
+                    recojo.setTemperatura(redondear(3.5 + random.nextDouble() * 2.5));
+                    recojo.setEstado(EstadoRecojo.SYNCED);
+                    recojo.setFuente(random.nextInt(10) < 8 ? FuenteRecojo.RUTA : FuenteRecojo.PLANTA);
+                    recojo.setNumeroEnvases(1 + random.nextInt(3));
+                    recojo.setCapacidadReferenciaL(random.nextBoolean() ? 35.0 : 22.0);
+                    recojo.setResponsableRecepcion("Responsable planta DEMO");
+                    recojoRepository.save(recojo);
+
+                    // El día de hoy algunas recepciones quedan sin control de calidad (pendientes).
+                    if (diasAtras == 0 && random.nextInt(10) < 3) {
+                        continue;
+                    }
+
+                    ResultadoCalidad resultado = sortearResultado();
+                    controlCalidadRepository.save(construirControl(recojo, resultado));
+                    if (resultado != ResultadoCalidad.ACEPTADA) {
+                        recojosObservados.add(recojo);
+                    }
+                }
+            }
+        }
+
+        // ---- Incidencias de calidad sobre las entregas observadas/rechazadas ----
+        int incidencias = 0;
+        for (Recojo recojo : recojosObservados) {
+            if (incidencias >= 6) {
+                break;
+            }
+            IncidenciaCalidad incidencia = new IncidenciaCalidad();
+            incidencia.setProductor(recojo.getProductor());
+            incidencia.setRecojo(recojo);
+            incidencia.setTipo(incidencias % 2 == 0 ? "Adulteracion" : "Baja calidad");
+            incidencia.setDescripcion("Caso sintético DEMO para probar el seguimiento de incidencias.");
+            incidencia.setFecha(recojo.getFechaHora());
+            incidencia.setEstado(incidencias < 3 ? EstadoIncidencia.ABIERTA : EstadoIncidencia.EN_SEGUIMIENTO);
+            IncidenciaCalidad guardada = incidenciaCalidadRepository.save(incidencia);
+            if (incidencias == 0) {
+                notificacionService.crear(
+                        null,
+                        "Incidencia de calidad registrada",
+                        "Se registró una incidencia DEMO para " + recojo.getProductor().getCodigo() + ".",
+                        "INCIDENCIA_CALIDAD",
+                        guardada.getId());
+            }
+            incidencias++;
+        }
+
+        // ---- Producción de quesos ----
+        for (int diasAtras = 12; diasAtras >= 0; diasAtras -= 3) {
+            double producidos = redondear(15 + random.nextDouble() * 35);
+            double vendidos = redondear(producidos * (0.5 + random.nextDouble() * 0.45));
+            crearQueso(
+                    hoy.minusDays(diasAtras),
+                    random.nextBoolean() ? "Leche propia" : "Leche de acopio",
+                    producidos,
+                    vendidos,
+                    diasAtras == 0 ? null : redondear(vendidos * 12.5),
+                    diasAtras == 0 ? "Producción DEMO sin venta registrada todavía." : "Lote DEMO de producción.");
+        }
+
+        // ---- Liquidaciones de la semana anterior para los primeros proveedores ----
+        LocalDate finSemana = hoy.minusDays(hoy.getDayOfWeek().getValue());
+        LocalDate inicioSemana = finSemana.minusDays(6);
+        for (int i = 0; i < 6 && i < productores.size(); i++) {
+            try {
+                liquidacionService.calcular(productores.get(i).getId(), inicioSemana, finSemana);
+            } catch (RuntimeException ignorada) {
+                // Un proveedor sin entregas en el periodo simplemente no genera liquidación DEMO.
+            }
+        }
+
+        // ---- Recorrido GPS DEMO de hoy para el primer acopiador ----
+        Acopiador acopiadorGps = acopiadores.get(0);
+        for (int punto = 0; punto < 12; punto++) {
+            UbicacionGps ubicacion = new UbicacionGps();
+            ubicacion.setAcopiador(acopiadorGps);
+            ubicacion.setLatitud(LAT_BASE + punto * 0.0016 + random.nextDouble() * 0.0004);
+            ubicacion.setLongitud(LON_BASE + punto * 0.0021 + random.nextDouble() * 0.0004);
+            ubicacion.setPrecisionMetros(redondear(6 + random.nextDouble() * 12));
+            ubicacion.setVelocidadMs(redondear(2 + random.nextDouble() * 8));
+            ubicacion.setFecha(Instant.now().minusSeconds((long) (12 - punto) * 300));
+            ubicacionGpsRepository.save(ubicacion);
+        }
+
+        auditoriaService.registrar("Carga DEMO", "Proveedores", "Se sembraron 18 proveedores sintéticos en 5 rutas.");
         auditoriaService.registrar(
-                "Carga DEMO", "Calidad", "Se sembraron controles e incidencias sinteticos identificados como DEMO.");
+                "Carga DEMO", "Recepción", "Se poblaron " + DIAS_DE_HISTORIA + " días de recepciones y controles de calidad.");
+        auditoriaService.registrar("Configuración", "Tarifas", "Precio normal S/ 1.70/L y precio de baja calidad S/ 1.30/L.");
         auditoriaService.registrar(
-                "Carga DEMO", "Reportes", "Se completaron datos DEMO para dashboard, reportes y pruebas de interfaz.");
+                "Protección de evidencia", "Calidad", "Las incidencias se asignaron solo a proveedores DEMO.");
     }
 
-    private void crearQueso(LocalDate fecha, String fuente, double producidosKg, double vendidosKg, Double totalVenta, String observaciones) {
-        Queso queso = new Queso();
-        queso.setFecha(fecha);
-        queso.setFuente(fuente);
-        queso.setProducidosKg(producidosKg);
-        queso.setVendidosKg(vendidosKg);
-        queso.setTotalVenta(totalVenta);
-        queso.setObservaciones(observaciones);
-        quesoRepository.save(queso);
+    private ResultadoCalidad sortearResultado() {
+        int dado = random.nextInt(100);
+        if (dado < 82) {
+            return ResultadoCalidad.ACEPTADA;
+        }
+        return dado < 95 ? ResultadoCalidad.OBSERVADA : ResultadoCalidad.RECHAZADA;
+    }
+
+    private ControlCalidad construirControl(Recojo recojo, ResultadoCalidad resultado) {
+        ControlCalidad control = new ControlCalidad();
+        control.setRecojo(recojo);
+        control.setResultado(resultado);
+        control.setTemperatura(recojo.getTemperatura());
+        control.setAcidez(redondear(0.13 + random.nextDouble() * 0.04));
+        control.setGrasa(redondear(3.2 + random.nextDouble() * 0.8));
+        control.setEquipoUtilizado("Lactodensímetro DEMO");
+        control.setResponsable("Responsable Calidad Demo");
+
+        switch (resultado) {
+            case ACEPTADA -> {
+                control.setDensidad(redondear4(1.0296 + random.nextDouble() * 0.0044));
+                control.setPuntoCongelacion(redondear3(-0.545 + random.nextDouble() * 0.02));
+                control.setAguaAnadida(AguaAnadida.NO_EVIDENCIADA);
+                control.setLugol(ResultadoLugol.NEGATIVA);
+                control.setOlor(Olor.NORMAL);
+                control.setAspecto(Aspecto.NORMAL);
+                control.setRevisionVisual("Aspecto normal, sin observaciones.");
+            }
+            case OBSERVADA -> {
+                control.setDensidad(redondear4(1.0270 + random.nextDouble() * 0.0020));
+                control.setPuntoCongelacion(redondear3(-0.500 + random.nextDouble() * 0.02));
+                control.setAguaAnadida(AguaAnadida.SOSPECHA);
+                control.setLugol(ResultadoLugol.NEGATIVA);
+                control.setOlor(random.nextBoolean() ? Olor.NORMAL : Olor.AGRIO);
+                control.setAspecto(Aspecto.NORMAL);
+                control.setRevisionVisual("Densidad por debajo del rango; se aplica tarifa reducida.");
+            }
+            default -> {
+                control.setDensidad(redondear4(1.0240 + random.nextDouble() * 0.0020));
+                control.setPuntoCongelacion(redondear3(-0.450 + random.nextDouble() * 0.03));
+                control.setAguaAnadida(AguaAnadida.CONFIRMADA);
+                control.setLugol(ResultadoLugol.POSITIVA);
+                control.setOlor(Olor.AGRIO);
+                control.setAspecto(Aspecto.GRUMOS);
+                control.setRevisionVisual("Olor agrio y presencia de grumos.");
+                control.setMotivoRechazo("Agua añadida confirmada y lugol positivo.");
+            }
+        }
+        return control;
     }
 
     private Usuario crearUsuario(String nombreCompleto, String username, Set<Rol> roles) {
@@ -201,12 +386,12 @@ public class DemoDataSeeder implements CommandLineRunner {
         return rutaRepository.save(ruta);
     }
 
-    private CentroAcopio crearCentro(String nombre, String ubicacion, Ruta ruta) {
+    private void crearCentro(String nombre, String ubicacion, Ruta ruta) {
         CentroAcopio centro = new CentroAcopio();
         centro.setNombre(nombre);
         centro.setUbicacion(ubicacion);
         centro.setRuta(ruta);
-        return centroAcopioRepository.save(centro);
+        centroAcopioRepository.save(centro);
     }
 
     private Acopiador crearAcopiador(String nombres, String apellidos, Usuario usuario) {
@@ -217,15 +402,15 @@ public class DemoDataSeeder implements CommandLineRunner {
         return acopiadorRepository.save(acopiador);
     }
 
-    private Productor crearProductor(String codigo, String nombres, String apellidos, Ruta ruta, CentroAcopio centro, EstadoProductor estado) {
+    private Productor crearProductor(
+            String codigo, String nombres, String apellidos, Ruta ruta, EstadoProductor estado, String notas) {
         Productor productor = new Productor();
         productor.setCodigo(codigo);
         productor.setNombres(nombres);
         productor.setApellidos(apellidos);
         productor.setRuta(ruta);
-        productor.setCentroAcopio(centro);
         productor.setEstado(estado);
-        productor.setNotas("Registro sintetico DEMO para probar recojos, calidad y liquidaciones.");
+        productor.setNotas(notas);
         return productorRepository.save(productor);
     }
 
@@ -247,30 +432,27 @@ public class DemoDataSeeder implements CommandLineRunner {
         parametroNegocioRepository.save(parametro);
     }
 
-    private Recojo registrarRecojo(Productor productor, Acopiador acopiador, Ruta ruta, int diasAtras, double litros, EstadoRecojo estado) {
-        Recojo recojo = new Recojo();
-        recojo.setClientUuid(UUID.randomUUID().toString());
-        recojo.setProductor(productor);
-        recojo.setAcopiador(acopiador);
-        recojo.setRuta(ruta);
-        recojo.setFechaHora(Instant.now().minus(diasAtras, ChronoUnit.DAYS));
-        recojo.setLitros(litros);
-        recojo.setTemperatura(4.5);
-        recojo.setEstado(estado);
-        return recojoRepository.save(recojo);
+    private void crearQueso(
+            LocalDate fecha, String fuente, double producidosKg, double vendidosKg, Double totalVenta, String observaciones) {
+        Queso queso = new Queso();
+        queso.setFecha(fecha);
+        queso.setFuente(fuente);
+        queso.setProducidosKg(producidosKg);
+        queso.setVendidosKg(vendidosKg);
+        queso.setTotalVenta(totalVenta);
+        queso.setObservaciones(observaciones);
+        quesoRepository.save(queso);
     }
 
-    private void guardarControl(Recojo recojo, ResultadoCalidad resultado, String revisionVisual, double densidad, double puntoCongelacion) {
-        ControlCalidad control = new ControlCalidad();
-        control.setRecojo(recojo);
-        control.setResultado(resultado);
-        control.setRevisionVisual(revisionVisual);
-        control.setDensidad(densidad);
-        control.setPuntoCongelacion(puntoCongelacion);
-        control.setAcidez(0.15);
-        control.setTemperatura(recojo.getTemperatura());
-        control.setEquipoUtilizado("Crioscopio DEMO");
-        control.setResponsable("Responsable Calidad Demo");
-        controlCalidadRepository.save(control);
+    private double redondear(double valor) {
+        return Math.round(valor * 10) / 10.0;
+    }
+
+    private double redondear3(double valor) {
+        return Math.round(valor * 1000) / 1000.0;
+    }
+
+    private double redondear4(double valor) {
+        return Math.round(valor * 10000) / 10000.0;
     }
 }

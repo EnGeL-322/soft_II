@@ -32,6 +32,7 @@ public class UbicacionGpsService {
         ubicacion.setLatitud(req.latitud());
         ubicacion.setLongitud(req.longitud());
         ubicacion.setPrecisionMetros(req.precisionMetros());
+        ubicacion.setVelocidadMs(req.velocidadMs());
         return ubicacionGpsRepository.save(ubicacion);
     }
 

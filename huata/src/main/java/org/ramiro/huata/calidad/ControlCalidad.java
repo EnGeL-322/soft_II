@@ -49,4 +49,24 @@ public class ControlCalidad extends BaseEntity {
 
     @Column(length = 150)
     private String responsable;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private AguaAnadida aguaAnadida;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private ResultadoLugol lugol;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private Olor olor;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private Aspecto aspecto;
+
+    /** Solo aplica cuando resultado = RECHAZADA. */
+    @Column(length = 300)
+    private String motivoRechazo;
 }

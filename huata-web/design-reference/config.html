@@ -1,0 +1,174 @@
+<section id="config" class="view">
+  <div class="page-head">
+    <div>
+      <div class="kicker">Administración</div>
+      <h1>Configuración y seguridad</h1>
+      <p>Los cambios requieren verificación mediante un código de 6 dígitos.</p>
+    </div>
+    <button class="btn btn-primary no-print" data-perm="config.write" onclick="saveConfig()">Guardar configuración</button>
+  </div>
+
+  <div class="two">
+    <div class="card cardpad">
+      <div class="kicker">Reglas configurables</div>
+      <h3 style="margin:6px 0 14px">Compra y recepción</h3>
+      <div class="formgrid">
+        <div class="field"><label>Precio normal</label><input id="cfgNormal" type="number" step=".01"></div>
+        <div class="field"><label>Precio baja calidad</label><input id="cfgLow" type="number" step=".01"></div>
+        <div class="field config-excellence-price-field">
+          <label>Tarifa preferencial / Excelencia</label>
+          <div class="config-money-input">
+            <span>S/</span>
+            <input id="cfgExcellencePrice" type="number" min="0.01" step=".01">
+          </div>
+          <small>Se aplica a proveedores Excelencia mientras el ciclo no tenga mala calidad.</small>
+        </div>
+        <div class="field"><label>Densidad mínima</label><input id="cfgDensityMin" type="number" step=".1"></div>
+        <div class="field"><label>Densidad máxima</label><input id="cfgDensityMax" type="number" step=".1"></div>
+        <div class="field"><label>Referencia mínima</label><input id="cfgRefMin" type="number" step=".1"></div>
+        <div class="field"><label>Referencia máxima</label><input id="cfgRefMax" type="number" step=".1"></div>
+        <div class="field"><label>Punto congelación (voucher)</label><input id="cfgFreeze" type="number" step=".001"></div>
+        <div class="field"><label>Correo de verificación</label><input id="cfgEmail" type="email"></div>
+        <div class="field"><label>Cierre recepción</label><input id="cfgClose" type="time"></div>
+        <div class="field"><label>Último furgón</label><input id="cfgTruck" type="time"></div>
+      </div>
+      <div class="note" style="margin-top:12px"><b>Prototipo:</b> el envío de correo se simula mostrando el código generado. En producción lo enviará el backend.</div>
+    </div>
+
+    <div class="card cardpad">
+      <div class="kicker">Contexto operativo</div>
+      <h3 style="margin:6px 0 14px">Datos de la acopiadora</h3>
+      <div class="context-grid" style="grid-template-columns:1fr 1fr">
+        <div class="context-item"><span>Acopio diario</span><strong>14k–18k L</strong><small>Rango informado.</small></div>
+        <div class="context-item"><span>Personal</span><strong>18</strong><small>Dotación total.</small></div>
+        <div class="context-item"><span>Acopiadores</span><strong>7</strong><small>Responsables de recojo.</small></div>
+        <div class="context-item"><span>Pago</span><strong>Viernes</strong><small>Semanal.</small></div>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="card config-excellence-admin" style="margin-top:12px">
+    <div class="config-excellence-admin-head">
+      <div>
+        <div class="kicker">ADMINISTRACIÓN DE TARIFA PREFERENCIAL</div>
+        <h3>Proveedores Excelencia</h3>
+        <p>El Administrador puede buscar cualquier proveedor y activar o retirar su categoría Excelencia. La tarifa se toma de la configuración general.</p>
+      </div>
+      <div class="config-excellence-summary">
+        <span>Tarifa vigente</span>
+        <strong id="cfgExcellenceRatePreview">S/ 2.00/L</strong>
+      </div>
+    </div>
+
+    <div class="config-excellence-tools no-print">
+      <div class="config-excellence-search">
+        <span>⌕</span>
+        <input id="cfgExcellenceSearch" placeholder="Buscar por nombre, código o zona..." oninput="renderExcellenceAdminV129()">
+      </div>
+
+      <select id="cfgExcellenceFilter" onchange="renderExcellenceAdminV129()">
+        <option value="">Todos los proveedores</option>
+        <option value="excellence">Solo tarifa preferencial</option>
+        <option value="normal">Solo tarifa normal</option>
+      </select>
+    </div>
+
+    <div class="config-excellence-counts">
+      <div><span>Excelencia</span><strong id="cfgExcellenceCount">0</strong></div>
+      <div><span>Tarifa normal</span><strong id="cfgNormalProviderCount">0</strong></div>
+      <div><span>Retirados</span><strong id="cfgRetiredProviderCount">0</strong></div>
+    </div>
+
+    <div class="tablebox">
+      <table class="config-excellence-table">
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Proveedor</th>
+            <th>Zona</th>
+            <th>Tipo</th>
+            <th>Estado</th>
+            <th>Clasificación</th>
+            <th class="num">Tarifa</th>
+            <th class="no-print">Acción administrativa</th>
+          </tr>
+        </thead>
+        <tbody id="cfgExcellenceBody"></tbody>
+      </table>
+    </div>
+    <div class="smart-pagination no-print" data-pager="cfgExcellencePager">
+      <div class="smart-pagination-info">
+        <strong id="cfgExcellencePagerPageInfo">Mostrando 0 proveedores</strong>
+        <span id="cfgExcellencePagerPageCount">Página 1 de 1</span>
+      </div>
+      <div class="smart-pagination-actions">
+        <div class="smart-pagination-search">
+          <span>⌕</span>
+          <input id="cfgExcellencePagerSearch" placeholder="Buscar en esta tabla..." oninput="smartPagerSearch('cfgExcellencePager',this.value)">
+          <button type="button" onclick="smartPagerClearSearch('cfgExcellencePager')" title="Limpiar búsqueda">×</button>
+        </div>
+        <label>
+          Ver
+          <select id="cfgExcellencePagerPageSize" onchange="smartPagerSetSize('cfgExcellencePager',this.value)">
+            <option value="5">5</option>
+            <option value="10" selected="">10</option>
+            <option value="25">25</option>
+            <option value="50">50</option>
+          </select>
+        </label>
+        <button id="cfgExcellencePagerFirst" class="smart-page-btn" onclick="smartPagerSetPage('cfgExcellencePager',1)" title="Primera página">«</button>
+        <button id="cfgExcellencePagerPrev" class="smart-page-btn" onclick="smartPagerMove('cfgExcellencePager',-1)" title="Anterior">‹</button>
+        <div id="cfgExcellencePagerNumbers" class="smart-page-numbers"></div>
+        <button id="cfgExcellencePagerNext" class="smart-page-btn" onclick="smartPagerMove('cfgExcellencePager',1)" title="Siguiente">›</button>
+        <button id="cfgExcellencePagerLast" class="smart-page-btn" onclick="smartPagerLast('cfgExcellencePager')" title="Última página">»</button>
+      </div>
+    </div>
+
+    <div class="config-admin-note">
+      <b>Control de permisos:</b> únicamente el rol Administrador puede modificar la categoría Excelencia. Otros perfiles pueden consultar la información cuando tengan acceso a Configuración.
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:12px">
+    <div class="table-title"><div><h3>Roles</h3><p>Responsabilidades por perfil.</p></div></div>
+    <div class="tablebox"><table><thead><tr><th>Rol</th><th class="wrap">Responsabilidad</th><th>Acceso</th></tr></thead><tbody id="rolesBody"></tbody></table></div>
+  </div>
+
+  <div class="card" style="margin-top:12px">
+    <div class="table-title audit-title-v130">
+      <div><h3>Auditoría local</h3><p>Acciones críticas.</p></div>
+      <div class="audit-tools-v130 no-print">
+        <button class="btn btn-blue" onclick="exportSheet('Auditoria')">Exportar</button>
+      </div>
+    </div>
+    <div class="tablebox"><table><thead><tr><th>Fecha/hora</th><th>Rol</th><th>Acción</th><th>Entidad</th><th class="wrap">Detalle</th></tr></thead><tbody id="auditBody"></tbody></table></div>
+    <div class="smart-pagination no-print" data-pager="auditPager">
+      <div class="smart-pagination-info">
+        <strong id="auditPagerPageInfo">Mostrando 0 acciones</strong>
+        <span id="auditPagerPageCount">Página 1 de 1</span>
+      </div>
+      <div class="smart-pagination-actions">
+        <div class="smart-pagination-search">
+          <span>⌕</span>
+          <input id="auditPagerSearch" placeholder="Buscar en esta tabla..." oninput="smartPagerSearch('auditPager',this.value)">
+          <button type="button" onclick="smartPagerClearSearch('auditPager')" title="Limpiar búsqueda">×</button>
+        </div>
+        <label>
+          Ver
+          <select id="auditPagerPageSize" onchange="smartPagerSetSize('auditPager',this.value)">
+            <option value="5">5</option>
+            <option value="10" selected="">10</option>
+            <option value="25">25</option>
+            <option value="50">50</option>
+          </select>
+        </label>
+        <button id="auditPagerFirst" class="smart-page-btn" onclick="smartPagerSetPage('auditPager',1)" title="Primera página">«</button>
+        <button id="auditPagerPrev" class="smart-page-btn" onclick="smartPagerMove('auditPager',-1)" title="Anterior">‹</button>
+        <div id="auditPagerNumbers" class="smart-page-numbers"></div>
+        <button id="auditPagerNext" class="smart-page-btn" onclick="smartPagerMove('auditPager',1)" title="Siguiente">›</button>
+        <button id="auditPagerLast" class="smart-page-btn" onclick="smartPagerLast('auditPager')" title="Última página">»</button>
+      </div>
+    </div>
+  </div>
+</section>

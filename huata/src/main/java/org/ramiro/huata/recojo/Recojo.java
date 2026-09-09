@@ -57,4 +57,24 @@ public class Recojo extends BaseEntity {
 
     @Column(length = 300)
     private String motivoCancelacion;
+
+    /**
+     * PLANTA (entrega directa) o RUTA (recogido por un acopiador) — igual que el prototipo.
+     * Nullable a nivel de base de datos a propósito: Hibernate ddl-auto=update no puede agregar
+     * una columna NOT NULL sin default sobre una tabla con filas existentes (Postgres la rechaza).
+     * El valor por defecto se aplica en la capa de aplicación (ver RecojoService.registrar).
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private FuenteRecojo fuente = FuenteRecojo.RUTA;
+
+    private Integer numeroEnvases;
+
+    private Double capacidadReferenciaL;
+
+    @Column(length = 150)
+    private String responsableRecepcion;
+
+    /** Litros que reportó la app móvil (Fase 2) para cruzar contra lo recibido en planta; nulo mientras no exista ese envío. */
+    private Double litrosAppMovil;
 }

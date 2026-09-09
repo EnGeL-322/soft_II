@@ -43,6 +43,9 @@ public class UbicacionGps {
     /** Precisión en metros que reporta el navegador (Geolocation API), si está disponible. */
     private Double precisionMetros;
 
+    /** Velocidad en m/s que reporta el navegador (GeolocationCoordinates.speed), si está disponible. */
+    private Double velocidadMs;
+
     @Column(nullable = false)
     private Instant fecha = Instant.now();
 }

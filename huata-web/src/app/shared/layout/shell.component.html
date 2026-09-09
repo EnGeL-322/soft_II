@@ -1,0 +1,118 @@
+<header class="operation-header">
+  <a class="operation-brand" routerLink="/dashboard"
+    ><span>HL</span>
+    <div>
+      <strong>Huata Lácteos · Control</strong
+      ><small>Acopio · calidad · pagos · reportes · Excel</small>
+    </div></a
+  >
+  <div class="header-tools">
+    <div class="search-container">
+      <form class="global-search" (ngSubmit)="buscar()">
+        <button type="submit" aria-label="Buscar" [disabled]="buscando">⌕</button
+        ><input
+          name="busqueda"
+          [(ngModel)]="consulta"
+          placeholder="Buscar proveedor, código, recepción…"
+          aria-label="Buscar proveedor, código o recepción"
+        /><button
+          type="button"
+          aria-label="Limpiar búsqueda"
+          (click)="consulta = ''; resultadosBusqueda = null; errorBusqueda = ''"
+        >
+          ×
+        </button>
+      </form>
+      @if (buscando || resultadosBusqueda !== null || errorBusqueda) {
+        <div class="search-results" aria-live="polite">
+          @if (buscando) {
+            <p>Buscando…</p>
+          }
+          @if (errorBusqueda) {
+            <p>{{ errorBusqueda }}</p>
+          }
+          @if (resultadosBusqueda; as resultados) {
+            <strong>{{ resultados.length }} recepciones encontradas</strong>
+            @for (r of resultados.slice(0, 8); track r.recojoId) {
+              <a routerLink="/trazabilidad" (click)="resultadosBusqueda = null"
+                ><b>{{ r.productorCodigo }} · {{ r.productorNombre }}</b
+                ><small
+                  >Recepción #{{ r.recojoId }} · {{ r.rutaNombre || 'Sin ruta' }} ·
+                  {{ r.litros }} L</small
+                ></a
+              >
+            } @empty {
+              <p>No hay coincidencias.</p>
+            }
+          }
+        </div>
+      }
+    </div>
+    <div class="role-label">
+      <small>ROL ACTIVO</small><strong>{{ rol }}</strong>
+    </div>
+    <div class="notifications">
+      <button
+        type="button"
+        class="notification-toggle"
+        aria-label="Notificaciones"
+        [attr.aria-expanded]="mostrarNotificaciones()"
+        (click)="alternarNotificaciones()"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          width="23"
+          height="23"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.6"
+          aria-hidden="true"
+        >
+          <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z" />
+          <path d="M10 21h4" />
+        </svg>
+        @if (noLeidas() > 0) {
+          <span>{{ noLeidas() }}</span>
+        }
+      </button>
+      @if (mostrarNotificaciones()) {
+        <div class="notification-panel">
+          <strong>Notificaciones</strong>
+          @for (n of notificaciones(); track n.id) {
+            <button type="button" (click)="abrirNotificacion(n)">
+              <b>{{ n.titulo }} {{ !n.leida ? '· nueva' : '' }}</b
+              ><small>{{ n.mensaje }}</small>
+            </button>
+          } @empty {
+            <p>Sin notificaciones.</p>
+          }
+        </div>
+      }
+    </div>
+    <a class="public-exit" routerLink="/portal">Panel público</a
+    ><button class="logout" type="button" (click)="auth.logout()">Salir</button>
+  </div>
+</header>
+<div class="operation-layout">
+  <aside class="operation-sidebar" aria-label="Menú de módulos">
+    <div class="session-card">
+      <small>Sesión activa</small><strong>{{ rol }}</strong>
+      <p>{{ auth.nombreCompleto() }}</p>
+      <p>Control de acopio, calidad y seguimiento de la operación.</p>
+    </div>
+    @for (grupo of grupos; track grupo.nombre) {
+      @if (items(grupo.rutas).length) {
+        <div class="nav-group">
+          <h2>{{ grupo.nombre }}</h2>
+          @for (item of items(grupo.rutas); track item.ruta) {
+            <a [routerLink]="'/' + item.ruta" routerLinkActive="selected"
+              ><span>{{ item.icono }}</span
+              >{{ item.etiqueta }}</a
+            >
+          }
+        </div>
+      }
+    }
+  </aside>
+  <main class="operation-content"><router-outlet /></main>
+</div>

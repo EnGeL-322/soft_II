@@ -1,0 +1,185 @@
+<section id="zonas" class="view active printable">
+  <div class="print-header"><h2>Huata Lácteos · Zonas y rendimiento</h2></div>
+
+  <div class="page-head">
+    <div>
+      <div class="kicker">Control territorial</div>
+      <h1>Zonas y rendimiento</h1>
+      <p>Rendimiento visual por periodo, con lectura de tendencia similar a un panel de trading.</p>
+    </div>
+    <div class="actions no-print">
+      <button class="btn btn-blue" (click)="exportar()">Exportar Excel</button>
+      <button class="btn btn-primary" (click)="detalles=true">Ver más</button>
+    </div>
+  </div>
+
+  
+  <div class="card sec-tabs-card">
+    <div class="sec-tabs no-print" style="grid-template-columns:repeat(3,1fr)">
+      <button class="sec-tab" [class.active]="tab === 'analisis'" (click)="tab = 'analisis'">
+        <span>◈</span> Análisis por proveedor
+      </button>
+      <button class="sec-tab" [class.active]="tab === 'rendimiento'" (click)="tab = 'rendimiento'">
+        <span>◍</span> Rendimiento de acopio
+      </button>
+      <button class="sec-tab" [class.active]="tab === 'movimiento'" (click)="tab = 'movimiento'">
+        <span>▤</span> Movimiento rápido
+      </button>
+    </div>
+
+    <div class="sec-tab-panel" [class.active]="tab === 'analisis'">
+      <div class="card provider-insight-card">
+        <div class="provider-insight-head">
+          <div>
+            <div class="kicker">ANÁLISIS POR PROVEEDOR</div>
+            <h3>Calidad, cantidad y regularidad</h3>
+            <p>Busca un proveedor y revisa su comportamiento visual a lo largo del tiempo.</p>
+          </div>
+          <div class="provider-insight-actions no-print">
+            <div class="provider-search-combo"><input [(ngModel)]="busqueda" placeholder="Escriba nombre, código o ruta..." aria-label="Buscar proveedor"><select [(ngModel)]="proveedorId" aria-label="Seleccionar proveedor"><option [ngValue]="0">Seleccione un proveedor</option>@for(p of opciones; track p.id){<option [ngValue]="p.id">{{p.codigo}} · {{p.nombres}} {{p.apellidos}}</option>}</select></div><div class="provider-period-switch">
+              <button class="provider-period-btn" [class.active]="rango === 7" (click)="rango = 7">Semana</button>
+              <button class="provider-period-btn" [class.active]="rango === 30" (click)="rango = 30">Mes</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="provider-insight-summary">
+          <div class="provider-insight-ident">
+            <span id="providerInsightCode">{{proveedor?.codigo??'—'}}</span>
+            <strong id="providerInsightName">{{proveedor ? proveedor.nombres + ' ' + proveedor.apellidos : 'Seleccione un proveedor'}}</strong>
+            <small id="providerInsightMeta">{{proveedor?.rutaNombre??'Sin ruta seleccionada'}}</small>
+          </div>
+          <div class="provider-insight-status-grid">
+            <div>
+              <span>Cantidad promedio</span>
+              <strong id="providerInsightAvgLiters">{{promedio | number:'1.1-1'}} L</strong>
+            </div>
+            <div>
+              <span>Calidad actual</span>
+              <strong id="providerInsightQualityNow">{{calidad}}</strong>
+            </div>
+            <div>
+              <span>Regularidad</span>
+              <strong id="providerInsightRegularity">{{regularidad | number:'1.0-0'}}%</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="provider-insight-chart-head">
+          <div>
+            <h4 id="providerInsightChartTitle">Evolución del proveedor</h4>
+            <p id="providerInsightChartSubtitle">Volumen diario del proveedor en litros.</p>
+          </div>
+          <div class="provider-insight-legend"><span><i class="provider-line-dot qty"></i>Litros recibidos</span></div>
+        </div>
+
+        <div class="provider-insight-chart-wrap">
+          <div class="provider-insight-y-label">Litros</div>
+          <div class="provider-insight-chart"><app-grafico-lineas [puntos]="serieProveedor" etiquetaSerie="Litros por día"/></div>
+          <div id="providerInsightTooltip" class="provider-insight-tooltip" role="status" aria-live="polite"></div>
+        </div>
+
+        <div class="provider-insight-note" id="providerInsightNote">
+          La cantidad muestra los litros recibidos. Regularidad indica el porcentaje de días del periodo con una entrega registrada.
+        </div>
+      </div>
+    </div>
+
+    <div class="sec-tab-panel" [class.active]="tab === 'rendimiento'">
+      <div class="zone-trading-toolbar">
+        <div class="zone-trading-symbol">
+          <div class="zone-symbol-icon">◍</div>
+          <div>
+            <span>RENDIMIENTO DE ACOPIO</span>
+            <strong id="zoneTradingTitle">{{zona || 'Todas las zonas'}}</strong>
+          </div>
+        </div>
+
+        <div class="zone-trading-controls no-print">
+          <select id="zoneTradingZone" aria-label="Zona" [(ngModel)]="zona"><option value="">Todas las zonas</option>@for(z of zonas; track z){<option [value]="z">{{z}}</option>}</select>
+          <div class="zone-range-switch">
+            <button class="zone-range-btn" [class.active]="rango === 7" (click)="rango = 7">Semana</button>
+            <button class="zone-range-btn" [class.active]="rango === 30" (click)="rango = 30">Mes</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="zone-trading-kpis">
+        <article class="zt-kpi">
+          <span>Volumen actual</span>
+          <strong id="ztCurrent">{{actual | number:'1.2-2'}} L</strong>
+          <small id="ztCurrentLabel">Último punto disponible</small>
+        </article>
+        <article class="zt-kpi">
+          <span>Variación</span>
+          <strong id="ztChange">{{variacion === null ? '—' : (variacion | number:'1.2-2') + '%'}}</strong>
+          <small id="ztChangeLiters">{{diferencia | number:'1.2-2'}} L</small>
+        </article>
+        <article class="zt-kpi">
+          <span>Máximo</span>
+          <strong id="ztMax">{{maximo | number:'1.2-2'}} L</strong>
+          <small id="ztMaxLabel">—</small>
+        </article>
+        <article class="zt-kpi">
+          <span>Mínimo</span>
+          <strong id="ztMin">{{minimo | number:'1.2-2'}} L</strong>
+          <small id="ztMinLabel">—</small>
+        </article>
+      </div>
+
+      <div class="zone-trading-grid">
+        <div class="card zone-market-card">
+          <div class="zone-market-head">
+            <div>
+              <div class="kicker">TENDENCIA</div>
+              <h3 id="zoneMarketHeading">{{rango===7?'Evolución semanal':'Evolución mensual'}}</h3>
+              <p id="zoneMarketSource">Datos históricos disponibles del rendimiento.</p>
+            </div>
+            <div id="zoneMarketDirection" class="market-direction neutral">{{diferencia>0?'EN AUMENTO':diferencia<0?'EN DESCENSO':'SIN CAMBIO'}}</div>
+          </div>
+
+          <div class="zone-market-chart-wrap">
+            <div class="zone-market-y-label">Litros</div>
+            <div class="zone-market-chart"><app-grafico-lineas [puntos]="serie" etiquetaSerie="Litros por día"/></div>
+          </div>
+
+          <div class="zone-market-footer">
+            <div><i class="market-dot current"></i><span id="zoneLegendLabel">Volumen de leche</span></div>
+            <small>Pasa el cursor sobre los puntos para ver el valor exacto.</small>
+          </div>
+        </div>
+
+        <div class="card zone-ranking-card">
+          <div class="zone-market-head">
+            <div>
+              <div class="kicker">RANKING</div>
+              <h3>Participación por zona</h3>
+              <p id="zoneRankingCaption">Comparativo del periodo visible.</p>
+            </div>
+          </div>
+          <div class="zone-trading-ranking">@for(z of ranking; track z.zona){<div style="padding:14px;border-bottom:1px solid var(--line)"><strong>{{z.zona}}</strong><span style="float:right">{{z.litros | number:'1.1-1'}} L</span><div class="bartrack"><div class="barfill" [style.width.%]="z.participacion"></div></div><small>{{z.participacion | number:'1.1-1'}}%</small></div>}</div>
+        </div>
+      </div>
+
+      <div class="zone-state-board" style="margin-top:10px">
+        <div class="zone-state good"><i></i><div><strong id="zoneUpCount">{{conteo(1)}}</strong><span>Aumentaron</span></div></div>
+        <div class="zone-state watch"><i></i><div><strong id="zoneStableCount">{{conteo(0)}}</strong><span>Estables</span></div></div>
+        <div class="zone-state down"><i></i><div><strong id="zoneDownCount">{{conteo(-1)}}</strong><span>Disminuyeron</span></div></div>
+      </div>
+    </div>
+
+    <div class="sec-tab-panel" [class.active]="tab === 'movimiento'">
+      <div class="card zone-cards-card">
+        <div class="zone-market-head">
+          <div>
+            <div class="kicker">{{zonas.length}} ZONAS</div>
+            <h3>Movimiento rápido</h3>
+            <p>Vista compacta del cambio entre los dos registros comparativos disponibles.</p>
+          </div>
+          <button class="dash-link no-print" (click)="detalles=true">Ver todos los datos</button>
+        </div>
+        <div class="zone-market-cards">@for(z of ranking; track z.zona){<article class="card" style="padding:20px"><div class="kicker">{{z.zona}}</div><h3>{{z.actual | number:'1.2-2'}} L</h3><p>{{z.cambio>0?'+':''}}{{z.cambio | number:'1.2-2'}} L respecto al día anterior</p><button class="btn btn-soft" (click)="zona=z.zona;tab='rendimiento'">Ver tendencia</button></article>}</div>
+      </div>
+    </div>
+  </div>
+@if(error()){<p role="alert" class="note">{{error()}}</p>}@if(detalles){<div class="prototype-modal" role="dialog" aria-modal="true" aria-label="Detalle de zonas"><div class="prototype-modal-box"><div class="table-title"><h3>Detalle de zonas</h3><button class="btn btn-soft" (click)="detalles=false">Cerrar</button></div><div class="tablebox"><table><thead><tr><th>Zona</th><th>Periodo (L)</th><th>Participación</th><th>Hoy (L)</th><th>Ayer (L)</th></tr></thead><tbody>@for(z of ranking; track z.zona){<tr><td>{{z.zona}}</td><td>{{z.litros | number:'1.2-2'}}</td><td>{{z.participacion | number:'1.1-1'}}%</td><td>{{z.actual | number:'1.2-2'}}</td><td>{{z.anterior | number:'1.2-2'}}</td></tr>}</tbody></table></div></div></div>}</section>

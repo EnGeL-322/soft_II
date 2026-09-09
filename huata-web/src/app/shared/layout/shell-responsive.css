@@ -1,0 +1,91 @@
+@media (min-width: 1750px) {
+  .operation-layout {
+    grid-template-columns: 335px minmax(0, 1fr);
+  }
+}
+@media (max-width: 1250px) {
+  .operation-header {
+    flex-wrap: wrap;
+    padding: 15px 24px;
+  }
+  .header-tools {
+    flex: 1;
+    justify-content: flex-end;
+  }
+  .operation-brand small {
+    font-size: 10px;
+  }
+  .search-container {
+    width: 230px;
+  }
+  .role-label {
+    display: none;
+  }
+  .operation-layout {
+    grid-template-columns: 230px minmax(0, 1fr);
+    gap: 22px;
+    padding: 28px 24px;
+  }
+  .nav-group a {
+    font-size: 14px;
+    padding: 14px 10px;
+  }
+}
+@media (max-width: 850px) {
+  .operation-header {
+    position: relative;
+  }
+  .header-tools {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    width: 100%;
+  }
+  .search-container {
+    flex: 1;
+    min-width: 200px;
+  }
+  .operation-layout {
+    display: block;
+    padding: 20px 16px;
+  }
+  .operation-sidebar {
+    position: static;
+    max-height: none;
+    display: flex;
+    gap: 16px;
+    overflow: auto;
+    padding: 12px;
+    margin-bottom: 24px;
+  }
+  .session-card {
+    display: none;
+  }
+  .nav-group {
+    flex-shrink: 0;
+  }
+  .nav-group h2 {
+    margin: 0 8px 8px;
+    font-size: 11px;
+  }
+  .nav-group a {
+    display: inline-flex;
+    font-size: 12px;
+    margin: 0;
+    padding: 10px;
+  }
+  .nav-group a span {
+    display: none;
+  }
+  .notification-panel {
+    right: -80px;
+    width: 300px;
+  }
+  .public-exit,
+  .logout {
+    font-size: 12px;
+    padding: 12px;
+  }
+  .operation-brand strong {
+    font-size: 17px;
+  }
+}

@@ -31,7 +31,8 @@
             ],
             "styles": [
               "node_modules/leaflet/dist/leaflet.css",
-              "src/styles.css"
+              "src/styles.css",
+              "src/prototype-theme.css"
             ],
             "security": {
               "allowedHosts": []

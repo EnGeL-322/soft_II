@@ -1,0 +1,102 @@
+<section id="trazabilidad" class="view printable">
+  <div class="print-header"><h2>Huata Lácteos · Seguimiento de producción</h2></div>
+
+  <div class="page-head">
+    <div>
+      <div class="kicker">Seguimiento integral</div>
+      <h1>Seguimiento de producción</h1>
+      <p>Relaciona proveedor, recepción, calidad, evidencia, zona del día y liquidación en una sola consulta; y muestra qué zonas y proveedores entregan mejor o peor calidad.</p>
+    </div>
+  </div>
+
+  <div class="card sec-tabs-card">
+    <div class="sec-tabs no-print" style="grid-template-columns:repeat(2,1fr)">
+      <button id="prodTabResumen" class="sec-tab active" onclick="switchSecTab('prodPanelResumen',this)">
+        <span>◎</span> Seguimiento de producción
+      </button>
+      <button id="prodTabDetalle" class="sec-tab" onclick="switchSecTab('prodPanelDetalle',this)">
+        <span>⤢</span> Trazabilidad detallada
+      </button>
+    </div>
+
+    <div id="prodPanelResumen" class="sec-tab-panel active">
+      <div id="productionFollowupV140"></div>
+    </div>
+
+    <div id="prodPanelDetalle" class="sec-tab-panel">
+
+  <div class="trace-search-card-v135 no-print">
+    <div class="trace-search-v135">
+      <span>⌕</span>
+      <input id="traceSearchV135" placeholder="Buscar código de recepción, proveedor, zona o fecha..." oninput="renderTraceabilityV135()">
+      <button type="button" onclick="clearTraceSearchV135()">Limpiar</button>
+    </div>
+    <div class="trace-search-help-v135">Ejemplos: DEMO-001 · 2026-08-26 · Quillallaka · código de recepción.</div>
+    <div class="toolbar no-print" style="margin-top:8px">
+      <label class="route-date-label-v135">Desde <input id="traceDateFromV140" type="date" onchange="renderTraceabilityV135()"></label>
+      <label class="route-date-label-v135">Hasta <input id="traceDateToV140" type="date" onchange="renderTraceabilityV135()"></label>
+      <select id="traceCollectorFilterV140" onchange="renderTraceabilityV135()">
+        <option value="">Todos los acopiadores</option>
+      </select>
+      <button type="button" class="btn btn-soft" onclick="clearTraceDateFilterV140()">Limpiar fechas</button>
+    </div>
+  </div>
+
+  <div class="trace-layout-v135">
+    <div class="card">
+      <div class="table-title">
+        <div><h3>Recepciones localizadas</h3><p>Selecciona un registro para reconstruir su flujo.</p></div>
+      </div>
+      <div class="tablebox">
+        <table>
+          <thead>
+            <tr>
+              <th>Código</th><th>Fecha</th><th>Proveedor</th><th>Zona del día</th>
+              <th class="num">Litros</th><th>Calidad</th><th>Pago</th><th class="no-print">Detalle</th>
+            </tr>
+          </thead>
+          <tbody id="traceBodyV135"></tbody>
+        </table>
+      </div>
+      <div class="smart-pagination no-print" data-pager="tracePagerV135">
+        <div class="smart-pagination-info">
+          <strong id="tracePagerV135PageInfo">Mostrando 0 registros</strong>
+          <span id="tracePagerV135PageCount">Página 1 de 1</span>
+        </div>
+        <div class="smart-pagination-actions">
+          <div class="smart-pagination-search">
+            <span>⌕</span>
+            <input id="tracePagerV135Search" placeholder="Buscar en resultados..." oninput="smartPagerSearch('tracePagerV135',this.value)">
+            <button type="button" onclick="smartPagerClearSearch('tracePagerV135')">×</button>
+          </div>
+          <label>Ver
+            <select id="tracePagerV135PageSize" onchange="smartPagerSetSize('tracePagerV135',this.value)">
+              <option value="5" selected="">5</option><option value="10">10</option><option value="25">25</option>
+            </select>
+          </label>
+          <button id="tracePagerV135First" class="smart-page-btn" onclick="smartPagerSetPage('tracePagerV135',1)">«</button>
+          <button id="tracePagerV135Prev" class="smart-page-btn" onclick="smartPagerMove('tracePagerV135',-1)">‹</button>
+          <div id="tracePagerV135Numbers" class="smart-page-numbers"></div>
+          <button id="tracePagerV135Next" class="smart-page-btn" onclick="smartPagerMove('tracePagerV135',1)">›</button>
+          <button id="tracePagerV135Last" class="smart-page-btn" onclick="smartPagerLast('tracePagerV135')">»</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card trace-detail-card-v135">
+      <div class="ops-card-head-v135">
+        <div>
+          <div class="kicker">FLUJO DEL REGISTRO</div>
+          <h3 id="traceDetailTitleV135">Selecciona una recepción</h3>
+          <p id="traceDetailSubtitleV135">Aquí aparecerá la cadena completa.</p>
+        </div>
+      </div>
+      <div id="traceDetailV135" class="trace-detail-v135">
+        <div class="provider-chart-empty">Selecciona “Ver trazabilidad” en una recepción.</div>
+      </div>
+    </div>
+  </div>
+
+    </div>
+  </div>
+</section>

@@ -1,0 +1,305 @@
+<section id="recepcion" class="view active printable">
+    <div class="page-head">
+      <div>
+        <div class="kicker">Recepción diaria</div>
+        <h1>Recepción y acopio</h1>
+        <p>Registro compacto por proveedor, con precio, resultado y control de calidad.</p>
+      </div>
+      <div class="actions">
+        <button
+          type="button"
+          class="btn"
+          [class.btn-primary]="!compartiendoGps()"
+          [class.btn-danger]="compartiendoGps()"
+          (click)="alternarGps()"
+        >
+          {{ compartiendoGps() ? '◉ Compartiendo ubicación — detener' : '◎ Compartir mi ubicación (GPS)' }}
+        </button>
+        <button type="button" class="btn btn-primary" (click)="abrirFormulario()">+ Nueva recepción</button><button type="button" class="btn btn-blue" (click)="exportar()">Exportar Excel</button>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat">
+        <span>Precio normal</span>
+        <strong>{{ tarifaVigente() ? 'S/ ' + (tarifaVigente()!.precioNormal | number: '1.2-2') : '—' }}</strong>
+        <small class="muted">Leche apta</small>
+      </div>
+      <div class="stat">
+        <span>Baja calidad / sospecha</span>
+        <strong>{{ tarifaVigente() ? 'S/ ' + (tarifaVigente()!.precioObservada | number: '1.2-2') : '—' }}</strong>
+        <small class="muted">Tarifa reducida</small>
+      </div>
+      <div class="stat">
+        <span>Envases de referencia</span><strong>22 / 35 L</strong><small class="muted">Seleccionables.</small>
+      </div>
+      <div class="stat">
+        <span>Horario de acopio</span><strong>08:40–10:00</strong><small class="muted">Furgón / cierre de referencia.</small>
+      </div>
+    </div>
+
+    <div class="mobile-app-pointer-v141 no-print"><b>App del acopiador:</b> los recojos enviados desde la aplicación móvil se muestran en el registro para su validación.</div>
+
+    @if (gpsMensaje()) {
+      <div class="note" [class.green]="compartiendoGps() && !gpsError()" [class.red]="gpsError()" style="margin-bottom:16px">
+        {{ gpsMensaje() }}
+      </div>
+    }
+
+    @if (mostrarForm()) {
+      <div class="prototype-modal" role="dialog" aria-modal="true" aria-label="Nueva recepción"><div class="prototype-modal-box"><form class="card" (ngSubmit)="registrar()">
+        <div class="table-title" style="margin:0 0 12px">
+          <div>
+            <h3>{{ 'Nueva recepción' }}</h3>
+            <p>Precio y resultado se calculan según la tarifa vigente y las señales de calidad.</p>
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div class="field">
+            <label>Proveedor</label>
+            <select [(ngModel)]="form.productorId" name="productorId" required>
+              <option [ngValue]="undefined" disabled>Seleccionar…</option>
+              @for (p of productores(); track p.id) {
+                <option [ngValue]="p.id">{{ p.codigo }} · {{ p.nombres }} {{ p.apellidos }}</option>
+              }
+            </select>
+          </div>
+          <div class="field">
+            <label>Fuente</label>
+            <select [(ngModel)]="form.fuente" name="fuente">
+              <option value="PLANTA">Planta</option>
+              <option value="RUTA">Ruta</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Ruta</label>
+            <select [(ngModel)]="form.rutaId" name="rutaId">
+              <option [ngValue]="undefined">Según el productor</option>
+              @for (r of rutas(); track r.id) {
+                <option [ngValue]="r.id">{{ r.nombre }}</option>
+              }
+            </select>
+          </div>
+          <div class="field">
+            <label>Acopiador que entregó</label>
+            <select [(ngModel)]="form.acopiadorId" name="acopiadorId">
+              <option [ngValue]="undefined">Sin asignar</option>
+              @for (a of acopiadores(); track a.id) {
+                <option [ngValue]="a.id">{{ a.nombres }} {{ a.apellidos }}</option>
+              }
+            </select>
+          </div>
+          <div class="field">
+            <label>Fecha y hora</label>
+            <input type="datetime-local" [(ngModel)]="form.fechaHoraLocal" name="fechaHora" required />
+          </div>
+          <div class="field">
+            <label>Litros</label>
+            <input type="number" step="0.1" min="0.01" [(ngModel)]="form.litros" name="litros" required />
+          </div>
+          <div class="field">
+            <label>N° envases</label>
+            <input type="number" step="1" min="1" [(ngModel)]="form.numeroEnvases" name="numeroEnvases" />
+          </div>
+          <div class="field">
+            <label>Capacidad referencial (L)</label>
+            <select [(ngModel)]="form.capacidadReferenciaL" name="capacidadReferenciaL">
+              <option [ngValue]="undefined">Otro</option>
+              <option [ngValue]="35">35 L</option>
+              <option [ngValue]="22">22 L</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Temperatura (°C)</label>
+            <input type="number" step="0.1" [(ngModel)]="form.temperatura" name="temperatura" />
+          </div>
+          <div class="field">
+            <label>Densidad</label>
+            <input type="number" step="0.0001" [(ngModel)]="form.densidad" name="densidad" />
+          </div>
+          <div class="field">
+            <label>Punto de congelación</label>
+            <input type="number" step="0.001" [(ngModel)]="form.puntoCongelacion" name="puntoCongelacion" />
+          </div>
+          <div class="field">
+            <label>Agua añadida</label>
+            <select [(ngModel)]="form.aguaAnadida" name="aguaAnadida" (ngModelChange)="actualizarDecision()">
+              <option value="NO_EVIDENCIADA">No evidenciada</option>
+              <option value="SOSPECHA">Sospecha</option>
+              <option value="CONFIRMADA">Confirmada</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Lugol</label>
+            <select [(ngModel)]="form.lugol" name="lugol" (ngModelChange)="actualizarDecision()">
+              <option value="NEGATIVA">Negativa</option>
+              <option value="NO_REALIZADA">No realizada</option>
+              <option value="POSITIVA">Positiva</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Olor</label>
+            <select [(ngModel)]="form.olor" name="olor">
+              <option value="NORMAL">Normal</option>
+              <option value="AGRIO">Agrio</option>
+              <option value="RANCIO">Rancio</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Aspecto</label>
+            <select [(ngModel)]="form.aspecto" name="aspecto">
+              <option value="NORMAL">Normal</option>
+              <option value="GRUMOS">Grumos</option>
+              <option value="SEDIMENTO">Sedimento</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Calidad</label>
+            <select [(ngModel)]="form.resultado" name="resultado" (ngModelChange)="actualizarDecision()">
+              <option value="ACEPTADA">Apta</option>
+              <option value="OBSERVADA">Baja calidad</option>
+              <option value="RECHAZADA">Adulterada</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Precio a aplicar</label>
+            <input type="text" [value]="precioAplicar() != null ? 'S/ ' + precioAplicar()!.toFixed(2) + ' / L' : 'Sin tarifa vigente'" readonly />
+          </div>
+          <div class="field">
+            <label>Monto estimado</label>
+            <input type="text" [value]="montoEstimado() != null ? 'S/ ' + montoEstimado()!.toFixed(2) : '—'" readonly />
+          </div>
+          <div class="field">
+            <label>Litros registrados en el recojo (app móvil)</label>
+            <input type="number" step="0.1" min="0" [(ngModel)]="form.litrosAppMovil" name="litrosAppMovil" placeholder="Igual al recojo en ruta" />
+          </div>
+          <div class="field">
+            <label>Responsable de recepción en planta</label>
+            <input type="text" [(ngModel)]="form.responsableRecepcion" name="responsableRecepcion" placeholder="Quién recibe en planta" />
+          </div>
+          <div class="field">
+            <label>Responsable del control de calidad</label>
+            <input type="text" [(ngModel)]="form.responsableCalidad" name="responsableCalidad" />
+          </div>
+          <div class="field">
+            <label>Equipo utilizado</label>
+            <input type="text" [(ngModel)]="form.equipoUtilizado" name="equipoUtilizado" />
+          </div>
+        </div>
+
+        @if (form.resultado === 'RECHAZADA') {
+          <div class="field" style="margin-top:12px">
+            <label>Motivo de rechazo</label>
+            <input type="text" [(ngModel)]="form.motivoRechazo" name="motivoRechazo" placeholder="Solo si la entrega se rechaza" />
+          </div>
+        }
+
+        <div class="field" style="margin-top:12px">
+          <label>Observación</label>
+          <textarea [(ngModel)]="form.revisionVisual" name="revisionVisual"></textarea>
+        </div>
+
+        <div class="note" [class.green]="form.resultado === 'ACEPTADA'" [class.red]="form.resultado === 'RECHAZADA'" style="margin-top:12px">
+          {{ decisionTexto() }}
+        </div>
+
+        @if (errorForm()) {
+          <p class="error-text" style="margin-top:10px">{{ errorForm() }}</p>
+        }
+
+        <div class="actions" style="margin-top:14px">
+          <button type="submit" class="btn btn-primary" [disabled]="guardando()">
+            {{ guardando() ? 'Guardando…' : 'Guardar' }}
+          </button>
+          <button type="button" class="btn btn-soft" (click)="mostrarForm.set(false)">Cancelar</button>
+        </div>
+      </form></div></div>
+    }
+
+    <div class="card">
+      <div class="table-title" style="margin-top:0">
+        <div>
+          <h3>Recepciones registradas</h3>
+          <p>Filtra por proveedor, resultado o fuente (dentro de la página cargada).</p>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <input type="text" placeholder="Buscar por proveedor o acopiador…" [(ngModel)]="filtroTexto" />
+        <select [(ngModel)]="filtroResultado">
+          <option [ngValue]="undefined">Todos los resultados</option>
+          <option value="ACEPTADA">Apta</option>
+          <option value="OBSERVADA">Baja calidad</option>
+          <option value="RECHAZADA">Adulterada</option>
+          <option value="PENDIENTE">Pendiente</option>
+        </select>
+        <select [(ngModel)]="filtroFuente">
+          <option [ngValue]="undefined">Planta y ruta</option>
+          <option value="PLANTA">Planta</option>
+          <option value="RUTA">Ruta</option>
+        </select>
+        <select [(ngModel)]="filtroProductorId" (ngModelChange)="buscar()">
+          <option [ngValue]="undefined">Todos los productores</option>
+          @for (p of productores(); track p.id) {
+            <option [ngValue]="p.id">{{ p.codigo }} · {{ p.nombres }} {{ p.apellidos }}</option>
+          }
+        </select>
+        <select [(ngModel)]="filtroEstado" (ngModelChange)="buscar()">
+          <option [ngValue]="undefined">Todos los estados</option>
+          <option value="SYNCED">Sincronizado</option>
+          <option value="PENDING_SYNC">Pendiente de sincronizar</option>
+          <option value="CANCELLED">Cancelado</option>
+        </select>
+      </div>
+
+      <div class="tablebox">
+        <table>
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Fecha</th>
+              <th>Proveedor</th>
+              <th>Ruta</th>
+              <th class="num">Litros</th>
+              <th>Fuente</th>
+              <th>Resultado</th>
+              <th class="no-print">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (r of filaVisibles(); track r.id) {
+              <tr>
+                <td>REC-{{ r.id.toString().padStart(6, '0') }}</td>
+                <td>{{ r.fechaHora | date: 'short' }}</td>
+                <td>{{ r.productorNombre }}</td>
+                <td>{{ r.rutaNombre ?? '—' }}</td>
+                <td class="num">{{ r.litros }}</td>
+                <td>{{ r.fuente === 'PLANTA' ? 'Planta' : 'Ruta' }}</td>
+                <td><app-badge-estado [estado]="r.resultadoCalidad ?? (r.estado === 'CANCELLED' ? 'CANCELLED' : 'PENDIENTE')" /></td>
+                <td>
+                  @if (r.estado !== 'CANCELLED') {
+                    <button type="button" class="btn btn-danger" (click)="cancelar(r)">Cancelar</button>
+                  }
+                </td>
+              </tr>
+            }
+            @if (filaVisibles().length === 0) {
+              <tr>
+                <td colspan="8" class="muted" style="text-align:center; padding:24px">Sin resultados.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      @if (pagina(); as pg) {
+        <app-paginador
+          [page]="pg.page"
+          [totalElements]="pg.totalElements"
+          [totalPages]="pg.totalPages"
+          (anterior)="cambiarPagina(pg.page - 1)"
+          (siguiente)="cambiarPagina(pg.page + 1)"
+        />
+      }
+    </div>
+  </section>

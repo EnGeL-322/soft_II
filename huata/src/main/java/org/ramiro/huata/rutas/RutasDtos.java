@@ -26,10 +26,19 @@ record CentroAcopioResponse(Long id, String nombre, String ubicacion, Long rutaI
     }
 }
 
-record AsignacionRutaRequest(@NotNull Long rutaId, @NotNull Long acopiadorId, @NotNull LocalDate fecha) {}
+record AsignacionRutaRequest(@NotNull Long rutaId, @NotNull Long acopiadorId, @NotNull LocalDate fecha, String movilidad) {}
+
+record AsignacionActualizarRequest(String movilidad, String observacion) {}
 
 record AsignacionRutaResponse(
-        Long id, Long rutaId, String rutaNombre, Long acopiadorId, String acopiadorNombre, LocalDate fecha) {
+        Long id,
+        Long rutaId,
+        String rutaNombre,
+        Long acopiadorId,
+        String acopiadorNombre,
+        LocalDate fecha,
+        String movilidad,
+        String observacion) {
     static AsignacionRutaResponse from(AsignacionRuta a) {
         return new AsignacionRutaResponse(
                 a.getId(),
@@ -37,6 +46,8 @@ record AsignacionRutaResponse(
                 a.getRuta().getNombre(),
                 a.getAcopiador().getId(),
                 a.getAcopiador().getNombres() + " " + a.getAcopiador().getApellidos(),
-                a.getFecha());
+                a.getFecha(),
+                a.getMovilidad(),
+                a.getObservacion());
     }
 }

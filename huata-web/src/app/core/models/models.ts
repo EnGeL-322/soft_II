@@ -14,6 +14,11 @@ export type EstadoRecojo = 'DRAFT' | 'SAVED_OFFLINE' | 'PENDING_SYNC' | 'SYNCED'
 export type ResultadoCalidad = 'ACEPTADA' | 'OBSERVADA' | 'RECHAZADA';
 export type EstadoIncidencia = 'ABIERTA' | 'EN_SEGUIMIENTO' | 'CERRADA';
 export type EstadoLiquidacion = 'DRAFT' | 'CALCULATED' | 'REVIEWED' | 'CLOSED';
+export type FuenteRecojo = 'PLANTA' | 'RUTA';
+export type AguaAnadida = 'NO_EVIDENCIADA' | 'SOSPECHA' | 'CONFIRMADA';
+export type ResultadoLugol = 'NEGATIVA' | 'NO_REALIZADA' | 'POSITIVA';
+export type Olor = 'NORMAL' | 'AGRIO' | 'RANCIO';
+export type Aspecto = 'NORMAL' | 'GRUMOS' | 'SEDIMENTO';
 
 export interface Usuario {
   id: number;
@@ -74,6 +79,25 @@ export interface AsignacionRuta {
   acopiadorId: number;
   acopiadorNombre: string;
   fecha: string;
+  movilidad?: string;
+  observacion?: string;
+}
+
+export type EstadoPlanRuta = 'SIN_ASIGNAR' | 'ASIGNADA' | 'CON_REGISTROS';
+
+export interface PlanRutaDia {
+  rutaId: number;
+  rutaNombre: string;
+  zona?: string;
+  asignacionId?: number;
+  acopiadorId?: number;
+  acopiadorNombre?: string;
+  movilidad?: string;
+  observacion?: string;
+  estado: EstadoPlanRuta;
+  litros: number;
+  recepciones: number;
+  ultimoRegistro?: string;
 }
 
 export interface Recojo {
@@ -90,6 +114,12 @@ export interface Recojo {
   temperatura?: number;
   estado: EstadoRecojo;
   motivoCancelacion?: string;
+  fuente: FuenteRecojo;
+  numeroEnvases?: number;
+  capacidadReferenciaL?: number;
+  responsableRecepcion?: string;
+  litrosAppMovil?: number;
+  resultadoCalidad?: ResultadoCalidad;
 }
 
 export interface ParametroCalidad {
@@ -117,6 +147,11 @@ export interface ControlCalidad {
   resultado: ResultadoCalidad;
   equipoUtilizado?: string;
   responsable?: string;
+  aguaAnadida?: AguaAnadida;
+  lugol?: ResultadoLugol;
+  olor?: Olor;
+  aspecto?: Aspecto;
+  motivoRechazo?: string;
   fecha: string;
 }
 
@@ -184,6 +219,8 @@ export interface Queso {
   vendidosKg: number;
   totalVenta?: number;
   observaciones?: string;
+  comprador?: string;
+  numeroBoleta?: string;
 }
 
 export interface RegistroAuditoria {
@@ -222,12 +259,44 @@ export interface TrazabilidadItem {
   estado: string;
 }
 
+export interface RutaDia {
+  nombre: string;
+  litros: number;
+  recepciones: number;
+}
+
+export interface CierreAcopio {
+  id: number;
+  fecha: string;
+  litrosSistema: number;
+  litrosPlanta: number;
+  observacion?: string;
+  cerrado: boolean;
+}
+
+export interface ResumenDia {
+  fecha: string;
+  aceptados: number;
+  observados: number;
+  rechazados: number;
+  recepcionesAceptadas: number;
+  controlesObservados: number;
+  entregasRechazadas: number;
+  proveedores: number;
+  pendientesCalidad: number;
+  liquidacionesPendientes: number;
+  compraEstimada: number | null;
+  rutas: RutaDia[];
+  cierre: CierreAcopio | null;
+}
+
 export interface UbicacionGps {
   acopiadorId: number;
   acopiadorNombre: string;
   latitud: number;
   longitud: number;
   precisionMetros?: number;
+  velocidadMs?: number;
   fecha: string;
 }
 
@@ -242,6 +311,13 @@ export interface ProduccionPorClave {
   clave: string;
   litros: number;
   recojos: number;
+}
+
+export interface PuntoSerieDiaria {
+  fecha: string;
+  litros: number;
+  recepciones: number;
+  litrosObservados: number;
 }
 
 export interface TendenciaCalidad {

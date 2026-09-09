@@ -1,11 +1,14 @@
 package org.ramiro.huata.reportes;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -66,6 +69,35 @@ public class ReporteService {
         return new DashboardResponse(
                 litrosTotales, recojos.size(), porRuta, porProductor.stream().limit(15).toList(), tendencia,
                 incidenciasAbiertas, liquidacionesPendientes);
+    }
+
+    /**
+     * Serie diaria de litros aceptados y observados: es la base de los gráficos de tendencia
+     * (Reportes y Centro de operación).
+     */
+    public List<PuntoSerieDiaria> serieDiaria(Instant desde, Instant hasta) {
+        Instant fin = hasta != null ? hasta : Instant.now();
+        Instant inicio = desde != null ? desde : fin.minus(14, ChronoUnit.DAYS);
+
+        List<Recojo> recojos = recojoRepository.findByFechaHoraBetweenAndEstadoNot(inicio, fin, EstadoRecojo.CANCELLED);
+        Map<Long, ResultadoCalidad> resultados = controlCalidadRepository.findAll().stream()
+                .filter(c -> c.getRecojo() != null)
+                .collect(Collectors.toMap(c -> c.getRecojo().getId(), ControlCalidad::getResultado, (a, b) -> a));
+
+        ZoneId zona = ZoneId.of("America/Lima");
+        Map<LocalDate, List<Recojo>> porDia = recojos.stream()
+                .collect(Collectors.groupingBy(r -> r.getFechaHora().atZone(zona).toLocalDate(), TreeMap::new, Collectors.toList()));
+
+        return porDia.entrySet().stream()
+                .map(e -> {
+                    double litros = e.getValue().stream().mapToDouble(Recojo::getLitros).sum();
+                    double observados = e.getValue().stream()
+                            .filter(r -> resultados.get(r.getId()) == ResultadoCalidad.OBSERVADA)
+                            .mapToDouble(Recojo::getLitros)
+                            .sum();
+                    return new PuntoSerieDiaria(e.getKey(), litros, e.getValue().size(), observados);
+                })
+                .toList();
     }
 
     /** "Zonas y rendimiento": semana actual vs semana anterior, igual criterio que ResumenZonas del prototipo. */

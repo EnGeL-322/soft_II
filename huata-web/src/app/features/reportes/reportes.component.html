@@ -1,0 +1,125 @@
+<section id="reportes" class="view active printable">
+  <div class="print-header"><h2>Huata Lácteos · Reporte filtrado</h2></div>
+
+  <div class="page-head">
+    <div>
+      <div class="kicker">Consulta operativa</div>
+      <h1>Reportes e historial</h1>
+      <p>Consulta recepciones, calidad, pagos y quesos. Todos los buscadores permiten escribir para filtrar en tiempo real.</p>
+    </div>
+    <div class="actions no-print">
+      <button class="btn btn-blue" (click)="exportar()" [disabled]="cargando() || !filtrados.length">Exportar resultado</button>
+      <button class="btn btn-soft" (click)="imprimir()">Imprimir / PDF horizontal</button>
+    </div>
+  </div>
+
+  <!-- Resumen al inicio, como la referencia -->
+  <div class="report-kpi-grid">
+    <div class="report-kpi-card">
+      <span>Eventos filtrados</span>
+      <strong id="repCount">{{filtrados.length}}</strong>
+      <small>Recepciones, calidad, pagos y quesos.</small>
+    </div>
+    <div class="report-kpi-card">
+      <span>Litros filtrados</span>
+      <strong id="repLiters">{{litros | number:'1.2-2'}} L</strong>
+      <small>Recepciones no canceladas.</small>
+    </div>
+    <div class="report-kpi-card alert">
+      <span>Incidencias</span>
+      <strong id="repIncidents">{{incidencias}}</strong>
+      <small>Controles observados o rechazados.</small>
+    </div>
+    <div class="report-kpi-card">
+      <span>Importe liquidado</span>
+      <strong id="repPayments">S/ {{pagos | number:'1.2-2'}}</strong>
+      <small>Liquidaciones del filtro.</small>
+    </div>
+  </div>
+
+  <div class="card cardpad report-filter-card no-print">
+    <div class="report-filter-title">
+      <div>
+        <div class="kicker">FILTROS ESCRIBIBLES</div>
+        <h3>Buscar y filtrar</h3>
+      </div>
+      <button class="btn btn-soft" (click)="limpiar()">Limpiar filtros</button>
+    </div>
+
+    <div class="report-search-main">
+      <div class="report-search-icon">⌕</div>
+      <input id="repText" placeholder="Escriba nombre, código, zona, tipo, estado o detalle..." [(ngModel)]="texto" (ngModelChange)="filtrar()" aria-label="texto">
+    </div>
+
+    <div class="formgrid report-filter-grid">
+      <div class="field">
+        <label>Desde</label>
+        <input id="repFrom" type="date" [(ngModel)]="desde" (ngModelChange)="cargar()" aria-label="desde">
+      </div>
+
+      <div class="field">
+        <label>Hasta</label>
+        <input id="repTo" type="date" [(ngModel)]="hasta" (ngModelChange)="cargar()" aria-label="hasta">
+      </div>
+
+      <div class="field searchable-field">
+        <label>Proveedor</label>
+        <input id="repProviderText" list="repProviderList" placeholder="Escriba nombre o código..." [(ngModel)]="proveedor" (ngModelChange)="filtrar()" aria-label="proveedor">
+        <datalist id="repProviderList">@for(p of proveedores; track p){<option [value]="p"></option>}</datalist>
+      </div>
+
+      <div class="field searchable-field">
+        <label>Zona</label>
+        <input id="repZoneText" list="repZoneList" placeholder="Escriba la zona..." [(ngModel)]="zona" (ngModelChange)="filtrar()" aria-label="zona">
+        <datalist id="repZoneList">@for(z of zonas; track z){<option [value]="z"></option>}</datalist>
+      </div>
+
+      <div class="field searchable-field">
+        <label>Tipo de evento</label>
+        <input id="repTypeText" list="repTypeList" placeholder="Recepción, Calidad, Pago..." [(ngModel)]="tipo" (ngModelChange)="filtrar()" aria-label="tipo">
+        <datalist id="repTypeList">
+          <option value="Recepción"></option>
+          <option value="Calidad"></option>
+          <option value="Pago"></option>
+          <option value="Quesos"></option>
+        </datalist>
+      </div>
+
+      <div class="field searchable-field">
+        <label>Estado / resultado</label>
+        <input id="repStatusText" list="repStatusList" placeholder="Apta, Observado, Pagado..." [(ngModel)]="estado" (ngModelChange)="filtrar()" aria-label="estado">
+        <datalist id="repStatusList">@for(e of ["ACEPTADA","OBSERVADA","RECHAZADA","SYNCED","CANCELLED","CALCULATED","REVIEWED","CLOSED","Producción","Venta"]; track e){<option [value]="e"></option>}</datalist>
+      </div>
+    </div>
+
+    <div class="report-filter-help">
+      <span>⌨</span>
+      <span>Puede escribir parcialmente. Ejemplo: <b>RAMOS</b>, <b>COLLANA</b>, <b>Pago</b> o <b>Apta</b>.</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="table-title">
+      <div>
+        <h3>Resultado filtrado</h3>
+        <p id="reportResultLabel">{{cargando() ? "Cargando registros…" : filtrados.length + " eventos en el periodo seleccionado."}}</p>
+      </div>
+    </div>
+    <div class="tablebox">
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Tipo</th>
+            <th>Proveedor / referencia</th>
+            <th>Zona</th>
+            <th class="num">Litros</th>
+            <th class="num">Monto</th>
+            <th>Estado</th>
+            <th class="wrap">Detalle</th>
+          </tr>
+        </thead>
+        <tbody id="reportsBody">@for(e of visibles; track e.id){<tr><td>{{e.fecha}}</td><td>{{e.tipo}}</td><td>{{e.referencia}}<small class="muted"> {{e.codigo}}</small></td><td>{{e.zona??'—'}}</td><td class="num">{{e.litros == null ? '—' : (e.litros | number:'1.2-2')}}</td><td class="num">{{e.monto == null ? '—' : 'S/ ' + (e.monto | number:'1.2-2')}}</td><td><app-badge-estado [estado]="e.estado"/></td><td class="wrap">{{e.detalle??'—'}}</td></tr>}@empty{<tr><td colspan="8">{{cargando() ? 'Cargando…' : 'No se encontraron registros para estos filtros.'}}</td></tr>}</tbody>
+      </table>
+    </div>
+<div class="smart-pagination no-print"><div class="smart-pagination-info"><strong>{{filtrados.length}} eventos</strong><span>Página {{pagina}} de {{paginas}}</span></div><div class="smart-pagination-actions"><label>Ver <select [(ngModel)]="size" (ngModelChange)="filtrar()">@for(n of [5,10,25,50]; track n){<option [ngValue]="n">{{n}}</option>}</select></label><button class="smart-page-btn" [disabled]="pagina===1" (click)="pagina=1" aria-label="Primera página">«</button><button class="smart-page-btn" [disabled]="pagina===1" (click)="pagina=pagina-1" aria-label="Anterior">‹</button><strong>{{pagina}}</strong><button class="smart-page-btn" [disabled]="pagina>=paginas" (click)="pagina=pagina+1" aria-label="Siguiente">›</button><button class="smart-page-btn" [disabled]="pagina>=paginas" (click)="pagina=paginas" aria-label="Última página">»</button></div></div></div>@if(error()){<p class="note" role="alert">{{error()}}</p>}</section>

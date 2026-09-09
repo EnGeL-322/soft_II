@@ -8,8 +8,8 @@ import { UbicacionGps } from '../models/models';
 export class UbicacionesService {
   constructor(private readonly http: HttpClient) {}
 
-  reportar(latitud: number, longitud: number, precisionMetros?: number) {
-    return this.http.post<UbicacionGps>(`${API_BASE_URL}/ubicaciones`, { latitud, longitud, precisionMetros });
+  reportar(latitud: number, longitud: number, precisionMetros?: number, velocidadMs?: number) {
+    return this.http.post<UbicacionGps>(`${API_BASE_URL}/ubicaciones`, { latitud, longitud, precisionMetros, velocidadMs });
   }
 
   ultimas() {

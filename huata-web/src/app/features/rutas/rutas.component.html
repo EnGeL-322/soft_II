@@ -1,0 +1,366 @@
+<section id="rutas" class="view active printable">
+
+    <div class="page-head">
+      <div>
+        <div class="kicker">Logística de acopio</div>
+        <h1>Rutas y movilidad</h1>
+        <p>Control de recorridos, zonas asignadas, avance y volumen recogido por fecha.</p>
+      </div>
+      <div class="actions">
+        <div class="field" style="margin:0">
+          <label>Fecha</label>
+          <input type="date" [(ngModel)]="fecha" (ngModelChange)="cargarTodo()" [max]="hoy" />
+        </div>
+        <button type="button" class="btn btn-blue" (click)="exportar()">Exportar Excel</button>
+      </div>
+    </div>
+
+    <div class="note" style="margin-bottom:16px">
+      <b>App del acopiador (Fase 2):</b> las zonas marcadas como recorridas se registrarán offline desde la app
+      Flutter y aparecerán aquí, en la bitácora de cada ruta, sin recargar la página. Por ahora, el seguimiento GPS
+      usa la ubicación real del navegador del acopiador (ver "Recepción / Acopio").
+    </div>
+
+    <div class="stats">
+      <div class="stat">
+        <span>Rutas planificadas</span>
+        <strong>{{ plan().length }}</strong>
+        <small class="muted">Configuradas</small>
+      </div>
+      <div class="stat">
+        <span>Completadas</span>
+        <strong>{{ completadas() }}</strong>
+        <small class="muted">Con registros ese día</small>
+      </div>
+      <div class="stat">
+        <span>En recorrido</span>
+        <strong>{{ enRecorrido() }}</strong>
+        <small class="muted">Asignadas, sin registros aún</small>
+      </div>
+      <div class="stat">
+        <span>Litros por rutas</span>
+        <strong>{{ litrosTotales() | number: '1.0-1' }} L</strong>
+        <small class="muted">Según recepciones</small>
+      </div>
+      <div class="stat">
+        <span>GPS activos</span>
+        <strong>{{ gpsActivos() }}</strong>
+        <small class="muted">Últimos 30 min</small>
+      </div>
+      <div class="stat">
+        <span>Última actualización GPS</span>
+        <strong style="font-size:16px">{{ relativo(ultimaActualizacionGps()) }}</strong>
+        <small class="muted">De cualquier acopiador</small>
+      </div>
+    </div>
+
+    <div class="sec-tabs no-print">
+      <button type="button" class="sec-tab" [class.active]="tab() === 'gps'" (click)="tab.set('gps')">Seguimiento GPS</button>
+      <button type="button" class="sec-tab" [class.active]="tab() === 'plan'" (click)="tab.set('plan')">Plan operativo</button>
+      <button type="button" class="sec-tab" [class.active]="tab() === 'rutas'" (click)="tab.set('rutas')">Rutas</button>
+      <button type="button" class="sec-tab" [class.active]="tab() === 'centros'" (click)="tab.set('centros')">
+        Centros de acopio
+      </button>
+    </div>
+
+    @if (tab() === 'gps') {
+      <div class="card">
+        <div class="table-title" style="margin-top:0">
+          <div>
+            <div class="kicker">Seguimiento GPS</div>
+            <h3>Recorrido y cobertura por ruta</h3>
+            <p>El navegador del acopiador reporta su posición real mientras "Compartir mi ubicación" está activo.</p>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <select [ngModel]="rutaSeleccionadaId()" (ngModelChange)="cambiarRutaSeleccionada($event)">
+            <option [ngValue]="undefined">Todas las rutas</option>
+            @for (r of plan(); track r.rutaId) {
+              <option [ngValue]="r.rutaId">{{ r.rutaNombre }}</option>
+            }
+          </select>
+          <button type="button" class="sec-tab" [class.active]="verTodos()" (click)="verTodos.set(true)">Ver todos los acopiadores</button>
+          <button type="button" class="sec-tab" [class.active]="!verTodos()" (click)="verTodos.set(false)">Ver ruta seleccionada</button>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 2fr 1fr; gap:16px; align-items:start">
+          <div class="card" style="height:360px; padding:0; overflow:hidden">
+            <app-mapa [puntos]="puntosMapa()" />
+          </div>
+
+          <aside class="card">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start">
+              <div>
+                <span class="muted" style="font-size:10px; text-transform:uppercase">Seguimiento seleccionado</span>
+                <strong style="display:block; font-size:15px">{{ entidadSeleccionada() }}</strong>
+              </div>
+              <span class="badge" [class.badge-verde]="gpsVigente()" [class.badge-gris]="!gpsVigente()">
+                {{ acopiadorAsignado() ? (gpsVigente() ? 'GPS ACTIVO' : 'SIN SEÑAL') : 'SIN ASIGNAR' }}
+              </span>
+            </div>
+
+            <div class="form-grid" style="margin-top:14px; grid-template-columns:1fr 1fr">
+              <div>
+                <span class="muted" style="font-size:10px">Última sincronización</span>
+                <div style="font-weight:700">{{ relativo(ultimaUbicacionSeleccionada()?.fecha) }}</div>
+              </div>
+              <div>
+                <span class="muted" style="font-size:10px">Precisión GPS</span>
+                <div style="font-weight:700">
+                  {{ ultimaUbicacionSeleccionada()?.precisionMetros != null ? (ultimaUbicacionSeleccionada()!.precisionMetros | number: '1.0-0') + ' m' : '—' }}
+                </div>
+              </div>
+              <div>
+                <span class="muted" style="font-size:10px">Velocidad</span>
+                <div style="font-weight:700">
+                  {{ ultimaUbicacionSeleccionada()?.velocidadMs != null ? ((ultimaUbicacionSeleccionada()!.velocidadMs! * 3.6) | number: '1.0-1') + ' km/h' : '—' }}
+                </div>
+              </div>
+              <div>
+                <span class="muted" style="font-size:10px">Puntos hoy</span>
+                <div style="font-weight:700">{{ eventosRecorrido().length }}</div>
+              </div>
+            </div>
+
+            <div class="table-title" style="margin:16px 0 6px">
+              <div><h3 style="font-size:12.5px">Eventos del recorrido</h3></div>
+              <span class="muted" style="font-size:10.5px">{{ eventosRecorrido().length }} eventos</span>
+            </div>
+            <div style="max-height:140px; overflow:auto">
+              @for (e of eventosRecorrido(); track e.fecha) {
+                <div class="list-item">
+                  <div>
+                    <b style="font-size:11px">{{ e.fecha | date: 'HH:mm:ss' }}</b>
+                    <span>{{ e.latitud | number: '1.4-4' }}, {{ e.longitud | number: '1.4-4' }}</span>
+                  </div>
+                </div>
+              }
+              @if (eventosRecorrido().length === 0) {
+                <p class="muted" style="font-size:11.5px">Sin eventos GPS todavía.</p>
+              }
+            </div>
+
+            <div class="table-title" style="margin:16px 0 6px">
+              <div><h3 style="font-size:12.5px">Bitácora de zonas recorridas</h3></div>
+              <span class="muted" style="font-size:10.5px">{{ zonasRecorridas().length }} zonas</span>
+            </div>
+            @for (z of zonasRecorridas(); track z) {
+              <span class="badge badge-verde" style="margin:2px">{{ z }}</span>
+            }
+            @if (zonasRecorridas().length === 0) {
+              <p class="muted" style="font-size:11.5px">Sin recepciones registradas hoy.</p>
+            }
+
+            @if (asignacionSeleccionada(); as asig) {
+              <div class="field" style="margin-top:16px">
+                <label>Observación de la jornada</label>
+                <textarea [(ngModel)]="observacionEdicion" placeholder="Ej. desvío, parada, incidencia"></textarea>
+              </div>
+              <div class="actions" style="margin-top:8px">
+                <button type="button" class="btn btn-soft" (click)="guardarObservacion(asig)">Guardar observación</button>
+              </div>
+            }
+          </aside>
+        </div>
+      </div>
+    }
+
+    @if (tab() === 'plan') {
+      <div class="card">
+        <div class="table-title" style="margin-top:0">
+          <div>
+            <h3>Plan operativo de recojo</h3>
+            <p>Datos reales: ruta, quién la tiene asignada y lo que se recogió en la fecha seleccionada.</p>
+          </div>
+        </div>
+        <div class="tablebox">
+          <table>
+            <thead>
+              <tr>
+                <th>Ruta</th>
+                <th>Zona</th>
+                <th>Responsable</th>
+                <th>Movilidad</th>
+                <th>Estado</th>
+                <th class="num">Litros</th>
+                <th>Último registro</th>
+                <th class="wrap">Observación</th>
+                <th class="no-print">Acción</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (p of plan(); track p.rutaId) {
+                <tr>
+                  <td>{{ p.rutaNombre }}</td>
+                  <td>{{ p.zona ?? '—' }}</td>
+                  <td>{{ p.acopiadorNombre ?? 'Sin asignar' }}</td>
+                  <td>{{ p.movilidad ?? '—' }}</td>
+                  <td>
+                    <span
+                      class="badge"
+                      [class.badge-verde]="p.estado === 'CON_REGISTROS'"
+                      [class.badge-ambar]="p.estado === 'ASIGNADA'"
+                      [class.badge-gris]="p.estado === 'SIN_ASIGNAR'"
+                    >
+                      {{ p.estado === 'CON_REGISTROS' ? 'Con registros' : p.estado === 'ASIGNADA' ? 'Asignada' : 'Sin asignar' }}
+                    </span>
+                  </td>
+                  <td class="num">{{ p.litros | number: '1.0-1' }}</td>
+                  <td>{{ p.ultimoRegistro ? (p.ultimoRegistro | date: 'short') : '—' }}</td>
+                  <td class="muted">{{ p.observacion ?? '—' }}</td>
+                  <td>
+                    <button type="button" class="btn btn-soft" (click)="alternarEdicion(p)">
+                      {{ editandoRutaId() === p.rutaId ? 'Cerrar' : p.asignacionId ? 'Editar' : 'Asignar' }}
+                    </button>
+                  </td>
+                </tr>
+                @if (editandoRutaId() === p.rutaId) {
+                  <tr>
+                    <td colspan="9">
+                      @if (!p.asignacionId) {
+                        <div class="form-grid">
+                          <div class="field">
+                            <label>Acopiador</label>
+                            <select [(ngModel)]="formAsignar.acopiadorId" name="acopiadorAsignar">
+                              <option [ngValue]="undefined" disabled>Seleccionar…</option>
+                              @for (a of acopiadores(); track a.id) {
+                                <option [ngValue]="a.id">{{ a.nombres }} {{ a.apellidos }}</option>
+                              }
+                            </select>
+                          </div>
+                          <div class="field">
+                            <label>Movilidad (opcional)</label>
+                            <input type="text" [(ngModel)]="formAsignar.movilidad" name="movilidadAsignar" placeholder="Ej. camioneta, motocarro…" />
+                          </div>
+                        </div>
+                        <div class="actions" style="margin-top:10px">
+                          <button type="button" class="btn btn-primary" (click)="asignar(p)">Asignar</button>
+                        </div>
+                      } @else {
+                        <div class="form-grid">
+                          <div class="field">
+                            <label>Movilidad</label>
+                            <input type="text" [(ngModel)]="formEditar.movilidad" name="movilidadEditar" />
+                          </div>
+                          <div class="field">
+                            <label>Observación</label>
+                            <input type="text" [(ngModel)]="formEditar.observacion" name="observacionEditar" />
+                          </div>
+                        </div>
+                        <div class="actions" style="margin-top:10px">
+                          <button type="button" class="btn btn-primary" (click)="guardarPlan(p)">Guardar</button>
+                        </div>
+                      }
+                    </td>
+                  </tr>
+                }
+              }
+              @if (plan().length === 0) {
+                <tr>
+                  <td colspan="9" class="muted" style="text-align:center; padding:24px">Sin rutas activas.</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="note" style="margin-top:14px">
+        <b>Flujo recomendado:</b> planificar ruta → registrar recojos → confirmar llegada a planta → cerrar jornada y
+        revisar diferencias.
+      </div>
+    }
+
+    @if (tab() === 'rutas') {
+      <form class="card" style="margin-bottom:16px" (ngSubmit)="crearRuta()">
+        <div class="form-grid">
+          <div class="field">
+            <label>Nombre de la ruta</label>
+            <input type="text" [(ngModel)]="nuevaRuta.nombre" name="nombre" required />
+          </div>
+          <div class="field">
+            <label>Zona (texto libre)</label>
+            <input type="text" [(ngModel)]="nuevaRuta.zona" name="zona" />
+          </div>
+          <div class="field">
+            <label>Descripción</label>
+            <input type="text" [(ngModel)]="nuevaRuta.descripcion" name="descripcion" />
+          </div>
+        </div>
+        <div class="actions" style="margin-top:12px">
+          <button type="submit" class="btn btn-primary">+ Agregar ruta</button>
+        </div>
+      </form>
+
+      <div class="tablebox">
+        <table>
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Zona</th>
+              <th>Descripción</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (r of rutas(); track r.id) {
+              <tr>
+                <td>{{ r.nombre }}</td>
+                <td>{{ r.zona ?? '—' }}</td>
+                <td>{{ r.descripcion ?? '—' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+
+    @if (tab() === 'centros') {
+      <form class="card" style="margin-bottom:16px" (ngSubmit)="crearCentro()">
+        <div class="form-grid">
+          <div class="field">
+            <label>Nombre del centro</label>
+            <input type="text" [(ngModel)]="nuevoCentro.nombre" name="nombreCentro" required />
+          </div>
+          <div class="field">
+            <label>Ubicación</label>
+            <input type="text" [(ngModel)]="nuevoCentro.ubicacion" name="ubicacion" />
+          </div>
+          <div class="field">
+            <label>Ruta asociada</label>
+            <select [(ngModel)]="nuevoCentro.rutaId" name="rutaId">
+              <option [ngValue]="undefined">Sin asignar</option>
+              @for (r of rutas(); track r.id) {
+                <option [ngValue]="r.id">{{ r.nombre }}</option>
+              }
+            </select>
+          </div>
+        </div>
+        <div class="actions" style="margin-top:12px">
+          <button type="submit" class="btn btn-primary">+ Agregar centro</button>
+        </div>
+      </form>
+
+      <div class="tablebox">
+        <table>
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Ubicación</th>
+              <th>Ruta</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (c of centros(); track c.id) {
+              <tr>
+                <td>{{ c.nombre }}</td>
+                <td>{{ c.ubicacion ?? '—' }}</td>
+                <td>{{ c.rutaNombre ?? '—' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  
+</section>

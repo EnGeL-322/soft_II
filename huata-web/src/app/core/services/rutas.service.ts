@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { API_BASE_URL } from '../config/api-config';
-import { AsignacionRuta, CentroAcopio, PageResponse, Ruta } from '../models/models';
+import { AsignacionRuta, CentroAcopio, PageResponse, PlanRutaDia, Ruta } from '../models/models';
 
 @Injectable({ providedIn: 'root' })
 export class RutasService {
@@ -41,7 +41,15 @@ export class RutasService {
     return this.http.get<AsignacionRuta[]>(`${API_BASE_URL}/asignaciones-ruta`, { params });
   }
 
-  asignar(datos: { rutaId: number; acopiadorId: number; fecha: string }) {
+  asignar(datos: { rutaId: number; acopiadorId: number; fecha: string; movilidad?: string }) {
     return this.http.post<AsignacionRuta>(`${API_BASE_URL}/asignaciones-ruta`, datos);
+  }
+
+  actualizarAsignacion(id: number, datos: { movilidad?: string; observacion?: string }) {
+    return this.http.patch<AsignacionRuta>(`${API_BASE_URL}/asignaciones-ruta/${id}`, datos);
+  }
+
+  planOperativo(fecha: string) {
+    return this.http.get<PlanRutaDia[]>(`${API_BASE_URL}/rutas/plan-operativo`, { params: { fecha } });
   }
 }

@@ -1,0 +1,70 @@
+<section id="trazabilidad" class="view active printable">
+
+    <div class="page-head">
+      <div>
+        <div class="kicker">Seguimiento de producción</div>
+        <h1>Seguimiento de producción</h1>
+        <p>Busca por código de proveedor, zona, fecha o id de recepción.</p>
+      </div>
+    </div>
+
+    <div class="table-title" style="margin-top:0">
+      <div>
+        <h3>Acopiadores en ruta (GPS real)</h3>
+        <p>
+          Posición reportada por el navegador del acopiador desde "Recepción / Acopio". Sin
+          simulación: si nadie compartió su ubicación todavía, el mapa aparece vacío.
+        </p>
+      </div>
+    </div>
+    <div class="card" style="height:340px; padding:0; overflow:hidden; margin-bottom:20px">
+      <app-mapa [puntos]="puntosMapa()" />
+    </div>
+    @if (ubicaciones().length === 0) {
+      <p class="muted" style="margin:-10px 0 20px">
+        Ningún acopiador ha compartido su ubicación todavía.
+      </p>
+    }
+
+    <div class="toolbar">
+      <input
+        type="text"
+        placeholder="Ej: DEMO-001 · 2026-08-26 · Quillallaka · id de recepción…"
+        [(ngModel)]="q"
+        (ngModelChange)="buscar()"
+      />
+    </div>
+
+    <div class="tablebox">
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Proveedor</th>
+            <th>Zona</th>
+            <th>Ruta</th>
+            <th class="num">Litros</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (r of resultados(); track r.recojoId) {
+            <tr>
+              <td>{{ r.fechaHora | date: 'short' }}</td>
+              <td>{{ r.productorCodigo }} · {{ r.productorNombre }}</td>
+              <td>{{ r.zona ?? '—' }}</td>
+              <td>{{ r.rutaNombre ?? '—' }}</td>
+              <td class="num">{{ r.litros }}</td>
+              <td><app-badge-estado [estado]="r.estado" /></td>
+            </tr>
+          }
+          @if (resultados().length === 0) {
+            <tr>
+              <td colspan="6" class="muted" style="text-align:center; padding:24px">Sin resultados.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  
+</section>

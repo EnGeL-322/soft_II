@@ -39,4 +39,10 @@ public class Queso extends BaseEntity {
 
     @Column(length = 500)
     private String observaciones;
+
+    @Column(length = 150)
+    private String comprador;
+
+    @Column(length = 80)
+    private String numeroBoleta;
 }

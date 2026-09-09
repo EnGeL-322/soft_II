@@ -18,7 +18,7 @@ public class QuesoService {
     public List<Queso> listar(LocalDate desde, LocalDate hasta) {
         LocalDate fin = hasta != null ? hasta : LocalDate.now();
         LocalDate inicio = desde != null ? desde : fin.minusMonths(1);
-        return quesoRepository.findByFechaBetweenOrderByFechaDesc(inicio, fin);
+        return quesoRepository.findByFechaBetweenOrderByFechaDesc(inicio, fin).stream().filter(Queso::isActivo).toList();
     }
 
     @Transactional
@@ -51,5 +51,7 @@ public class QuesoService {
         queso.setVendidosKg(req.vendidosKg() != null ? req.vendidosKg() : 0.0);
         queso.setTotalVenta(req.totalVenta());
         queso.setObservaciones(req.observaciones());
+        queso.setComprador(req.comprador());
+        queso.setNumeroBoleta(req.numeroBoleta());
     }
 }

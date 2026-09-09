@@ -1,0 +1,82 @@
+<section id="quesos" class="view printable">
+  <div class="print-header"><h2>Huata Lácteos · Quesos</h2></div>
+
+  <div class="page-head">
+    <div>
+      <div class="kicker">Producción y ventas</div>
+      <h1>Quesos</h1>
+      <p>Registra la producción y las ventas por separado. El stock se calcula solo (producido − vendido). <span class="badge badge-amber">Precios y alcance por validar</span></p>
+    </div>
+    <div class="actions no-print">
+      <button class="btn btn-soft" data-perm="cheese.write" onclick="openQuesoV2('prod')">Registrar producción</button>
+      <button class="btn btn-primary" data-perm="cheese.write" onclick="openQuesoV2('venta')">Registrar venta</button>
+      <button class="btn btn-blue" onclick="exportQuesosV2Excel()">Exportar Excel</button>
+    </div>
+  </div>
+
+  <div class="card sec-tabs-card">
+    <div class="sec-tabs no-print" style="grid-template-columns:repeat(2,1fr)">
+      <button id="quesosTabResumen" class="sec-tab active" onclick="switchSecTab('quesosPanelResumen',this)">
+        <span>▤</span> Resumen y producción
+      </button>
+      <button id="quesosTabHistorial" class="sec-tab" onclick="switchSecTab('quesosPanelHistorial',this)">
+        <span>▦</span> Historial de quesos
+      </button>
+    </div>
+
+    <div id="quesosPanelResumen" class="sec-tab-panel active">
+      <div class="q2-kpis">
+        <div class="q2-kpi"><div class="q2-kpi-ic" style="background:var(--green-soft);color:var(--green)">▣</div><div><div class="label">Producido (total)</div><div class="value" id="q2TotProd">0 u</div><div class="foot">Acumulado registrado</div></div></div>
+        <div class="q2-kpi"><div class="q2-kpi-ic" style="background:var(--amber-soft);color:var(--amber)">S/</div><div><div class="label">Vendido (total)</div><div class="value" id="q2TotVend">0 u</div><div class="foot">En todas las ventas</div></div></div>
+        <div class="q2-kpi"><div class="q2-kpi-ic" style="background:var(--blue-soft);color:var(--blue)">□</div><div><div class="label">Stock actual</div><div class="value" id="q2TotStock">0 u</div><div class="foot">Producido − vendido</div></div></div>
+        <div class="q2-kpi"><div class="q2-kpi-ic" style="background:var(--green-soft);color:var(--green)">▤</div><div><div class="label">Ingreso por ventas</div><div class="value" id="q2TotIngreso">S/ 0.00</div><div class="foot">Suma de ventas</div></div></div>
+      </div>
+
+      <div class="q2-two">
+        <div class="card">
+          <div class="table-title">
+            <div><h3>Producción y ventas por día</h3><p>Unidades por jornada</p></div>
+            <div class="q2-seg no-print">
+              <button id="q2SegSemana" class="on" onclick="setQuesosV2Period('semana')">Semana</button>
+              <button id="q2SegMes" onclick="setQuesosV2Period('mes')">Mes</button>
+            </div>
+          </div>
+          <div class="cardpad">
+            <div class="q2-chart" id="q2Chart"></div>
+            <div class="q2-legend">
+              <span><i style="background:var(--green)"></i> Producido</span>
+              <span><i style="background:var(--amber)"></i> Vendido</span>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="table-title"><div><h3>Ingreso por comprador</h3><p>Participación del periodo</p></div></div>
+          <div class="cardpad" id="q2ByBuyer"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="quesosPanelHistorial" class="sec-tab-panel">
+      <div class="card">
+        <div class="table-title">
+          <div><h3>Historial de quesos</h3><p>Producción y ventas registradas</p></div>
+          <span class="badge badge-gray">DEMO</span>
+        </div>
+        <div class="tablebox">
+          <table>
+            <thead><tr><th>Fecha</th><th>Tipo</th><th class="wrap">Detalle</th><th class="num">Cantidad</th><th class="num">Total</th><th>Boleta</th></tr></thead>
+            <tbody id="q2Body"></tbody>
+          </table>
+        </div>
+        <div class="cheese-pagination no-print">
+          <div class="cheese-pagination-info"><strong id="q2PageInfo">0 registros</strong></div>
+          <div class="cheese-pagination-actions">
+            <button class="cheese-page-nav" onclick="quesosV2Page(-1)">‹ Anterior</button>
+            <span class="muted" id="q2PageNum" style="padding:0 6px">Página 1</span>
+            <button class="cheese-page-nav" onclick="quesosV2Page(1)">Siguiente ›</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

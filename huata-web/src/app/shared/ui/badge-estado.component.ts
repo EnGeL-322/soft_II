@@ -22,6 +22,15 @@ const MAPA_CLASE: Record<string, string> = {
   CANCELLED: 'badge-rojo',
 };
 
+const ETIQUETAS: Record<string, string> = {
+  ACEPTADA: 'Apta', OBSERVADA: 'Observada', RECHAZADA: 'Rechazada',
+  ACTIVO: 'Activo', INACTIVO: 'Inactivo', EN_REVISION: 'En revisión',
+  SYNCED: 'Registrada', CANCELLED: 'Cancelada', DRAFT: 'Borrador',
+  CALCULATED: 'Calculada', REVIEWED: 'Revisada', CLOSED: 'Cerrada',
+  CERRADA: 'Cerrada', ABIERTA: 'Abierta', EN_SEGUIMIENTO: 'En seguimiento',
+  PENDING_SYNC: 'Pendiente de sincronizar', SAVED_OFFLINE: 'Guardada sin conexión',
+};
+
 /** Distingue ACEPTADA/OBSERVADA/RECHAZADA (y estados analogos) con color, como pide el UI/UX de Huata. */
 @Component({
   selector: 'app-badge-estado',
@@ -32,5 +41,5 @@ export class BadgeEstadoComponent {
   estado = input.required<string>();
 
   clase = computed(() => MAPA_CLASE[this.estado()] ?? 'badge-gris');
-  etiqueta = computed(() => this.estado().replaceAll('_', ' '));
+  etiqueta = computed(() => ETIQUETAS[this.estado()] ?? this.estado().replaceAll('_', ' '));
 }

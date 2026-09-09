@@ -3,6 +3,7 @@ import { authGuard, roleGuard } from './core/guards/auth.guard';
 import { ShellComponent } from './shared/layout/shell.component';
 
 export const routes: Routes = [
+  { path: '', pathMatch: 'full', redirectTo: 'portal' },
   {
     path: 'login',
     loadComponent: () => import('./features/auth/login.component').then((m) => m.LoginComponent),
