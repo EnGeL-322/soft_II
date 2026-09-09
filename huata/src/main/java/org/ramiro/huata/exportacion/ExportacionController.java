@@ -22,6 +22,17 @@ public class ExportacionController {
 
     private final ExportacionService exportacionService;
 
+    @GetMapping("/libro")
+    public ResponseEntity<byte[]> libro() {
+        return ResponseEntity.ok().header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=Huata_Completo.xlsx")
+                .contentType(XLSX).body(exportacionService.exportarLibro());
+    }
+
+    @GetMapping("/datos-json")
+    public java.util.Map<String, java.util.List<java.util.LinkedHashMap<String, Object>>> datos() {
+        return exportacionService.exportarDatos();
+    }
+
     @GetMapping
     public List<String> hojasDisponibles() {
         return ExportacionService.HOJAS_DISPONIBLES;

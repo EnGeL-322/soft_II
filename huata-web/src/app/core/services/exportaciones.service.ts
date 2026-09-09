@@ -10,6 +10,10 @@ export class ExportacionesService {
     return this.http.get<string[]>(`${API_BASE_URL}/exportaciones`);
   }
 
+  datosJson() {
+    return this.http.get<Record<string, unknown[]>>(`${API_BASE_URL}/exportaciones/datos-json`);
+  }
+
   descargar(hoja: string) {
     return this.http.get(`${API_BASE_URL}/exportaciones/${hoja}`, { responseType: 'blob' });
   }

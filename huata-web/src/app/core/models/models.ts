@@ -257,6 +257,12 @@ export interface TrazabilidadItem {
   fechaHora: string;
   litros: number;
   estado: string;
+  acopiadorNombre?: string;
+  resultadoCalidad?: string;
+  densidad?: number;
+  responsableCalidad?: string;
+  observacionCalidad?: string;
+  liquidaciones?: { id: number; inicio: string; fin: string; estado: string; subtotal: number }[];
 }
 
 export interface RutaDia {

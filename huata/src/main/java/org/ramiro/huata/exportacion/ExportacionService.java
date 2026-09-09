@@ -62,7 +62,14 @@ public class ExportacionService {
     private final RutaService rutaService;
 
     public byte[] exportar(String hoja) {
-        List<LinkedHashMap<String, Object>> filas =
+        var filas = filas(hoja);
+        byte[] archivo = generarXlsx(hoja, filas);
+        auditoriaService.registrar("Exportación", "Excel", "Hoja " + hoja);
+        return archivo;
+    }
+
+    private List<LinkedHashMap<String, Object>> filas(String hoja) {
+        return
                 switch (hoja) {
                     case "Proveedores" -> proveedores();
                     case "Recepciones" -> recepciones();
@@ -75,13 +82,20 @@ public class ExportacionService {
                     case "Auditoria" -> auditoria();
                     default -> throw new BusinessRuleException("Hoja desconocida: " + hoja);
                 };
-        byte[] archivo = generarXlsx(hoja, filas);
-        auditoriaService.registrar("Exportación", "Excel", "Hoja " + hoja);
-        return archivo;
     }
 
     private byte[] generarXlsx(String nombreHoja, List<LinkedHashMap<String, Object>> filas) {
         try (Workbook workbook = new XSSFWorkbook()) {
+            escribirHoja(workbook, nombreHoja, filas);
+            ByteArrayOutputStream salida = new ByteArrayOutputStream();
+            workbook.write(salida);
+            return salida.toByteArray();
+        } catch (IOException e) {
+            throw new UncheckedIOException("No se pudo generar el archivo Excel", e);
+        }
+    }
+
+    private void escribirHoja(Workbook workbook, String nombreHoja, List<LinkedHashMap<String, Object>> filas) {
             Sheet sheet = workbook.createSheet(nombreHoja);
             if (!filas.isEmpty()) {
                 List<String> columnas = new ArrayList<>(filas.get(0).keySet());
@@ -105,12 +119,24 @@ public class ExportacionService {
                     }
                 }
             }
-            ByteArrayOutputStream salida = new ByteArrayOutputStream();
+    }
+
+    @org.springframework.transaction.annotation.Transactional
+    public byte[] exportarLibro() {
+        try (Workbook workbook = new XSSFWorkbook()) {
+            for (var hoja : HOJAS_DISPONIBLES) escribirHoja(workbook, hoja, filas(hoja));
+            var salida = new ByteArrayOutputStream();
             workbook.write(salida);
+            auditoriaService.registrar("Exportación", "Excel", "Libro completo");
             return salida.toByteArray();
-        } catch (IOException e) {
-            throw new UncheckedIOException("No se pudo generar el archivo Excel", e);
-        }
+        } catch (IOException e) { throw new UncheckedIOException("No se pudo generar el libro", e); }
+    }
+
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public Map<String, List<LinkedHashMap<String, Object>>> exportarDatos() {
+        var datos = new LinkedHashMap<String, List<LinkedHashMap<String, Object>>>();
+        HOJAS_DISPONIBLES.forEach(hoja -> datos.put(hoja, filas(hoja)));
+        return datos;
     }
 
     private List<LinkedHashMap<String, Object>> proveedores() {

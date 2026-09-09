@@ -1,70 +1,75 @@
 <section id="trazabilidad" class="view active printable">
+  <div class="print-header"><h2>Huata Lácteos · Seguimiento de producción</h2></div>
 
-    <div class="page-head">
-      <div>
-        <div class="kicker">Seguimiento de producción</div>
-        <h1>Seguimiento de producción</h1>
-        <p>Busca por código de proveedor, zona, fecha o id de recepción.</p>
+  <div class="page-head">
+    <div>
+      <div class="kicker">Seguimiento integral</div>
+      <h1>Seguimiento de producción</h1>
+      <p>Relaciona proveedor, recepción, calidad, zona del día y liquidación en una sola consulta; y muestra qué zonas y proveedores entregan mejor o peor calidad.</p>
+    </div>
+  </div>
+
+  <div class="card sec-tabs-card">
+    <div class="sec-tabs no-print" style="grid-template-columns:repeat(2,1fr)">
+      <button class="sec-tab" [class.active]="tab === 'resumen'" (click)="tab = 'resumen'">
+        <span>◎</span> Seguimiento de producción
+      </button>
+      <button class="sec-tab" [class.active]="tab === 'detalle'" (click)="tab = 'detalle'">
+        <span>⤢</span> Trazabilidad detallada
+      </button>
+    </div>
+
+    <div class="sec-tab-panel" [class.active]="tab === 'resumen'">
+      <div class="kicker">CALIDAD POR ZONA Y PROVEEDOR</div><p class="muted">Porcentaje de controles aptos sobre entregas controladas, excluyendo recepciones canceladas.</p><div class="production-rank-grid-v140">@for(grupo of rankings(); track grupo.titulo){<div class="production-rank-col-v140"><h4>{{grupo.titulo}}</h4>@for(r of grupo.filas; track r.nombre){<div class="production-rank-row-v140"><span><b>{{r.nombre}}</b><br><span class="muted">{{r.litros | number:'1.0-0'}} L · {{r.total}} recepciones</span></span><span class="production-rank-pct-v140" [class.good]="r.porcentaje>=90" [class.bad]="r.porcentaje<70">{{r.porcentaje | number:'1.0-0'}}%</span></div>}@empty{<div class="empty">Sin datos suficientes.</div>}</div>}</div>
+    </div>
+
+    <div class="sec-tab-panel" [class.active]="tab === 'detalle'">
+
+  <div class="trace-search-card-v135 no-print">
+    <div class="trace-search-v135">
+      <span>⌕</span>
+      <input [(ngModel)]="q" (ngModelChange)="filtrar()" aria-label="Buscar recepción" id="traceSearchV135" placeholder="Buscar código de recepción, proveedor, zona o fecha...">
+      <button type="button" (click)="limpiar()">Limpiar</button>
+    </div>
+    <div class="trace-search-help-v135">Ejemplos: DEMO-001 · 2026-08-26 · Quillallaka · código de recepción.</div>
+    <div class="toolbar no-print" style="margin-top:8px">
+      <label class="route-date-label-v135">Desde <input [(ngModel)]="desde" (ngModelChange)="filtrar()" id="traceDateFromV140" type="date"></label>
+      <label class="route-date-label-v135">Hasta <input [(ngModel)]="hasta" (ngModelChange)="filtrar()" id="traceDateToV140" type="date"></label>
+      <select [(ngModel)]="acopiador" (ngModelChange)="filtrar()" aria-label="Acopiador"><option value="">Todos los acopiadores</option>@for(a of acopiadores;track a){<option [value]="a">{{a}}</option>}</select>
+      <button type="button" class="btn btn-soft" (click)="desde='';hasta='';filtrar()">Limpiar fechas</button>
+    </div>
+  </div>
+
+  <div class="trace-layout-v135">
+    <div class="card">
+      <div class="table-title">
+        <div><h3>Recepciones localizadas</h3><p>Selecciona un registro para reconstruir su flujo.</p></div>
+      </div>
+      <div class="tablebox">
+        <table>
+          <thead>
+            <tr>
+              <th>Código</th><th>Fecha</th><th>Proveedor</th><th>Zona del día</th>
+              <th class="num">Litros</th><th>Calidad</th><th>Pago</th><th class="no-print">Detalle</th>
+            </tr>
+          </thead>
+          <tbody>@for(r of visibles; track r.recojoId){<tr><td>REC-{{r.recojoId}}</td><td>{{r.fechaHora | date:'yyyy-MM-dd':'-0500'}}</td><td>{{r.productorCodigo}} · {{r.productorNombre}}</td><td>{{r.zona??'—'}}</td><td class="num">{{r.litros | number:'1.1-1'}}</td><td>@if(r.resultadoCalidad){<app-badge-estado [estado]="r.resultadoCalidad"/>}@else{Sin control}</td><td>{{r.liquidaciones?.length ? 'Liquidada' : 'Sin liquidación'}}</td><td><button class="btn btn-soft" (click)="seleccionado=r">Ver trazabilidad</button></td></tr>}@empty{<tr><td colspan="8">Sin resultados para estos filtros.</td></tr>}</tbody>
+        </table>
+      </div>
+<div class="smart-pagination no-print"><div class="smart-pagination-info"><strong>{{filtrados.length}} registros</strong><span>Página {{pagina}} de {{paginas}}</span></div><div class="smart-pagination-actions"><label>Ver <select [(ngModel)]="size" (ngModelChange)="filtrar()">@for(n of [5,10,25];track n){<option [ngValue]="n">{{n}}</option>}</select></label><button class="smart-page-btn" [disabled]="pagina===1" (click)="pagina=pagina-1" aria-label="Anterior">‹</button><button class="smart-page-btn" [disabled]="pagina>=paginas" (click)="pagina=pagina+1" aria-label="Siguiente">›</button></div></div></div>    <div class="card trace-detail-card-v135">
+      <div class="ops-card-head-v135">
+        <div>
+          <div class="kicker">FLUJO DEL REGISTRO</div>
+          <h3 id="traceDetailTitleV135">{{seleccionado ? 'Recepción #' + seleccionado.recojoId : 'Selecciona una recepción'}}</h3>
+          <p id="traceDetailSubtitleV135">Aquí aparecerá la cadena completa.</p>
+        </div>
+      </div>
+      <div id="traceDetailV135" class="trace-detail-v135">
+        @if(seleccionado;as r){<article class="card"><div class="kicker">1 · Proveedor</div><h4>{{r.productorNombre}}</h4><p>{{r.productorCodigo}} · {{r.zona}}</p></article><article class="card"><div class="kicker">2 · Recepción</div><h4>{{r.litros | number:'1.1-1'}} L</h4><p>{{r.fechaHora | date:'yyyy-MM-dd HH:mm':'-0500'}} · {{r.acopiadorNombre??'Sin acopiador asignado'}}</p><app-badge-estado [estado]="r.estado"/></article><article class="card"><div class="kicker">3 · Calidad</div>@if(r.resultadoCalidad){<app-badge-estado [estado]="r.resultadoCalidad"/><p>Densidad: {{r.densidad??'Sin registro'}}</p><p>{{r.observacionCalidad}}</p><small>{{r.responsableCalidad}}</small>}@else{<p>Control pendiente.</p>}<a class="btn btn-soft" routerLink="/calidad">Ver calidad y evidencia</a></article><article class="card"><div class="kicker">4 · Liquidación</div>@for(l of r.liquidaciones??[];track l.id){<p>{{l.inicio}} — {{l.fin}}</p><strong>S/ {{l.subtotal | number:'1.2-2'}}</strong><app-badge-estado [estado]="l.estado"/>}@empty{<p>Sin liquidación registrada.</p>}<a class="btn btn-soft" routerLink="/liquidaciones">Consultar liquidaciones</a></article>}@else{<div class="provider-chart-empty">Selecciona “Ver trazabilidad” en una recepción.</div>}
       </div>
     </div>
+  </div>
 
-    <div class="table-title" style="margin-top:0">
-      <div>
-        <h3>Acopiadores en ruta (GPS real)</h3>
-        <p>
-          Posición reportada por el navegador del acopiador desde "Recepción / Acopio". Sin
-          simulación: si nadie compartió su ubicación todavía, el mapa aparece vacío.
-        </p>
-      </div>
     </div>
-    <div class="card" style="height:340px; padding:0; overflow:hidden; margin-bottom:20px">
-      <app-mapa [puntos]="puntosMapa()" />
-    </div>
-    @if (ubicaciones().length === 0) {
-      <p class="muted" style="margin:-10px 0 20px">
-        Ningún acopiador ha compartido su ubicación todavía.
-      </p>
-    }
-
-    <div class="toolbar">
-      <input
-        type="text"
-        placeholder="Ej: DEMO-001 · 2026-08-26 · Quillallaka · id de recepción…"
-        [(ngModel)]="q"
-        (ngModelChange)="buscar()"
-      />
-    </div>
-
-    <div class="tablebox">
-      <table>
-        <thead>
-          <tr>
-            <th>Fecha</th>
-            <th>Proveedor</th>
-            <th>Zona</th>
-            <th>Ruta</th>
-            <th class="num">Litros</th>
-            <th>Estado</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (r of resultados(); track r.recojoId) {
-            <tr>
-              <td>{{ r.fechaHora | date: 'short' }}</td>
-              <td>{{ r.productorCodigo }} · {{ r.productorNombre }}</td>
-              <td>{{ r.zona ?? '—' }}</td>
-              <td>{{ r.rutaNombre ?? '—' }}</td>
-              <td class="num">{{ r.litros }}</td>
-              <td><app-badge-estado [estado]="r.estado" /></td>
-            </tr>
-          }
-          @if (resultados().length === 0) {
-            <tr>
-              <td colspan="6" class="muted" style="text-align:center; padding:24px">Sin resultados.</td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
-  
-</section>
+  </div>
+<div class="actions no-print" style="margin-top:16px"><button class="btn btn-soft" (click)="mapa=!mapa">{{mapa?'Ocultar mapa':'Ver acopiadores en ruta'}}</button></div>@if(mapa){<div class="card" style="height:340px;margin-top:16px"><app-mapa [puntos]="puntosMapa()"/></div>}@if(error()){<p class="note" role="alert">{{error()}}</p>}</section>

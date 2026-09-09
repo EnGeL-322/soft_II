@@ -36,6 +36,7 @@ public class ReporteService {
     private final ControlCalidadRepository controlCalidadRepository;
     private final IncidenciaCalidadRepository incidenciaCalidadRepository;
     private final LiquidacionRepository liquidacionRepository;
+    private final org.ramiro.huata.liquidaciones.LiquidacionDetalleRepository liquidacionDetalles;
 
     public DashboardResponse dashboard(Instant desde, Instant hasta) {
         Instant fin = hasta != null ? hasta : Instant.now();
@@ -135,15 +136,20 @@ public class ReporteService {
      * "Seguimiento de producción": busqueda libre por codigo de proveedor, nombre, zona, fecha o
      * id de recepción, igual al buscador global del prototipo ("DEMO-001 · fecha · zona · código").
      */
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public List<TrazabilidadItem> trazabilidad(String q) {
         List<Recojo> recojos = recojoRepository.findAll();
         String needle = q == null ? "" : q.trim().toLowerCase();
+        var calidad = controlCalidadRepository.findAll().stream().filter(ControlCalidad::isActivo)
+                .collect(Collectors.toMap(c -> c.getRecojo().getId(), c -> c));
+        var pagos = liquidacionDetalles.findAll().stream().filter(d -> d.getLiquidacion().isActivo())
+                .collect(Collectors.groupingBy(d -> d.getRecojo().getId()));
 
         return recojos.stream()
+                .filter(Recojo::isActivo)
                 .filter(r -> needle.isBlank() || coincide(r, needle))
                 .sorted(Comparator.comparing(Recojo::getFechaHora).reversed())
-                .limit(100)
-                .map(this::aTrazabilidad)
+                .map(r -> aTrazabilidad(r, calidad.get(r.getId()), pagos.getOrDefault(r.getId(), List.of())))
                 .toList();
     }
 
@@ -157,7 +163,8 @@ public class ReporteService {
                 || r.getClientUuid().toLowerCase().contains(needle);
     }
 
-    private TrazabilidadItem aTrazabilidad(Recojo r) {
+    private TrazabilidadItem aTrazabilidad(Recojo r, ControlCalidad c,
+            List<org.ramiro.huata.liquidaciones.LiquidacionDetalle> pagos) {
         return new TrazabilidadItem(
                 r.getId(),
                 r.getClientUuid(),
@@ -167,7 +174,15 @@ public class ReporteService {
                 r.getRuta() != null ? r.getRuta().getNombre() : null,
                 r.getFechaHora(),
                 r.getLitros(),
-                r.getEstado().name());
+                r.getEstado().name(),
+                r.getAcopiador() == null ? null : r.getAcopiador().getNombres() + " " + r.getAcopiador().getApellidos(),
+                c == null ? null : c.getResultado().name(),
+                c == null ? null : c.getDensidad(),
+                c == null ? null : c.getResponsable(),
+                c == null ? null : (c.getMotivoRechazo() != null ? c.getMotivoRechazo() : c.getRevisionVisual()),
+                pagos.stream().map(d -> new TraceLiquidacion(d.getLiquidacion().getId(),
+                        d.getLiquidacion().getPeriodoInicio(), d.getLiquidacion().getPeriodoFin(),
+                        d.getLiquidacion().getEstado().name(), d.getSubtotal())).toList());
     }
 
     private String zonaDe(Recojo r) {

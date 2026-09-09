@@ -1,45 +1,26 @@
 import { Component, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { PortalComponent } from '../portal/portal.component';
 import { AuthService } from '../../core/services/auth.service';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, PortalComponent],
   template: `
-    <div class="login-shell">
-      <form class="login-card" (ngSubmit)="ingresar()">
-        <div class="kicker">Huata Lácteos</div>
-        <h1>Control de acopio de leche</h1>
-        <p>Ingresa con tu cuenta para continuar.</p>
-
-        <div class="form-grid" style="grid-template-columns: 1fr">
-          <div class="field">
-            <label>Usuario</label>
-            <input type="text" name="username" [(ngModel)]="username" placeholder="admin@huata.pe" required />
-          </div>
-          <div class="field">
-            <label>Contraseña</label>
-            <input type="password" name="password" [(ngModel)]="password" required />
-          </div>
-        </div>
-
-        @if (error()) {
-          <p class="error-text" style="margin-top:10px">{{ error() }}</p>
-        }
-
-        <button type="submit" class="btn btn-primary" style="width:100%; margin-top:16px" [disabled]="cargando()">
-          {{ cargando() ? 'Ingresando…' : 'Ingresar' }}
-        </button>
-
-        <p class="muted" style="margin-top:16px; font-size:11px">
-          Demo: admin&#64;huata.pe / Huata2026*
-        </p>
-        <p class="muted" style="margin-top:8px; font-size:11px">
-          <a routerLink="/portal">¿Eres proveedor? Consulta tu calidad sin iniciar sesión →</a>
-        </p>
-      </form>
+    <div inert aria-hidden="true"><app-portal/></div>
+    <div class="modal show" id="loginModal" role="dialog" aria-modal="true" aria-labelledby="login-title">
+      <div class="modalbox login-box-v2">
+        <div class="modalhead" style="margin-bottom:2px"><div class="login-mark" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 3c2.5 3.2 5 6 5 9a5 5 0 0 1-10 0c0-3 2.5-5.8 5-9Z" fill="#fff"/></svg></div><a class="xbtn" routerLink="/portal" aria-label="Cerrar inicio de sesión" style="margin-left:auto">×</a></div>
+        <h2 id="login-title">Iniciar sesión</h2><p class="login-sub">Accede al panel de operación de Huata Lácteos según tu rol.</p>
+        <form (ngSubmit)="ingresar()">
+          <div class="field"><label for="loginUser">Usuario</label><input id="loginUser" name="username" [(ngModel)]="username" autocomplete="username" required></div>
+          <div class="field"><label for="loginPassword">Contraseña</label><input id="loginPassword" name="password" [(ngModel)]="password" type="password" autocomplete="current-password" required></div>
+          @if(error()){<p class="error-text" role="alert">{{error()}}</p>}
+          <div class="modal-actions"><a class="btn btn-soft" routerLink="/portal">Cancelar</a><button type="submit" class="btn btn-primary" [disabled]="cargando()">{{cargando()?'Ingresando…':'Entrar al panel'}}</button></div>
+        </form>
+      </div>
     </div>
   `,
 })
@@ -55,6 +36,7 @@ export class LoginComponent {
   ) {}
 
   ingresar(): void {
+    if (this.cargando()) return;
     this.error.set('');
     this.cargando.set(true);
     this.auth.login(this.username, this.password).subscribe({

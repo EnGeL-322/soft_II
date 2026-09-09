@@ -69,7 +69,7 @@ public class LiquidacionService {
                 .orElseThrow(() -> NotFoundException.of("Productor", req.productorId()));
 
         TarifaLeche tarifa = tarifaLecheRepository
-                .findTopByVigenteDesdeLessThanEqualOrderByVigenteDesdeDesc(LocalDate.now())
+                .findTopByVigenteDesdeLessThanEqualOrderByVigenteDesdeDescIdDesc(LocalDate.now())
                 .orElseThrow(() -> new BusinessRuleException(
                         "No hay una tarifa de leche configurada. Configure una en Parametros antes de calcular liquidaciones."));
 

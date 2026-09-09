@@ -1,4 +1,6 @@
 import { Component, OnInit, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { finalize } from 'rxjs';
 import { ExportacionesService } from '../../core/services/exportaciones.service';
 
 const DESCRIPCIONES: Record<string, string> = {
@@ -16,11 +18,26 @@ const DESCRIPCIONES: Record<string, string> = {
 @Component({
   selector: 'app-datos-respaldo',
   standalone: true,
-  imports: [],
+  imports: [FormsModule],
   templateUrl: './datos-respaldo.component.html',
 })
 export class DatosRespaldoComponent implements OnInit {
   readonly hojas = signal<string[]>([]);
+  readonly error = signal('');
+  readonly descargando = signal(false);
+  hojaSeleccionada = 'Proveedores';
+  ultimaCopia = '';
+  exportarJson() {
+    if (this.descargando()) return;
+    this.descargando.set(true); this.error.set('');
+    this.exportacionesService.datosJson().pipe(finalize(() => this.descargando.set(false))).subscribe({ next: datos => {
+      this.guardarArchivo(new Blob([JSON.stringify({ generado: new Date().toISOString(), datos }, null, 2)], { type: 'application/json' }), 'Huata_Datos.json');
+      this.ultimaCopia = new Date().toLocaleString('es-PE');
+    }, error: () => this.error.set('No se pudo exportar la copia de datos.') });
+  }
+  private guardarArchivo(blob: Blob, nombre: string) {
+    const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = nombre; a.click(); URL.revokeObjectURL(url);
+  }
 
   constructor(private readonly exportacionesService: ExportacionesService) {}
 
@@ -33,13 +50,11 @@ export class DatosRespaldoComponent implements OnInit {
   }
 
   descargar(hoja: string): void {
-    this.exportacionesService.descargar(hoja).subscribe((blob) => {
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Huata_${hoja}.xlsx`;
-      a.click();
-      URL.revokeObjectURL(url);
+    if (this.descargando()) return;
+    this.descargando.set(true); this.error.set('');
+    this.exportacionesService.descargar(hoja).pipe(finalize(() => this.descargando.set(false))).subscribe({
+      next: blob => this.guardarArchivo(blob, `Huata_${hoja === 'libro' ? 'Completo' : hoja}.xlsx`),
+      error: () => this.error.set('No se pudo generar el archivo Excel.'),
     });
   }
 }

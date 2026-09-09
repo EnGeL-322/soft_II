@@ -15,25 +15,21 @@
       </div>
     </div>
 
-    <div class="note" style="margin-bottom:16px">
-      <b>App del acopiador (Fase 2):</b> las zonas marcadas como recorridas se registrarán offline desde la app
-      Flutter y aparecerán aquí, en la bitácora de cada ruta, sin recargar la página. Por ahora, el seguimiento GPS
-      usa la ubicación real del navegador del acopiador (ver "Recepción / Acopio").
-    </div>
+    <div class="mobile-app-pointer-v141 no-print"><b>Seguimiento del acopiador:</b> consulta las últimas posiciones sincronizadas y las recepciones de cada ruta.</div>
 
-    <div class="stats">
+    <div class="route-kpis-v135 route-kpis-v136">
       <div class="stat">
         <span>Rutas planificadas</span>
         <strong>{{ plan().length }}</strong>
         <small class="muted">Configuradas</small>
       </div>
       <div class="stat">
-        <span>Completadas</span>
+        <span>Con recepciones</span>
         <strong>{{ completadas() }}</strong>
         <small class="muted">Con registros ese día</small>
       </div>
       <div class="stat">
-        <span>En recorrido</span>
+        <span>Asignadas sin recepciones</span>
         <strong>{{ enRecorrido() }}</strong>
         <small class="muted">Asignadas, sin registros aún</small>
       </div>
@@ -65,7 +61,7 @@
 
     @if (tab() === 'gps') {
       <div class="card">
-        <div class="table-title" style="margin-top:0">
+        <div class="route-tracking-head-v136">
           <div>
             <div class="kicker">Seguimiento GPS</div>
             <h3>Recorrido y cobertura por ruta</h3>
@@ -84,7 +80,7 @@
           <button type="button" class="sec-tab" [class.active]="!verTodos()" (click)="verTodos.set(false)">Ver ruta seleccionada</button>
         </div>
 
-        <div style="display:grid; grid-template-columns: 2fr 1fr; gap:16px; align-items:start">
+        <div class="route-tracking-layout-v136">
           <div class="card" style="height:360px; padding:0; overflow:hidden">
             <app-mapa [puntos]="puntosMapa()" />
           </div>
@@ -171,7 +167,7 @@
         <div class="table-title" style="margin-top:0">
           <div>
             <h3>Plan operativo de recojo</h3>
-            <p>Datos reales: ruta, quién la tiene asignada y lo que se recogió en la fecha seleccionada.</p>
+            <p>Ruta, responsable, movilidad y volumen recogido en la fecha seleccionada.</p>
           </div>
         </div>
         <div class="tablebox">

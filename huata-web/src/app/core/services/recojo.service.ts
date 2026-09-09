@@ -28,6 +28,9 @@ export class RecojoService {
     estado?: EstadoRecojo;
     desde?: string;
     hasta?: string;
+    q?: string;
+    fuente?: FuenteRecojo;
+    resultado?: string;
     page?: number;
     size?: number;
   }) {
@@ -38,6 +41,9 @@ export class RecojoService {
     if (opts.estado) params['estado'] = opts.estado;
     if (opts.desde) params['desde'] = opts.desde;
     if (opts.hasta) params['hasta'] = opts.hasta;
+    if (opts.q) params['q'] = opts.q;
+    if (opts.fuente) params['fuente'] = opts.fuente;
+    if (opts.resultado) params['resultado'] = opts.resultado;
     return this.http.get<PageResponse<Recojo>>(`${API_BASE_URL}/recojos`, { params });
   }
 

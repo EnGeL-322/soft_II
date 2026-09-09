@@ -2,6 +2,7 @@ import { ExportacionesService } from '../../core/services/exportaciones.service'
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { Component, OnDestroy, OnInit, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { Subscription } from 'rxjs';
 import { ActivatedRoute } from '@angular/router';
 import {
   Acopiador,
@@ -58,7 +59,7 @@ interface FormRecepcion {
 
 const FORM_VACIO: FormRecepcion = {
   fuente: 'RUTA',
-  fechaHoraLocal: new Date().toISOString().slice(0, 16),
+  fechaHoraLocal: new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16),
   aguaAnadida: 'NO_EVIDENCIADA',
   lugol: 'NEGATIVA',
   resultado: 'ACEPTADA',
@@ -95,6 +96,8 @@ export class RecojoComponent implements OnInit, OnDestroy {
   readonly gpsError = signal(false);
   private watchId: number | null = null;
   private ultimoEnvioGps = 0;
+  private consulta?: Subscription;
+  recepcionGuardadaId: number | null = null;
 
   readonly hoyTexto = new Date().toLocaleDateString('es-PE', { day: '2-digit', month: 'short' });
 
@@ -112,16 +115,7 @@ export class RecojoComponent implements OnInit, OnDestroy {
     return lista[0] ?? null;
   });
 
-  readonly filaVisibles = computed(() => {
-    const texto = this.filtroTexto.trim().toLowerCase();
-    return (this.pagina()?.content ?? []).filter((r) => {
-      if (texto && !`${r.productorNombre} ${r.acopiadorNombre ?? ''}`.toLowerCase().includes(texto)) return false;
-      if (this.filtroFuente && r.fuente !== this.filtroFuente) return false;
-      if (this.filtroResultado === 'PENDIENTE' && r.resultadoCalidad) return false;
-      if (this.filtroResultado && this.filtroResultado !== 'PENDIENTE' && r.resultadoCalidad !== this.filtroResultado) return false;
-      return true;
-    });
-  });
+  readonly filaVisibles = computed(() => this.pagina()?.content ?? []);
 
   readonly recepcionesHoy = computed(() => {
     const hoy = new Date().toDateString();
@@ -159,6 +153,7 @@ export class RecojoComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.consulta?.unsubscribe();
     this.detenerGps();
   }
 
@@ -227,13 +222,15 @@ export class RecojoComponent implements OnInit, OnDestroy {
   }
 
   private cargar(): void {
-    this.recojoService
-      .listar({ productorId: this.filtroProductorId, estado: this.filtroEstado, page: this.page, size: 50 })
+    this.consulta?.unsubscribe();
+    this.consulta = this.recojoService
+      .listar({ productorId: this.filtroProductorId, estado: this.filtroEstado, page: this.page, size: 50, q: this.filtroTexto, fuente: this.filtroFuente, resultado: this.filtroResultado })
       .subscribe((pg) => this.pagina.set(pg));
   }
 
   abrirFormulario(): void {
-    this.form = { ...FORM_VACIO, fechaHoraLocal: new Date().toISOString().slice(0, 16) };
+    this.recepcionGuardadaId = null;
+    this.form = { ...FORM_VACIO, fechaHoraLocal: new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16) };
     this.errorForm.set('');
     this.mostrarForm.set(true);
   }
@@ -277,6 +274,7 @@ export class RecojoComponent implements OnInit, OnDestroy {
   }
 
   registrar(): void {
+    if (this.recepcionGuardadaId !== null) return;
     if (!this.form.productorId || !this.form.litros) {
       this.errorForm.set('Selecciona el proveedor y registra los litros recibidos.');
       return;
@@ -299,6 +297,7 @@ export class RecojoComponent implements OnInit, OnDestroy {
       })
       .subscribe({
         next: (recojo) => {
+          this.recepcionGuardadaId = recojo.id;
           this.calidadService
             .registrarControl({
               recojoId: recojo.id,

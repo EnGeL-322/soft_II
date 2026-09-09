@@ -49,7 +49,7 @@ public class OperacionService {
                 if (calidad == ResultadoCalidad.OBSERVADA) { observados += r.getLitros(); observadas++; }
             }
         }
-        var tarifa = tarifas.findTopByVigenteDesdeLessThanEqualOrderByVigenteDesdeDesc(fecha)
+        var tarifa = tarifas.findTopByVigenteDesdeLessThanEqualOrderByVigenteDesdeDescIdDesc(fecha)
                 .filter(t -> t.isActivo() && (t.getVigenteHasta() == null || !t.getVigenteHasta().isBefore(fecha)));
         Double compra = tarifa.isEmpty() ? null : (aceptados - observados) * tarifa.get().getPrecioNormal()
                 + observados * tarifa.get().getPrecioObservada();

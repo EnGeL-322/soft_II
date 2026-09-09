@@ -37,6 +37,7 @@ public class RecojoService {
             EstadoRecojo estado,
             Instant desde,
             Instant hasta,
+            String q, FuenteRecojo fuente, String resultado,
             Pageable pageable) {
         Specification<Recojo> spec = SearchSpecifications.<Recojo>alwaysTrue()
                 .and(productorId == null
@@ -55,6 +56,31 @@ public class RecojoService {
                 .and(hasta == null
                         ? SearchSpecifications.alwaysTrue()
                         : (root, cq, cb) -> cb.lessThanOrEqualTo(root.get("fechaHora"), hasta));
+        spec = spec.and(SearchSpecifications.equalsIfPresent("fuente", fuente));
+        if (q != null && !q.isBlank()) {
+            String texto = "%" + q.trim().toLowerCase(java.util.Locale.ROOT) + "%";
+            spec = spec.and((root, cq, cb) -> {
+                var p = root.join("productor");
+                var a = root.join("acopiador", jakarta.persistence.criteria.JoinType.LEFT);
+                return cb.or(cb.like(cb.lower(p.get("codigo")), texto),
+                        cb.like(cb.lower(cb.concat(cb.concat(p.get("nombres"), " "), p.get("apellidos"))), texto),
+                        cb.like(cb.lower(cb.concat(cb.concat(a.get("nombres"), " "), a.get("apellidos"))), texto));
+            });
+        }
+        if (resultado != null && !resultado.isBlank()) {
+            boolean pendiente = resultado.equals("PENDIENTE");
+            ResultadoCalidad calidad;
+            try { calidad = pendiente ? null : ResultadoCalidad.valueOf(resultado); }
+            catch (IllegalArgumentException e) { throw new BusinessRuleException("Resultado de calidad inválido."); }
+            spec = spec.and((root, cq, cb) -> {
+                var sub = cq.subquery(Long.class);
+                var c = sub.from(org.ramiro.huata.calidad.ControlCalidad.class);
+                sub.select(c.get("id")).where(pendiente
+                        ? cb.equal(c.get("recojo").get("id"), root.get("id"))
+                        : cb.and(cb.equal(c.get("recojo").get("id"), root.get("id")), cb.equal(c.get("resultado"), calidad)));
+                return pendiente ? cb.not(cb.exists(sub)) : cb.exists(sub);
+            });
+        }
         return PageResponse.from(recojoRepository.findAll(spec, pageable)).map(this::aRespuesta);
     }
 

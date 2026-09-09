@@ -32,6 +32,9 @@ public class RecojoController {
             @RequestParam(required = false) EstadoRecojo estado,
             @RequestParam(required = false) Instant desde,
             @RequestParam(required = false) Instant hasta,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) FuenteRecojo fuente,
+            @RequestParam(required = false) String resultado,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         return recojoService.buscar(
@@ -41,6 +44,7 @@ public class RecojoController {
                 estado,
                 desde,
                 hasta,
+                q, fuente, resultado,
                 PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "fechaHora")));
     }
 

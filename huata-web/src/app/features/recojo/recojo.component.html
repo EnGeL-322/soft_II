@@ -226,15 +226,15 @@
       </div>
 
       <div class="toolbar">
-        <input type="text" placeholder="Buscar por proveedor o acopiador…" [(ngModel)]="filtroTexto" />
-        <select [(ngModel)]="filtroResultado">
+        <input type="text" placeholder="Buscar por proveedor o acopiador…" [(ngModel)]="filtroTexto" (ngModelChange)="buscar()" />
+        <select [(ngModel)]="filtroResultado" (ngModelChange)="buscar()">
           <option [ngValue]="undefined">Todos los resultados</option>
           <option value="ACEPTADA">Apta</option>
           <option value="OBSERVADA">Baja calidad</option>
           <option value="RECHAZADA">Adulterada</option>
           <option value="PENDIENTE">Pendiente</option>
         </select>
-        <select [(ngModel)]="filtroFuente">
+        <select [(ngModel)]="filtroFuente" (ngModelChange)="buscar()">
           <option [ngValue]="undefined">Planta y ruta</option>
           <option value="PLANTA">Planta</option>
           <option value="RUTA">Ruta</option>

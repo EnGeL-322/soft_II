@@ -20,7 +20,15 @@ record TrazabilidadItem(
         String rutaNombre,
         java.time.Instant fechaHora,
         Double litros,
-        String estado) {}
+        String estado,
+        String acopiadorNombre,
+        String resultadoCalidad,
+        Double densidad,
+        String responsableCalidad,
+        String observacionCalidad,
+        List<TraceLiquidacion> liquidaciones) {}
+
+record TraceLiquidacion(Long id, java.time.LocalDate inicio, java.time.LocalDate fin, String estado, Double subtotal) {}
 
 record DashboardResponse(
         double litrosTotales,
