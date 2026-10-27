@@ -13,7 +13,7 @@
   min-height: 28px;
   padding: 0 8px;
   border-radius: 6px;
-  color: #bdd1c4;
+  color: #bec6d0;
   font-size: 12.5px;
 }
 .nav-sublink:hover {
@@ -32,7 +32,7 @@
   color: white;
 }
 .nav-sublink:focus-visible {
-  outline: 2px solid #9fd3b6;
+  outline: 2px solid #9eb5d4;
   outline-offset: -2px;
 }
 
@@ -56,8 +56,8 @@
   background: currentColor;
 }
 .en-vivo-activo {
-  background: #e5f3ef;
-  color: #0f6b52;
+  background: #e5ebf3;
+  color: #0d376d;
 }
 .en-vivo-activo .en-vivo-punto {
   animation: latido-en-vivo 2s ease-in-out infinite;

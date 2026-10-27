@@ -416,7 +416,7 @@ class _CabeceraProveedor extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: HuataMarca.degradado,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: const [BoxShadow(color: Color(0x330F6B52), blurRadius: 18, offset: Offset(0, 8))],
+        boxShadow: const [BoxShadow(color: Color(0x331D4F91), blurRadius: 18, offset: Offset(0, 8))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

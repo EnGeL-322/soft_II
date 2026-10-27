@@ -654,7 +654,7 @@ class _MapaRutaAcopiadorState extends State<MapaRutaAcopiador> {
                     color: HuataColors.green,
                     shape: BoxShape.circle,
                     border: Border.all(color: Colors.white, width: 3),
-                    boxShadow: const [BoxShadow(color: Color(0x660F6B52), blurRadius: 10, spreadRadius: 2)],
+                    boxShadow: const [BoxShadow(color: Color(0x661D4F91), blurRadius: 10, spreadRadius: 2)],
                   ),
                 ),
               ),

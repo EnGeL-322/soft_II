@@ -53,13 +53,13 @@
   overflow: auto;
   overscroll-behavior: contain;
   background: #fff;
-  border: 1.5px solid #9db9ad;
+  border: 1.5px solid #9ea9b8;
   border-radius: 12px;
-  box-shadow: 0 14px 34px rgba(26, 68, 54, 0.2);
+  box-shadow: 0 14px 34px rgba(25,44,69, 0.2);
 }
 
 .buscador-lista.hacia-arriba {
-  box-shadow: 0 -14px 34px rgba(26, 68, 54, 0.2);
+  box-shadow: 0 -14px 34px rgba(25,44,69, 0.2);
 }
 
 .buscador-lista li {
@@ -84,12 +84,12 @@
 }
 
 .buscador-lista li.resaltada {
-  background: #e6efe9;
+  background: #e6eaef;
 }
 
 .buscador-lista li.elegida {
   font-weight: 700;
-  box-shadow: inset 3px 0 0 #437862;
+  box-shadow: inset 3px 0 0 #425a79;
 }
 
 .buscador-lista li.buscador-vacio {

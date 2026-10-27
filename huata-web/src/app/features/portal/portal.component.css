@@ -4,16 +4,16 @@
    primero que ve cualquier visitante) no se vea de un tema distinto al resto de la app. */
 :host {
   display: block;
-  background: #fbf9f3;
-  color: #16241c;
+  background: #f4f7fa;
+  color: #171c23;
   font-size: 16px;
-  --border: #e2e0d5;
-  --subtle: #5b6a62;
-  --primary: #1d5c40;
-  --primary-dark: #14432f;
-  --ink: #16241c;
-  --cream: #fbf9f3;
-  --panel-alt: #f4f7f4;
+  --border: #d7dce0;
+  --subtle: #5c6269;
+  --primary: #1b385e;
+  --primary-dark: #132844;
+  --ink: #171c23;
+  --cream: #f4f7fa;
+  --panel-alt: #f4f5f7;
   --amber: #8e4c1a;
 }
 a {
@@ -130,7 +130,7 @@ nav a:hover {
 }
 .hero {
   background: var(--primary-dark);
-  color: #f6f1e5;
+  color: #e8eef3;
   padding: 80px 0 100px;
 }
 .hero-grid {
@@ -148,7 +148,7 @@ nav a:hover {
   margin: 0 0 20px;
 }
 .hero .eyebrow {
-  color: #bcd6c7;
+  color: #bdc7d5;
 }
 .hero h1 {
   font-size: clamp(38px, 3.5vw, 58px);
@@ -157,7 +157,7 @@ nav a:hover {
   letter-spacing: -1.8px;
 }
 .hero-description {
-  color: #d7e3da;
+  color: #d8dce2;
   line-height: 1.65;
   font-size: 21px;
   margin: 28px 0 40px;
@@ -169,11 +169,11 @@ nav a:hover {
 }
 .outline {
   background: transparent;
-  border-color: #6f8478;
+  border-color: #707883;
 }
 .price-card {
   background: var(--primary-dark);
-  border: 1px solid #2e5342;
+  border: 1px solid #2d3e54;
   border-radius: 10px;
   padding: 32px;
 }
@@ -181,14 +181,14 @@ nav a:hover {
   font-size: 42px;
 }
 .price-card > p:not(.eyebrow) {
-  border-top: 1px solid #2e5342;
+  border-top: 1px solid #2d3e54;
   margin: 24px 0 8px;
   padding-top: 20px;
-  color: #d7e3da;
+  color: #d8dce2;
   line-height: 1.6;
 }
 .price-card small {
-  color: #d7e3da;
+  color: #d8dce2;
   font-size: 12px;
 }
 .summary {

@@ -58,7 +58,7 @@ class CabeceraJornada extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: HuataMarca.degradado,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: const [BoxShadow(color: Color(0x330F6B52), blurRadius: 16, offset: Offset(0, 6))],
+        boxShadow: const [BoxShadow(color: Color(0x331D4F91), blurRadius: 16, offset: Offset(0, 6))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -138,14 +138,14 @@ class CabeceraJornada extends StatelessWidget {
                 value: valor,
                 minHeight: 7,
                 backgroundColor: const Color(0x33FFFFFF),
-                valueColor: const AlwaysStoppedAnimation(Color(0xFF7BE0B8)),
+                valueColor: const AlwaysStoppedAnimation(Color(0xFF7DD3FC)),
               ),
             ),
           ),
           const SizedBox(height: 8),
           Row(
             children: [
-              _Conteo(color: const Color(0xFF7BE0B8), texto: '$acopiados acopiados'),
+              _Conteo(color: const Color(0xFF7DD3FC), texto: '$acopiados acopiados'),
               const SizedBox(width: 12),
               _Conteo(color: const Color(0xFFFF9C9C), texto: '$noEntregados no entregaron'),
               const SizedBox(width: 12),
@@ -188,7 +188,7 @@ class _CabeceraCompacta extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: HuataMarca.degradado,
         borderRadius: BorderRadius.circular(18),
-        boxShadow: const [BoxShadow(color: Color(0x330F6B52), blurRadius: 14, offset: Offset(0, 5))],
+        boxShadow: const [BoxShadow(color: Color(0x331D4F91), blurRadius: 14, offset: Offset(0, 5))],
       ),
       child: Column(
         children: [
@@ -243,7 +243,7 @@ class _CabeceraCompacta extends StatelessWidget {
               value: avance,
               minHeight: 5,
               backgroundColor: const Color(0x33FFFFFF),
-              valueColor: const AlwaysStoppedAnimation(Color(0xFF7BE0B8)),
+              valueColor: const AlwaysStoppedAnimation(Color(0xFF7DD3FC)),
             ),
           ),
         ],
@@ -370,14 +370,14 @@ class _PuntoEnVivoState extends State<_PuntoEnVivo> with SingleTickerProviderSta
                 height: 18,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: const Color(0xFF7BE0B8).withValues(alpha: 0.5 * (1 - _control.value)),
+                  color: const Color(0xFF7DD3FC).withValues(alpha: 0.5 * (1 - _control.value)),
                 ),
               ),
             ),
             Container(
               width: 9,
               height: 9,
-              decoration: const BoxDecoration(color: Color(0xFF7BE0B8), shape: BoxShape.circle),
+              decoration: const BoxDecoration(color: Color(0xFF7DD3FC), shape: BoxShape.circle),
             ),
           ],
         ),

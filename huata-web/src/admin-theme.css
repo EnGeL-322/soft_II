@@ -14,25 +14,25 @@
   font-display: swap;
 }
 :root {
-  --bg: #efece4;
+  --bg: #e5eaee;
   --panel: #fffdf8;
-  --panel2: #f5f3ed;
-  --text: #23302b;
-  --muted: #66756d;
-  --line: #dfe2d9;
-  --green: #2f5748;
-  --green2: #437862;
-  --green-soft: #eaf0ec;
-  --brand: #2f5748;
-  --brand-600: #2f5748;
-  --brand-700: #1e3c33;
-  --brand-tint: #eaf0ec;
+  --panel2: #eef1f4;
+  --text: #24292f;
+  --muted: #676d74;
+  --line: #d9dde2;
+  --green: #2e4058;
+  --green2: #425a79;
+  --green-soft: #eaedf0;
+  --brand: #2e4058;
+  --brand-600: #2e4058;
+  --brand-700: #1d2b3d;
+  --brand-tint: #eaedf0;
   --amber: #8a6430;
-  --amber-soft: #f1e8dc;
+  --amber-soft: #dfe7ee;
   --red: #9d5244;
   --red-soft: #f5e7e2;
-  --g50: #f5f3ed;
-  --g100: #efede5;
+  --g50: #eef1f4;
+  --g100: #e6eaee;
   --radius: 14px;
   --shadow: none;
 }
@@ -78,7 +78,7 @@ h4 {
 .operation-content .kicker {
   font-size: 9px !important;
   letter-spacing: 1.7px !important;
-  color: #66756d !important;
+  color: #676d74 !important;
   font-weight: 500;
 }
 .operation-content .card,
@@ -122,7 +122,7 @@ h4 {
   min-width: 560px;
 }
 .operation-content th {
-  background: #f5f3ed !important;
+  background: #eef1f4 !important;
   font-size: 10px !important;
   letter-spacing: 1px !important;
   padding: 12px 16px;
@@ -130,10 +130,10 @@ h4 {
 .operation-content td {
   font-size: 12px !important;
   padding: 13px 16px;
-  border-top: 1px solid #eeece4;
+  border-top: 1px solid #e5e9ed;
 }
 .operation-content tbody tr:hover {
-  background: #f4f5ee !important;
+  background: #eff2f4 !important;
 }
 .operation-content .tablebox {
   overflow: auto;
@@ -152,16 +152,16 @@ h4 {
   gap: 7px;
 }
 .operation-content .btn-primary {
-  background: #2f5748 !important;
+  background: #2e4058 !important;
 }
 .operation-content .btn-soft {
-  background: #f0eee6 !important;
+  background: #e7ebef !important;
 }
 .operation-content input,
 .operation-content select,
 .operation-content textarea {
-  background: #f8f6f0 !important;
-  border: 1px solid #dfe2d9;
+  background: #f1f4f7 !important;
+  border: 1px solid #d9dde2;
   border-radius: 9px;
   padding: 10px 12px;
   font-size: 12px !important;
@@ -191,7 +191,7 @@ h4 {
   flex: initial;
 }
 .operation-content .sec-tab.active {
-  background: #2f5748 !important;
+  background: #2e4058 !important;
   color: #fffdf8 !important;
 }
 .operation-content .note {
@@ -207,7 +207,7 @@ h4 {
   border-radius: 10px;
 }
 .operation-content :focus-visible {
-  outline: 2px solid #437862;
+  outline: 2px solid #425a79;
   outline-offset: 3px;
 }
 @media (max-width: 760px) {
@@ -301,12 +301,12 @@ h4 {
   border-radius: 10px;
 }
 .zona-item:hover {
-  background: #f8faf8;
+  background: #f8f9fa;
 }
 .zona-item.activa {
-  border-color: #9db9ad;
-  background: #eef4f0;
-  box-shadow: 0 6px 18px rgba(26, 68, 54, 0.08);
+  border-color: #9ea9b8;
+  background: #eef1f4;
+  box-shadow: 0 6px 18px rgba(25,44,69, 0.08);
 }
 .zona-color {
   width: 14px;
@@ -338,8 +338,8 @@ h4 {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
-  background: #eaf0ec;
-  border: 1px solid #d6e0d6;
+  background: #eaedf0;
+  border: 1px solid #d7dae0;
   border-radius: 12px;
   padding: 20px;
   margin: 20px 0 12px;
@@ -364,7 +364,7 @@ h4 {
 
 /* Fila del proveedor que se está ubicando en el mapa (Rutas y mapa > paso 3). */
 .operation-content tr.fila-activa > td {
-  background: #eef4f0;
+  background: #eef1f4;
 }
 
 /* ---------------------------------------------------------------------------
@@ -400,7 +400,7 @@ h4 {
   position: sticky;
   top: 0;
   z-index: 1;
-  background: #eef2ee;
+  background: #eef0f2;
 }
 .operation-content .editor-mapa-lienzo {
   position: sticky;
@@ -436,7 +436,7 @@ h4 {
   align-items: start;
   padding: 16px;
   background: #fff;
-  border: 1.5px solid #c9d3c8;
+  border: 1.5px solid #c9cdd2;
   border-radius: 12px;
 }
 /* Variantes: con una columna más (compras: cantidad + costo) o sin botón de quitar (consumo). */
@@ -485,7 +485,7 @@ h4 {
 }
 .operation-content .insumo-fila:focus-within {
   border-color: var(--green2);
-  box-shadow: 0 0 0 3px rgba(67, 120, 98, 0.15);
+  box-shadow: 0 0 0 3px rgba(66,90,121, 0.15);
 }
 .operation-content .insumo-numero {
   display: grid;
@@ -516,7 +516,7 @@ h4 {
   padding: 10px 14px;
   font-size: 15px !important;
   background: #fff !important;
-  border: 1.5px solid #b3bfb2;
+  border: 1.5px solid #b3b8be;
   border-radius: 10px;
   color: var(--text);
 }
@@ -531,7 +531,7 @@ h4 {
 .operation-content .insumo-fila input:focus {
   outline: none;
   border-color: var(--green2);
-  box-shadow: 0 0 0 3px rgba(67, 120, 98, 0.18);
+  box-shadow: 0 0 0 3px rgba(66,90,121, 0.18);
 }
 .operation-content .insumo-fila input::placeholder {
   color: #8a948c;
@@ -552,7 +552,7 @@ h4 {
   min-width: 78px;
   padding: 0 12px;
   background: var(--green-soft);
-  border: 1.5px solid #b3bfb2;
+  border: 1.5px solid #b3b8be;
   border-left: 0;
   border-radius: 0 10px 10px 0;
   font-size: 14px;
@@ -584,9 +584,9 @@ h4 {
 }
 .operation-content .insumo-agregar {
   min-height: 52px;
-  border: 2px dashed #9fb5a8;
+  border: 2px dashed #a0a9b4;
   border-radius: 12px;
-  background: #fbfcfa;
+  background: #fafbfc;
   color: var(--green);
   font-size: 15px;
   font-weight: 600;
@@ -674,12 +674,12 @@ h4 {
   align-items: center;
   padding: 14px 16px;
   background: #fff;
-  border: 1.5px solid #c9d3c8;
+  border: 1.5px solid #c9cdd2;
   border-radius: 14px;
 }
 .operation-content .guia-pasos li.hecho {
-  border-color: #8fc2a2;
-  background: #f3faf5;
+  border-color: #8ea5c3;
+  background: #f3f6fa;
 }
 .operation-content .guia-pasos li.hecho .guia-num {
   background: var(--green2);
@@ -708,7 +708,7 @@ h4 {
 .operation-content .ayuda-nota {
   margin: 0 0 16px;
   padding: 12px 16px;
-  background: #f4f7f2;
+  background: #f2f4f7;
   border-left: 4px solid var(--green2);
   border-radius: 10px;
   font-size: 14.5px;
@@ -723,9 +723,9 @@ h4 {
   font-weight: 600;
 }
 .operation-content .mensaje-ok {
-  background: #e3f1e8;
-  border: 1.5px solid #8fc2a2;
-  color: #1f5a3a;
+  background: #e3e9f1;
+  border: 1.5px solid #8ea5c3;
+  color: #1e385b;
 }
 .operation-content .mensaje-error {
   background: #fbeae6;
@@ -743,7 +743,7 @@ h4 {
   margin-bottom: 20px;
   padding: 20px;
   background: #fffdf8;
-  border: 1.5px solid #dcdfd4;
+  border: 1.5px solid #d5d9de;
   border-radius: 16px;
 }
 .operation-content .bloque-cabecera {
@@ -791,7 +791,7 @@ h4 {
 .operation-content .boton-secundario {
   background: #fff;
   color: var(--green);
-  border: 1.5px solid #9fb5a8;
+  border: 1.5px solid #a0a9b4;
 }
 .operation-content .boton-secundario:hover:not(:disabled) {
   background: var(--green-soft);
@@ -851,7 +851,7 @@ h4 {
   padding: 10px 14px;
   font-size: 15.5px !important;
   background: #fff !important;
-  border: 1.5px solid #b3bfb2;
+  border: 1.5px solid #b3b8be;
   border-radius: 10px;
   color: var(--text);
 }
@@ -862,7 +862,7 @@ h4 {
 .operation-content .amigable .campo select:focus {
   outline: none;
   border-color: var(--green2);
-  box-shadow: 0 0 0 3px rgba(67, 120, 98, 0.18);
+  box-shadow: 0 0 0 3px rgba(66,90,121, 0.18);
 }
 .operation-content .campo-destacado input {
   font-size: 20px !important;
@@ -883,7 +883,7 @@ h4 {
   margin-top: 18px;
   padding: 12px 16px;
   background: #fff;
-  border: 1.5px dashed #c9d3c8;
+  border: 1.5px dashed #c9cdd2;
   border-radius: 12px;
 }
 .operation-content .opcionales summary {
@@ -908,11 +908,11 @@ h4 {
   align-content: start;
   padding: 18px;
   background: #fff;
-  border: 1.5px solid #c9d3c8;
+  border: 1.5px solid #c9cdd2;
   border-radius: 14px;
 }
 .operation-content .tarjeta-producto.inactivo {
-  background: #f6f5f1;
+  background: #f2f4f5;
   opacity: 0.8;
 }
 .operation-content .tarjeta-producto header {
@@ -944,14 +944,14 @@ h4 {
   flex: none;
   padding: 5px 11px;
   border-radius: 999px;
-  background: #ecebe6;
+  background: #e7e9eb;
   color: var(--muted);
   font-size: 12.5px;
   font-weight: 700;
 }
 .operation-content .estado.estado-ok {
-  background: #dcefe3;
-  color: #1f5a3a;
+  background: #dce4ef;
+  color: #1e385b;
 }
 .operation-content .estado.estado-falta {
   background: #fbeae6;
@@ -995,9 +995,9 @@ h4 {
   align-items: baseline;
   gap: 8px;
   padding: 14px 18px;
-  background: #e3f1e8;
+  background: #e3e9f1;
   border-radius: 12px;
-  color: #1f5a3a;
+  color: #1e385b;
 }
 .operation-content .capacidad.capacidad-cero {
   background: #fbeae6;
@@ -1030,7 +1030,7 @@ h4 {
   column-gap: 10px;
   padding: 10px 14px;
   background: #fff;
-  border: 1.5px solid #c9d3c8;
+  border: 1.5px solid #c9cdd2;
   border-radius: 12px;
 }
 .operation-content .insumos-estado li.insumo-limita {
@@ -1047,7 +1047,7 @@ h4 {
   text-align: center;
 }
 .operation-content .insumo-alcanza .insumo-icono {
-  color: #1f5a3a;
+  color: #1e385b;
 }
 .operation-content .insumo-limita .insumo-icono {
   color: #a8791c;
@@ -1167,7 +1167,7 @@ h4 {
 }
 .operation-content .editor-receta {
   border: 2px solid var(--green2);
-  background: #fbfdfb;
+  background: #fbfcfd;
   scroll-margin-top: 16px;
 }
 .operation-content .historial summary {
@@ -1215,7 +1215,7 @@ h4 {
 .operation-content .lista-personas li:not(.vacio) {
   padding: 8px 14px;
   background: #fff;
-  border: 1.5px solid #c9d3c8;
+  border: 1.5px solid #c9cdd2;
   border-radius: 999px;
   font-size: 14.5px;
 }
@@ -1229,7 +1229,7 @@ h4 {
 .operation-content .resumen-final > div {
   padding: 14px 16px;
   background: #fff;
-  border: 1.5px solid #dcdfd4;
+  border: 1.5px solid #d5d9de;
   border-radius: 12px;
 }
 .operation-content .resumen-final span {
@@ -1256,7 +1256,7 @@ h4 {
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
-  border: 1.5px solid #c9d3c8;
+  border: 1.5px solid #c9cdd2;
   border-radius: 10px;
   background: #fff;
   font-size: 15px;
@@ -1303,7 +1303,7 @@ h4 {
   background: #2f6fc4;
 }
 .operation-content .recorrido-leyenda .ley-plan {
-  background: #437862;
+  background: #425a79;
 }
 
-.acciones-fila{display:flex;align-items:center;justify-content:flex-end;gap:8px;white-space:nowrap}.accion-icono{display:inline-grid;place-items:center;width:34px;height:34px;border:1px solid #85ad97;border-radius:8px;background:#fff;color:#245a43;font-size:18px;line-height:1;font-weight:700;cursor:pointer}.accion-icono:hover{background:#edf6f0}.accion-eliminar{border-color:#d9aaa4;color:#a64038}.accion-icono:disabled{opacity:.45;cursor:not-allowed}.acciones-fila input,.acciones-fila select{min-width:80px}
+.acciones-fila{display:flex;align-items:center;justify-content:flex-end;gap:8px;white-space:nowrap}.accion-icono{display:inline-grid;place-items:center;width:34px;height:34px;border:1px solid #8797ab;border-radius:8px;background:#fff;color:#233b5b;font-size:18px;line-height:1;font-weight:700;cursor:pointer}.accion-icono:hover{background:#edf1f6}.accion-eliminar{border-color:#d9aaa4;color:#a64038}.accion-icono:disabled{opacity:.45;cursor:not-allowed}.acciones-fila input,.acciones-fila select{min-width:80px}

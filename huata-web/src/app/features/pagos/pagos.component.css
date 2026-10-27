@@ -14,7 +14,7 @@
 
 .payment-provider-name:hover,
 .payment-provider-name:focus-visible {
-  color: var(--primary, #226b4b);
+  color: var(--primary, #20416d);
   text-decoration: underline;
 }
 

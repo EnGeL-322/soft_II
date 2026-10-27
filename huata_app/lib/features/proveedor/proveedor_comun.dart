@@ -305,7 +305,7 @@ class CalidadChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (texto, color, fondo) = switch (resultado) {
-      'ACEPTADA' => ('Buena', HuataColors.green, HuataColors.greenSoft),
+      'ACEPTADA' => ('Buena', HuataColors.ok, HuataColors.okSoft),
       'OBSERVADA' => ('Observada', HuataColors.amber, HuataColors.amberSoft),
       'RECHAZADA' => ('Mala', HuataColors.red, HuataColors.redSoft),
       _ => ('Pendiente', HuataColors.gray, HuataColors.graySoft),

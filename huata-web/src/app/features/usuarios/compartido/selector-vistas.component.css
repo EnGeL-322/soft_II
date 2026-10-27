@@ -25,7 +25,7 @@
 }
 .sv-grupo {
   padding: 12px 14px;
-  border: 1px solid #e7e4dc;
+  border: 1px solid #dde2e6;
   border-radius: 10px;
   background: #fff;
 }
@@ -38,7 +38,7 @@
   color: var(--muted);
 }
 .sv-vista + .sv-vista {
-  border-top: 1px solid #f0eee8;
+  border-top: 1px solid #e9ecef;
 }
 .sv-fila {
   display: flex;
@@ -68,7 +68,7 @@
   flex-shrink: 0;
   padding: 2px;
   border-radius: 8px;
-  background: #f1efe9;
+  background: #eaedf0;
 }
 .sv-niveles button {
   min-width: 42px;
@@ -108,7 +108,7 @@
   margin: -2px 0 8px;
   padding: 6px 10px;
   border-radius: 8px;
-  background: #f7f6f2;
+  background: #f3f5f6;
 }
 .sv-accion {
   display: flex;
@@ -123,7 +123,7 @@
   height: 15px;
   margin: 0;
   flex-shrink: 0;
-  accent-color: #2f5748;
+  accent-color: #2e4058;
 }
 .sv-ajustar {
   margin: -4px 0 8px;

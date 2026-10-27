@@ -8,12 +8,12 @@
    ===================================================================================== */
 .operation-content {
   --panel: #fff;
-  --panel2: #f3f6f3;
-  --bg: #f5f7f5;
-  --line: #dce5dd;
-  --text: #25392d;
-  --muted: #65766a;
-  --green-soft: #eef5ef;
+  --panel2: #f3f4f6;
+  --bg: #f5f6f7;
+  --line: #dce0e5;
+  --text: #262e38;
+  --muted: #666c75;
+  --green-soft: #eef1f5;
   --shadow: none;
   --ctl-h: 32px;
   --input-h: 34px;
@@ -129,15 +129,15 @@
   font-size: 12.5px !important;
 }
 .operation-content .btn-primary {
-  background: #376d50 !important;
-  border-color: #376d50 !important;
+  background: #364e6e !important;
+  border-color: #364e6e !important;
   color: white !important;
 }
 .operation-content .btn-soft,
 .operation-content .btn-sm {
   background: white !important;
-  border: 1px solid #cfdad1 !important;
-  color: #2f5748 !important;
+  border: 1px solid #d0d4d9 !important;
+  color: #2e4058 !important;
 }
 .operation-content .btn-danger {
   background: white !important;
@@ -161,7 +161,7 @@
 .operation-content button:focus-visible,
 .operation-content summary:focus-visible,
 .operation-content a:focus-visible {
-  outline: 2px solid #72a685;
+  outline: 2px solid #7589a3;
   outline-offset: 2px;
 }
 .operation-content button:disabled {
@@ -184,21 +184,21 @@
   white-space: nowrap;
 }
 .operation-content .boton-grande {
-  background: #376d50;
-  border: 1px solid #376d50;
+  background: #364e6e;
+  border: 1px solid #364e6e;
   color: #fff;
 }
 .operation-content .boton-grande:hover:not(:disabled) {
-  background: #2f5f45;
+  background: #2e4460;
 }
 .operation-content .boton-secundario {
   background: #fff;
-  border: 1px solid #cfdad1;
-  color: #2f5748;
+  border: 1px solid #d0d4d9;
+  color: #2e4058;
 }
 .operation-content .boton-texto {
   padding: 0 6px !important;
-  color: #2f5748;
+  color: #2e4058;
   text-decoration: none;
 }
 .operation-content .boton-texto:hover {
@@ -228,7 +228,7 @@
   padding: 0 10px !important;
   font-size: 13px !important;
   border-radius: var(--radius-sm) !important;
-  border: 1px solid #cfd9d1 !important;
+  border: 1px solid #cfd3d8 !important;
   background: #fff !important;
   color: var(--text) !important;
 }
@@ -236,15 +236,15 @@
   padding: 8px 10px !important;
   font-size: 13px !important;
   border-radius: var(--radius-sm) !important;
-  border: 1px solid #cfd9d1 !important;
+  border: 1px solid #cfd3d8 !important;
   background: #fff !important;
 }
 .operation-content input:focus,
 .operation-content select:focus,
 .operation-content textarea:focus {
   outline: none;
-  border-color: #437862 !important;
-  box-shadow: 0 0 0 3px rgba(67, 120, 98, 0.15) !important;
+  border-color: #425a79 !important;
+  box-shadow: 0 0 0 3px rgba(66,90,121, 0.15) !important;
 }
 .operation-content .form-grid,
 .operation-content .campos {
@@ -268,7 +268,7 @@
   font-weight: 600 !important;
   text-transform: none !important;
   letter-spacing: 0 !important;
-  color: #3c5245 !important;
+  color: #3d4651 !important;
   margin: 0 !important;
 }
 .operation-content .campo small,
@@ -307,15 +307,15 @@
   gap: 6px;
   min-height: var(--ctl-h);
   padding: 0 10px !important;
-  border: 1px solid #cfd9d1 !important;
+  border: 1px solid #cfd3d8 !important;
   border-radius: var(--radius-sm) !important;
   background: #fff;
   font-size: 13px !important;
   cursor: pointer;
 }
 .operation-content .opcion-radio:has(input:checked) {
-  border-color: #437862 !important;
-  background: #eef5ef;
+  border-color: #425a79 !important;
+  background: #eef1f5;
 }
 .operation-content .opcion-radio input {
   width: 15px !important;
@@ -338,19 +338,19 @@
   font-weight: 600 !important;
   text-transform: none !important;
   letter-spacing: 0 !important;
-  background: #f4f7f4 !important;
+  background: #f4f5f7 !important;
   padding: 8px 12px !important;
   white-space: nowrap;
-  color: #546c59;
+  color: #555f6b;
 }
 .operation-content table td {
   font-size: 13px !important;
   padding: 7px 12px !important;
   line-height: 1.4;
-  border-color: #e6ece7;
+  border-color: #e6e9ec;
 }
 .operation-content table tbody tr:hover {
-  background: #f8fbf8 !important;
+  background: #f8f9fb !important;
 }
 .operation-content .badge {
   padding: 2px 8px !important;
@@ -368,7 +368,7 @@
   flex-wrap: wrap;
   padding: 3px !important;
   margin-bottom: 14px !important;
-  background: #edf2ee !important;
+  background: #edeff2 !important;
   border: 0 !important;
   border-radius: var(--radius-md) !important;
 }
@@ -381,12 +381,12 @@
   border: 0 !important;
   border-radius: var(--radius-sm) !important;
   background: transparent !important;
-  color: #3c5245 !important;
+  color: #3d4651 !important;
 }
 .operation-content .sec-tab.active {
   background: #fff !important;
-  color: #23402f !important;
-  box-shadow: 0 1px 2px rgba(20, 40, 30, 0.12) !important;
+  color: #222f41 !important;
+  box-shadow: 0 1px 2px rgba(19,29,41, 0.12) !important;
 }
 /* prototype-theme.css les daba 48 px de alto y una raya inferior: aquí son un control segmentado. */
 .operation-content .sec-tabs {
@@ -403,7 +403,7 @@
    o del rol: role="alert" siempre es error. Las notificaciones rápidas y las confirmaciones viven
    en shared/notificaciones; estos avisos quedan para lo que es parte del formulario o la pantalla. */
 .operation-content {
-  --alerta-exito: #2f7a52;
+  --alerta-exito: #2d4f7c;
   --alerta-error: #b3412e;
   --alerta-aviso: #a86f12;
   --alerta-info: #2f6496;
@@ -422,7 +422,7 @@
   border: 1px solid color-mix(in srgb, var(--alerta) 25%, #fff) !important;
   border-left: 3px solid var(--alerta) !important;
   border-radius: var(--radius-sm) !important;
-  color: color-mix(in srgb, var(--alerta) 70%, #1d2a24) !important;
+  color: color-mix(in srgb, var(--alerta) 70%, #1e2329) !important;
   font-size: 13px !important;
   font-weight: 500 !important;
   line-height: 1.45;
@@ -611,7 +611,7 @@
   min-height: 38px;
   align-content: center;
   padding: 8px 0;
-  color: #365c43;
+  color: #35465d;
   font-size: 13px;
   font-weight: 600;
 }
@@ -648,10 +648,10 @@
   align-items: center;
   min-height: 28px;
   padding: 0 10px;
-  border: 1px solid #cfdad1;
+  border: 1px solid #d0d4d9;
   border-radius: var(--radius-sm);
   font-size: 12.5px;
-  color: #365c43;
+  color: #35465d;
 }
 .operation-content .row-actions summary::-webkit-details-marker {
   display: none;
@@ -696,7 +696,7 @@
 .operation-content .sale-detail summary {
   cursor: pointer;
   font-size: 12px;
-  color: #365c43;
+  color: #35465d;
 }
 .operation-content .sale-detail dl {
   display: grid;
@@ -765,7 +765,7 @@
   gap: 2px !important;
   margin: 12px 14px 4px;
   padding: 3px !important;
-  background: #edf2ee !important;
+  background: #edeff2 !important;
   border: 0 !important;
   border-radius: var(--radius-md);
 }
@@ -775,7 +775,7 @@
   border-radius: var(--radius-sm) !important;
   font-size: 13px !important;
   font-weight: 600 !important;
-  color: #3c5245 !important;
+  color: #3d4651 !important;
   background: transparent !important;
 }
 .operation-content .provider-view-tab::after {
@@ -783,8 +783,8 @@
 }
 .operation-content .provider-view-tab.active {
   background: #fff !important;
-  color: #23402f !important;
-  box-shadow: 0 1px 2px rgba(20, 40, 30, 0.12);
+  color: #222f41 !important;
+  box-shadow: 0 1px 2px rgba(19,29,41, 0.12);
 }
 
 /* ---------- Estados (badges) ----------
@@ -819,8 +819,8 @@
   background: currentColor;
 }
 .badge.badge-verde {
-  background: #e8f3ec !important;
-  color: #2f7a52 !important;
+  background: #e8edf3 !important;
+  color: #2d4f7c !important;
 }
 .badge.badge-ambar {
   background: #fbf1df !important;
@@ -831,8 +831,8 @@
   color: #a63a28 !important;
 }
 .badge.badge-gris {
-  background: #eef1ef !important;
-  color: #5d6b62 !important;
+  background: #eeeff1 !important;
+  color: #5e636a !important;
 }
 
 /* Marcas cortas junto a un dato (GPS lejano, corregido...): no son el estado del registro, son

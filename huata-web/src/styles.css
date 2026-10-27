@@ -10,31 +10,31 @@
  *
  * Para cambiar los colores reales, edita la capa final de src/prototype-theme.css. */
 :root {
-  --bg: #f3ecdc;
+  --bg: #e0e8ef;
   --panel: #f1f4f8;
-  --panel2: #ece1c9;
+  --panel2: #cedbe7;
   --text: #2b2417;
   --muted: #64748b;
-  --line: #e6dcc4;
+  --line: #c8d6e2;
 
-  --green: #336751;
-  --green2: #15916d;
-  --green-soft: #e5e6d6;
+  --green: #324968;
+  --green2: #124a94;
+  --green-soft: #d8dee4;
 
-  --blue: #3e6f5a;
-  --blue-soft: #e7e6d3;
+  --blue: #3d5370;
+  --blue-soft: #d5dee5;
 
   --amber: #9d7736;
-  --amber-soft: #ecdfc3;
+  --amber-soft: #cad8e5;
 
   --red: #a15344;
-  --red-soft: #f1e3d4;
+  --red-soft: #d9e3ec;
 
-  --purple: #42755f;
-  --purple-soft: #e4e0cc;
+  --purple: #415876;
+  --purple-soft: #cfd9e1;
 
   --radius: 10px;
-  --shadow: 0 1px 2px rgba(18, 32, 26, 0.06);
+  --shadow: 0 1px 2px rgba(18,24,32, 0.06);
 }
 
 * {
@@ -477,11 +477,11 @@ td.num {
   cursor: pointer;
 }
 .paginador button:hover:not(:disabled):not(.activa) {
-  background: #f2f6f3;
+  background: #f2f4f6;
 }
 .paginador button.activa {
-  background: #376d50;
-  border-color: #376d50;
+  background: #364e6e;
+  border-color: #364e6e;
   color: #fff;
   font-weight: 600;
   cursor: default;
@@ -597,7 +597,7 @@ td.num {
 .note.green {
   border-color: var(--green);
   background: var(--green-soft);
-  color: #265b45;
+  color: #253d5c;
 }
 
 .note.red {
@@ -642,8 +642,8 @@ td.num {
 /* ---------- Centro de operación (hero + alertas/actividad) ---------- */
 
 .hero-operacion {
-  background: #133a2c;
-  color: #f2ede0;
+  background: #12243b;
+  color: #e2e9f0;
   border-radius: 14px;
   padding: 26px 28px;
   display: flex;
@@ -655,7 +655,7 @@ td.num {
 }
 
 .hero-operacion .kicker {
-  color: #9fd3bb;
+  color: #9eb5d4;
 }
 
 .hero-operacion h1 {
@@ -665,7 +665,7 @@ td.num {
 }
 
 .hero-operacion p {
-  color: #cfe3d8;
+  color: #ced8e3;
   font-size: 12.5px;
   margin: 0;
   max-width: 560px;

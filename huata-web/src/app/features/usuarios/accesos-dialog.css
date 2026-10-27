@@ -4,10 +4,10 @@
   max-height: calc(100dvh - 40px);
   padding: 0;
   margin: auto;
-  border: 1px solid #dfe2d9;
+  border: 1px solid #d9dde2;
   border-radius: 18px;
   background: #fffdf8;
-  color: #23302b;
+  color: #24292f;
   box-shadow: 0 24px 90px #102b2555;
   overflow: auto;
 }
@@ -32,14 +32,14 @@
   margin: 6px 0 0;
 }
 .acc-close {
-  border: 1px solid #dfe2d9;
+  border: 1px solid #d9dde2;
   border-radius: 9px;
-  background: #f5f3ed;
+  background: #eef1f4;
   width: 34px;
   height: 34px;
   flex-shrink: 0;
   font-size: 22px;
-  color: #2f5748;
+  color: #2e4058;
   cursor: pointer;
 }
 .acc-body {
@@ -54,11 +54,11 @@
   gap: 12px;
   padding: 14px 28px;
   background: #fffdf8;
-  border-top: 1px solid #e7e4dc;
+  border-top: 1px solid #dde2e6;
 }
 .acc-footer > span {
   font-size: 11px;
-  color: #66756d;
+  color: #676d74;
 }
 .sin-borde {
   border: 0;
@@ -78,7 +78,7 @@
 }
 .grid-2 small {
   font-size: 10.5px;
-  color: #66756d;
+  color: #676d74;
 }
 .tab-count {
   display: inline-block;
@@ -104,7 +104,7 @@
 .acc-dialog input:focus-visible,
 .acc-dialog button:focus-visible,
 .acc-dialog textarea:focus-visible {
-  outline: 2px solid #437862;
+  outline: 2px solid #425a79;
   outline-offset: 2px;
 }
 .acc-dialog input[readonly] {

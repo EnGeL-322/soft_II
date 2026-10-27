@@ -1,46 +1,54 @@
 import 'package:flutter/material.dart';
 
-/// Misma paleta que `huata-web/src/prototype-theme.css` (tema profesional 2026-09-16): slate neutro
+/// Misma paleta que `huata-web/src/tema-azul.css` (tema profesional 2026-09-16): slate neutro
 /// + verde-azulado oscuro, sin el crema-pastel del prototipo original. Los nombres de acá reflejan
 /// las variables CSS (`--bg`, `--panel`, `--green`, etc.) para que un cambio de marca se haga en un
 /// solo lugar en cada plataforma.
 class HuataColors {
   HuataColors._();
 
-  static const bg = Color(0xFFF1F4F8);
+  // Tema azul (2026-10-27): azul institucional, blanco y celeste, igual que src/tema-azul.css de la
+  // web. Los nombres green* se conservan porque toda la app los usa como "color principal".
+  static const bg = Color(0xFFF3F7FC);
   static const panel = Color(0xFFFFFFFF);
-  static const panel2 = Color(0xFFF7F9FB);
-  static const text = Color(0xFF1E293B);
-  static const muted = Color(0xFF64748B);
-  static const line = Color(0xFFE2E8F0);
-  static const green = Color(0xFF0F6B52);
-  static const green2 = Color(0xFF15916D);
-  static const greenSoft = Color(0xFFE5F3EF);
-  static const blue = Color(0xFF2F5FAC);
-  static const blueSoft = Color(0xFFEAF0FB);
-  static const amber = Color(0xFFA15C14);
-  static const amberSoft = Color(0xFFFBF0E2);
-  static const red = Color(0xFFB4232A);
-  static const redSoft = Color(0xFFFBE9EA);
-  static const purple = Color(0xFF5457A6);
-  static const purpleSoft = Color(0xFFEDEEFA);
-  static const gray = Color(0xFF475569);
-  static const graySoft = Color(0xFFEEF1F5);
+  static const panel2 = Color(0xFFF6F9FD);
+  static const text = Color(0xFF0F1F36);
+  static const muted = Color(0xFF5A6B82);
+  static const line = Color(0xFFDCE5F0);
+  static const green = Color(0xFF1D4F91);
+  static const green2 = Color(0xFF2F6FC0);
+  static const greenSoft = Color(0xFFE8F0FA);
+  static const blue = Color(0xFF0377B8);
+  static const blueSoft = Color(0xFFE0F2FE);
+  static const celeste = Color(0xFF0EA5E9);
+  static const amber = Color(0xFFB45309);
+  static const amberSoft = Color(0xFFFDF1E1);
+  static const red = Color(0xFFB42318);
+  static const redSoft = Color(0xFFFDECEA);
+  static const purple = Color(0xFF3B5998);
+  static const purpleSoft = Color(0xFFE9EEF8);
+  static const gray = Color(0xFF45556B);
+  static const graySoft = Color(0xFFEEF3F9);
+
+  /// Verde SOLO con significado (apta, acopiado, cobrado): un estado no cambia de color porque
+  /// cambie la marca.
+  static const ok = Color(0xFF15803D);
+  static const okSoft = Color(0xFFE6F6EC);
 
   /// Blanco/pendiente, verde/acopiado, rojo/no-entregado (RF-75): el mismo semáforo que pide el
   /// pliego para la ruta del acopiador, no un color de marca — se define aparte a propósito.
   static const estadoPendiente = Color(0xFFFFFFFF);
   static const estadoPendienteBorde = Color(0xFF94A3B8);
-  static const estadoAcopiado = green2;
+  static const estadoAcopiado = ok;
   static const estadoNoEntregado = red;
 }
 
-/// Cabecera de marca: verde profundo que baja al verde de la marca. La usan la barra superior y el
+/// Cabecera de marca: azul marino que baja al azul institucional. La usan la barra superior y el
 /// login, para que la app se reconozca como Huata desde la primera pantalla.
 class HuataMarca {
   HuataMarca._();
 
-  static const verdeProfundo = Color(0xFF0A4A3A);
+  static const verdeProfundo = Color(0xFF0F2A4F);
   static const degradado = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
@@ -49,8 +57,8 @@ class HuataMarca {
 
   /// Sombra suave de las tarjetas: separa del fondo sin el borde gris "de formulario".
   static const sombra = [
-    BoxShadow(color: Color(0x0F0F172A), blurRadius: 12, offset: Offset(0, 4)),
-    BoxShadow(color: Color(0x0A0F172A), blurRadius: 2, offset: Offset(0, 1)),
+    BoxShadow(color: Color(0x0F0F1F36), blurRadius: 12, offset: Offset(0, 4)),
+    BoxShadow(color: Color(0x0A0F1F36), blurRadius: 2, offset: Offset(0, 1)),
   ];
 
   /// Ancho máximo del contenido: en tableta o navegador no se estira de borde a borde.

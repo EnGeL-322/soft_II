@@ -57,7 +57,7 @@ class _MensajesProveedorScreenState extends State<MensajesProveedorScreen> {
 
   @override Widget build(BuildContext context){
     final d=_detalle; final sync=context.watch<SyncService>(); final vivo=context.watch<MensajeriaEnVivo>();
-    return Scaffold(backgroundColor:const Color(0xfff4f8f5),appBar:AppBar(title:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[const Text('Huata Messaging',style:TextStyle(fontSize:17,fontWeight:FontWeight.w700)),Text(d==null?'Mensajes con la planta':'Huata Lácteos · ${d.conversacion.zona??'Planta'}',style:const TextStyle(fontSize:11,color:HuataColors.muted))]),actions:[IconButton(onPressed:_cargar,icon:const Icon(Icons.refresh),tooltip:'Actualizar')]),
+    return Scaffold(backgroundColor:const Color(0xfff4f8fd),appBar:AppBar(title:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[const Text('Huata Messaging',style:TextStyle(fontSize:17,fontWeight:FontWeight.w700)),Text(d==null?'Mensajes con la planta':'Huata Lácteos · ${d.conversacion.zona??'Planta'}',style:const TextStyle(fontSize:11,color:HuataColors.muted))]),actions:[IconButton(onPressed:_cargar,icon:const Icon(Icons.refresh),tooltip:'Actualizar')]),
       body:SafeArea(child:Column(children:[if(!vivo.conectado)_SinConexion(pendientes:sync.pendientesMensaje),Expanded(child:_contenido(d,sync.colaMensajes)),_redactor()])));
   }
 

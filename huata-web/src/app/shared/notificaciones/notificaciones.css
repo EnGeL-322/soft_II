@@ -2,7 +2,7 @@
    sin bloquear lo que hay detrás. Colores del sistema: verde éxito, rojo error, ámbar aviso,
    azul información. */
 :host {
-  --exito: #2f7a52;
+  --exito: #2d4f7c;
   --error: #b3412e;
   --aviso: #a86f12;
   --info: #2f6496;
@@ -25,11 +25,11 @@
   gap: 10px;
   padding: 10px 10px 10px 12px;
   background: #fff;
-  border: 1px solid #dfe6e0;
+  border: 1px solid #dfe2e6;
   border-left: 4px solid var(--color);
   border-radius: 8px;
-  box-shadow: 0 6px 20px rgba(20, 40, 30, 0.12);
-  color: #23302b;
+  box-shadow: 0 6px 20px rgba(19,29,41, 0.12);
+  color: #24292f;
   font-size: 13px;
   line-height: 1.4;
   animation: entrar 0.18s ease-out;
@@ -66,8 +66,8 @@ p {
   margin-left: 6px;
   padding: 0 5px;
   border-radius: 4px;
-  background: #eef2ef;
-  color: #55665c;
+  background: #eef0f2;
+  color: #565c65;
   font-size: 11px;
   font-weight: 600;
 }
@@ -77,13 +77,13 @@ p {
   border: 0;
   border-radius: 5px;
   background: transparent;
-  color: #6b7b70;
+  color: #6c727a;
   font-size: 17px;
   line-height: 1;
   cursor: pointer;
 }
 .cerrar:hover {
-  background: #f1f4f1;
+  background: #f1f2f4;
 }
 .cerrar:focus-visible {
   outline: 2px solid var(--color);

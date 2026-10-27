@@ -1,7 +1,7 @@
 /* Ventana de confirmación: pequeña, centrada, título corto con icono y botones compactos.
    El botón destructivo es rojo; el principal normal, verde del sistema. */
 :host {
-  --verde: #376d50;
+  --verde: #364e6e;
   --rojo: #b3412e;
   --ambar: #a86f12;
   --azul: #2f6496;
@@ -13,7 +13,7 @@
   display: grid;
   place-items: center;
   padding: 16px;
-  background: rgba(16, 32, 24, 0.42);
+  background: rgba(16,23,32, 0.42);
   animation: aparecer 0.15s ease-out;
 }
 .caja {
@@ -23,8 +23,8 @@
   padding: 18px 18px 16px;
   background: #fff;
   border-radius: 10px;
-  box-shadow: 0 18px 50px rgba(16, 32, 24, 0.25);
-  color: #23302b;
+  box-shadow: 0 18px 50px rgba(16,23,32, 0.25);
+  color: #24292f;
   animation: subir 0.16s ease-out;
 }
 .caja-confirmacion {
@@ -68,19 +68,19 @@ h2 {
   border: 0;
   border-radius: 6px;
   background: transparent;
-  color: #6b7b70;
+  color: #6c727a;
   font-size: 19px;
   line-height: 1;
   cursor: pointer;
 }
 .cerrar:hover {
-  background: #f1f4f1;
+  background: #f1f2f4;
 }
 .mensaje {
   margin: 8px 0 0 38px;
   font-size: 13.5px;
   line-height: 1.5;
-  color: #4a5a50;
+  color: #4b5159;
 }
 form {
   margin-top: 14px;
@@ -90,17 +90,17 @@ form {
   margin-bottom: 4px;
   font-size: 12.5px;
   font-weight: 600;
-  color: #3c5245;
+  color: #3d4651;
 }
 .opcional {
   font-weight: 400;
-  color: #6b7b70;
+  color: #6c727a;
 }
 textarea {
   width: 100%;
   min-height: 72px;
   padding: 8px 10px;
-  border: 1px solid #cfd9d1;
+  border: 1px solid #cfd3d8;
   border-radius: 6px;
   font: inherit;
   font-size: 13px;
@@ -110,7 +110,7 @@ textarea {
 textarea:focus {
   outline: none;
   border-color: var(--verde);
-  box-shadow: 0 0 0 3px rgba(55, 109, 80, 0.15);
+  box-shadow: 0 0 0 3px rgba(54,78,110, 0.15);
 }
 .botones {
   display: flex;
@@ -129,11 +129,11 @@ textarea:focus {
 }
 .btn-cancelar {
   background: #fff;
-  border: 1px solid #cfdad1;
-  color: #2f5748;
+  border: 1px solid #d0d4d9;
+  color: #2e4058;
 }
 .btn-cancelar:hover {
-  background: #f2f6f3;
+  background: #f2f4f6;
 }
 .btn-confirmar {
   background: var(--verde);

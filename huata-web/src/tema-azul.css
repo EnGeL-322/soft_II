@@ -1,0 +1,127 @@
+/* ============================================================
+   TEMA AZUL · azul institucional, blanco y celeste (2026-10-27)
+   Capa FINAL: se carga la última (angular.json) y manda sobre las anteriores.
+   Para cambiar los colores de toda la web, cambia solo los valores de aquí.
+
+   - Azul institucional: botones, enlaces, títulos de marca.
+   - Azul marino: barra lateral y textos fuertes.
+   - Celeste: acentos, información, fondos suaves.
+   - Blanco: tarjetas y paneles.
+   - Verde, ámbar y rojo se conservan SOLO con significado (apta / observada / error):
+     un estado no cambia de color porque cambie la marca.
+
+   Los nombres --green* siguen existiendo porque los usan cientos de reglas como "color
+   principal"; aquí valen azul.
+   ============================================================ */
+:root {
+  /* Marca */
+  --azul: #1d4f91;
+  --azul-600: #1a4a8a;
+  --azul-claro: #2f6fc0;
+  --marino: #0f2a4f;
+  --celeste: #0ea5e9;
+  --celeste-suave: #e0f2fe;
+  --azul-suave: #e8f0fa;
+
+  --brand: var(--azul);
+  --brand-600: var(--azul-600);
+  --brand-700: var(--marino);
+  --brand-tint: var(--azul-suave);
+  --ink: var(--marino);
+
+  /* Superficies y texto */
+  --bg: #f3f7fc;
+  --panel: #ffffff;
+  --panel2: #f6f9fd;
+  --text: #0f1f36;
+  --muted: #5a6b82;
+  --line: #dce5f0;
+  --w: #ffffff;
+  --g50: #f6f9fd;
+  --g100: #eef3f9;
+  --g200: #dce5f0;
+  --g300: #c4d1e1;
+  --g400: #93a5bd;
+  --g500: #5a6b82;
+  --g600: #45556b;
+  --g700: #2c3a4e;
+  --g900: #0f1f36;
+
+  /* "Color principal" con nombre heredado */
+  --green: var(--azul);
+  --green2: var(--azul-claro);
+  --green-soft: var(--azul-suave);
+  --blue: #0377b8;
+  --blue-soft: var(--celeste-suave);
+  --purple: #3b5998;
+  --purple-soft: #e9eef8;
+  --gray: #5a6b82;
+  --gray-soft: #eef3f9;
+
+  /* Estados con significado */
+  --ok: #15803d;
+  --ok-bg: #e6f6ec;
+  --warn: #b45309;
+  --warn-bg: #fdf1e1;
+  --err: #b42318;
+  --err-bg: #fdecea;
+  --info: #0377b8;
+  --info-bg: var(--celeste-suave);
+  --neutral: #5a6b82;
+  --neutral-bg: #eef3f9;
+  --amber: #b45309;
+  --amber-soft: #fdf1e1;
+  --red: #b42318;
+  --red-soft: #fdecea;
+  --accent: #b45309;
+  --accent-tint: #fdf1e1;
+
+  /* Foco y sombras con tinte azul */
+  --ring: 0 0 0 3px rgba(29, 79, 145, 0.2);
+  --shadow: 0 1px 2px rgba(15, 31, 54, 0.06);
+  --shadow-xs: 0 1px 2px rgba(15, 31, 54, 0.05);
+  --shadow-sm: 0 1px 3px rgba(15, 31, 54, 0.07);
+  --shadow-md: 0 2px 10px rgba(15, 31, 54, 0.08);
+  --shadow-lg: 0 10px 30px rgba(15, 31, 54, 0.12);
+}
+
+body {
+  background: var(--bg) !important;
+  color: var(--text) !important;
+}
+
+/* Botón principal: azul con un toque de profundidad. */
+.btn-primary,
+.boton-grande {
+  background: linear-gradient(180deg, var(--azul-claro), var(--azul)) !important;
+  border-color: var(--azul) !important;
+  color: #fff !important;
+}
+.btn-primary:hover:not(:disabled),
+.boton-grande:hover:not(:disabled) {
+  background: linear-gradient(180deg, var(--azul), var(--marino)) !important;
+}
+
+/* Barra lateral: azul marino con el ítem activo en celeste. */
+.operation-sidebar {
+  background: linear-gradient(180deg, var(--marino) 0%, #13386a 100%) !important;
+}
+
+/* Estados: el verde solo significa "bien". */
+.badge-green,
+.badge.badge-verde,
+.source-real {
+  background: var(--ok-bg) !important;
+  color: var(--ok) !important;
+}
+.badge.badge-verde::before {
+  background: var(--ok) !important;
+}
+
+/* Enlaces y foco */
+a {
+  color: var(--azul-claro);
+}
+:focus-visible {
+  outline-color: var(--celeste);
+}

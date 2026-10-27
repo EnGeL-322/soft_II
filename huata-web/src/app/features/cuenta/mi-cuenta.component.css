@@ -6,9 +6,9 @@
   padding: 22px 24px;
   margin-bottom: 18px;
   border-radius: 16px;
-  background: linear-gradient(135deg, #0a4a3a, #0f6b52);
+  background: linear-gradient(135deg, #08264c, #0d376d);
   color: #fff;
-  box-shadow: 0 8px 18px rgba(15, 107, 82, 0.2);
+  box-shadow: 0 8px 18px rgba(13,55,109, 0.2);
 }
 .perfil-avatar {
   display: grid;

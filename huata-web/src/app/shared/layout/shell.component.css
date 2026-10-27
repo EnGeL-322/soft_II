@@ -13,7 +13,7 @@ button {
 a:focus-visible,
 button:focus-visible,
 input:focus-visible {
-  outline: 2px solid #76b39a;
+  outline: 2px solid #7490b5;
   outline-offset: 2px;
 }
 .sr-only {
@@ -39,7 +39,7 @@ input:focus-visible {
   display: grid;
   grid-template-columns: 216px minmax(0, 1fr);
   min-height: 100vh;
-  background: #f5f7f5;
+  background: #f5f6f7;
   transition: grid-template-columns 0.18s ease;
 }
 .operation-layout.sidebar-contraida {
@@ -52,8 +52,8 @@ input:focus-visible {
   top: 0;
   height: 100vh;
   overflow: auto;
-  background: #203f35;
-  color: #edf4ef;
+  background: #1f2d40;
+  color: #edf0f4;
   padding: 14px 10px;
   display: flex;
   flex-direction: column;
@@ -84,7 +84,7 @@ input:focus-visible {
   border-radius: 7px;
   display: grid;
   place-items: center;
-  background: #447c64;
+  background: #435c7d;
   font-size: 15px;
   font-weight: 700;
 }
@@ -99,7 +99,7 @@ input:focus-visible {
   left: 9px;
   top: 50%;
   transform: translateY(-50%);
-  color: #a9c2b3;
+  color: #aab4c1;
   pointer-events: none;
 }
 .menu-search input {
@@ -114,7 +114,7 @@ input:focus-visible {
   font-size: 12.5px;
 }
 .menu-search input::placeholder {
-  color: #a9c2b3;
+  color: #aab4c1;
 }
 nav {
   display: grid;
@@ -130,7 +130,7 @@ nav {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.6px;
-  color: #93b2a1;
+  color: #95a1b0;
 }
 .nav-link {
   display: flex;
@@ -139,7 +139,7 @@ nav {
   min-height: 32px;
   padding: 0 8px;
   border-radius: 6px;
-  color: #dce9df;
+  color: #dde2e8;
   font-size: 13px;
 }
 .nav-link:hover {
@@ -147,7 +147,7 @@ nav {
   color: white;
 }
 .nav-icon {
-  color: #a9c2b3;
+  color: #aab4c1;
 }
 .nav-link:hover .nav-icon {
   color: white;
@@ -158,7 +158,7 @@ nav {
   text-overflow: ellipsis;
 }
 .selected {
-  background: #447c64 !important;
+  background: #435c7d !important;
   color: white !important;
   font-weight: 600;
 }
@@ -167,7 +167,7 @@ nav {
 }
 .menu-empty {
   font-size: 12px;
-  color: #bdd1c4;
+  color: #bec6d0;
   line-height: 1.5;
   padding: 8px;
 }
@@ -181,7 +181,7 @@ nav {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #bdd1c4;
+  color: #bec6d0;
 }
 .sidebar-footer a:hover {
   color: white;
@@ -198,7 +198,7 @@ nav {
   align-items: center;
   justify-content: space-between;
   padding: 0 24px;
-  border-bottom: 1px solid #e1e8e1;
+  border-bottom: 1px solid #e1e4e8;
   background: white;
 }
 .workspace-label {
@@ -212,10 +212,10 @@ nav {
 }
 .workspace-label span {
   font-size: 12.5px;
-  color: #68796e;
+  color: #696f78;
 }
 .workspace-sep {
-  color: #b5c2b8 !important;
+  color: #b6bbc1 !important;
 }
 .workspace-label strong {
   font-size: 14px;
@@ -231,8 +231,8 @@ nav {
   place-items: center;
   width: 28px;
   height: 28px;
-  background: #e7eee8;
-  color: #315e49;
+  background: #e7eaee;
+  color: #30445f;
   border-radius: 50%;
   font-size: 11px;
   font-weight: 600;
@@ -250,7 +250,7 @@ nav {
 }
 .user-link:hover,
 .user-link.activo {
-  background: #eef3ef;
+  background: #eef0f3;
 }
 .user-link:focus-visible {
   outline: 2px solid var(--green);
@@ -263,22 +263,22 @@ nav {
 .user-name small {
   display: block;
   font-size: 11px;
-  color: #6b7b70;
+  color: #6c727a;
 }
 .logout {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   height: 30px;
-  border: 1px solid #dbe3dc;
+  border: 1px solid #dbdfe3;
   background: white;
-  color: #315e49;
+  color: #30445f;
   border-radius: 6px;
   font-size: 12.5px;
   padding: 0 12px;
 }
 .logout:hover {
-  background: #f2f6f3;
+  background: #f2f4f6;
 }
 .operation-content {
   padding: 20px 24px 40px;

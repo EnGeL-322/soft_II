@@ -26,8 +26,8 @@
 .status {
   display: inline-block;
   white-space: nowrap;
-  background: #e5f3ef;
-  color: #0f6b52;
+  background: #e5ebf3;
+  color: #0d376d;
   padding: 9px 11px;
   border-radius: 3px;
   font-size: 13px;
@@ -207,7 +207,7 @@ tbody tr:hover {
   border-top: 1px solid var(--border);
   gap: 20px;
   font-size: 11px;
-  color: #0f6b52;
+  color: #0d376d;
 }
 .pagination small {
   display: block;
@@ -234,7 +234,7 @@ tbody tr:hover {
   width: 65px;
 }
 .page-actions button.active {
-  background: #305d4c;
+  background: #2f435e;
   color: white;
 }
 .page-actions button:disabled {

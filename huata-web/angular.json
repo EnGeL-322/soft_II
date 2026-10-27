@@ -37,6 +37,7 @@
               "src/admin-theme.css",
               "src/rutas-theme.css",
               "src/simple-theme.css",
+              "src/tema-azul.css",
               "src/pagos-print.css"
             ],
             "security": {

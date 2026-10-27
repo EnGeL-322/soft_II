@@ -15,7 +15,7 @@
   border-top: 0;
 }
 .nivel-buena {
-  --color: #3f8a5f;
+  --color: #3d5f8c;
 }
 .nivel-observada {
   --color: #c9952f;
@@ -24,8 +24,8 @@
   --color: #b5503d;
 }
 .nivel-excelencia {
-  --color: #437862;
-  background: #f7faf7;
+  --color: #425a79;
+  background: #f7f8fa;
 }
 .nivel-nombre {
   font-size: 12.5px;
@@ -86,7 +86,7 @@
   display: grid;
   gap: 6px;
   padding: 10px 0;
-  border-top: 1px solid #edf1ed;
+  border-top: 1px solid #edeff1;
 }
 .regla:first-of-type {
   border-top: 0;

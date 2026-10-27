@@ -15,8 +15,8 @@
 }
 .btn.activo,
 .btn-sm.activo {
-  background: #eef5ef !important;
-  border-color: #437862 !important;
+  background: #eef1f5 !important;
+  border-color: #425a79 !important;
 }
 .buscador {
   flex: 1;
@@ -58,7 +58,7 @@
   color: var(--text);
 }
 .c-verde {
-  --color: #3f8a5f;
+  --color: #3d5f8c;
 }
 .c-ambar {
   --color: #c9952f;

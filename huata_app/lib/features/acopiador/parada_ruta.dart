@@ -7,7 +7,7 @@ import '../../core/theme/huata_theme.dart';
 /// Estado de la visita del día (RF-75): blanco/pendiente, verde/acopiado, rojo/no entregado.
 enum EstadoVisita {
   pendiente('Pendiente', 'Pendientes', HuataColors.blue, HuataColors.blueSoft),
-  acopiado('Acopiado', 'Acopiados', HuataColors.estadoAcopiado, HuataColors.greenSoft),
+  acopiado('Acopiado', 'Acopiados', HuataColors.estadoAcopiado, HuataColors.okSoft),
   noEntregado('No entregó', 'No entregaron', HuataColors.estadoNoEntregado, HuataColors.redSoft);
 
   const EstadoVisita(this.etiqueta, this.plural, this.color, this.fondo);
@@ -37,7 +37,7 @@ class ParadaRuta {
 /// Texto y color del testeo de hoy, para la etiqueta de la lista y la insignia del mapa.
 (String, Color) textoTesteo(String resultado) => switch (resultado) {
   '' => ('Falta testear', HuataColors.amber),
-  'ACEPTADA' => ('Testeo: buena', HuataColors.green),
+  'ACEPTADA' => ('Testeo: buena', HuataColors.ok),
   'OBSERVADA' => ('Testeo: observada', HuataColors.amber),
   'RECHAZADA' => ('Testeo: mala', HuataColors.red),
   _ => ('Testeado', HuataColors.green),

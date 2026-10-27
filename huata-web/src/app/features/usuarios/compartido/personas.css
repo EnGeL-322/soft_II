@@ -142,7 +142,7 @@ tr.inactivo td {
   display: none;
   padding: 4px 8px;
   border-radius: 6px;
-  background: #1f2a24;
+  background: #202429;
   color: #fff;
   font-size: 11.5px;
   font-weight: 500;
@@ -160,7 +160,7 @@ tr.inactivo td {
   display: flex;
   gap: 4px;
   padding: 0 28px;
-  border-bottom: 1px solid #e7e4dc;
+  border-bottom: 1px solid #dde2e6;
 }
 .pasos button {
   border: 0;
@@ -182,7 +182,7 @@ tr.inactivo td {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: #ece8dc;
+  background: #dee4ea;
   font-size: 10px;
   margin-right: 4px;
 }
@@ -240,21 +240,21 @@ h3.seccion-ficha:first-child {
   gap: 10px;
   align-items: center;
   padding: 9px 11px;
-  border: 1px solid #dfe2d9;
+  border: 1px solid #d9dde2;
   border-radius: 10px;
   cursor: pointer;
-  background: #f9f7f1;
+  background: #f2f5f8;
 }
 .role-option.chosen {
-  border-color: #437862;
-  background: #eaf0ec;
+  border-color: #425a79;
+  background: #eaedf0;
 }
 .role-option input {
   width: 16px;
   height: 16px;
   margin: 2px 0;
   flex-shrink: 0;
-  accent-color: #2f5748;
+  accent-color: #2e4058;
 }
 .role-option > span:nth-child(2) {
   display: grid;
@@ -267,7 +267,7 @@ h3.seccion-ficha:first-child {
 .role-option small {
   font-size: 10.5px;
   line-height: 1.45;
-  color: #66756d;
+  color: #676d74;
 }
 .role-option em {
   font-style: normal;
