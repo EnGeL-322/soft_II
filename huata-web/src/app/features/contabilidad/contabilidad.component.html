@@ -1,0 +1,230 @@
+<section class="page">
+  <div class="page-head">
+    <div>
+      <div class="kicker">Producción y negocio</div>
+      <h1>Contabilidad</h1>
+      <p>Consulta los asientos generados por las compras, la producción, las ventas y los pagos.</p>
+    </div>
+  </div>
+
+  @if (error()) {
+    <div class="note" role="alert">{{ error() }}</div>
+  }
+
+  <nav role="tablist" style="display: flex; gap: 4px; margin-bottom: 16px">
+    <button
+      type="button"
+      class="btn"
+      [class.btn-primary]="tab === 'diario'"
+      [class.btn-soft]="tab !== 'diario'"
+      (click)="cambiarTab('diario')"
+    >
+      Libro diario
+    </button>
+    <button
+      type="button"
+      class="btn"
+      [class.btn-primary]="tab === 'mayor'"
+      [class.btn-soft]="tab !== 'mayor'"
+      (click)="cambiarTab('mayor')"
+    >
+      Libro mayor
+    </button>
+    <button
+      type="button"
+      class="btn"
+      [class.btn-primary]="tab === 'plan'"
+      [class.btn-soft]="tab !== 'plan'"
+      (click)="cambiarTab('plan')"
+    >
+      Plan de cuentas
+    </button>
+  </nav>
+
+  @if (tab !== 'plan') {
+    <div class="card" style="margin-bottom: 16px">
+      <div class="form-grid">
+        <div class="field">
+          <label for="cb-desde">Desde</label>
+          <input id="cb-desde" type="date" [(ngModel)]="desde" name="desde" />
+        </div>
+        <div class="field">
+          <label for="cb-hasta">Hasta</label>
+          <input id="cb-hasta" type="date" [(ngModel)]="hasta" name="hasta" />
+        </div>
+        @if (tab === 'mayor') {
+          <div class="field">
+            <label for="cb-cuenta">Cuenta</label>
+            <app-buscador
+              [opciones]="opcCuentas()"
+              [(ngModel)]="cuentaSeleccionada"
+              name="cuenta"
+              etiqueta="Cuenta contable"
+              placeholder="Buscar por código o nombre…"
+            />
+          </div>
+        }
+      </div>
+      <div class="actions no-print" style="margin-top: 12px">
+        <button
+          type="button"
+          class="btn btn-soft"
+          (click)="tab === 'diario' ? cargarLibroDiario() : cargarLibroMayor()"
+          [disabled]="cargando()"
+        >
+          {{ cargando() ? 'Consultando…' : 'Consultar' }}
+        </button>
+      </div>
+    </div>
+  }
+
+  @if (tab === 'diario') {
+    <div class="card">
+      <div class="table-title">
+        <div>
+          <h3>Libro diario</h3>
+          <p>{{ asientos().length }} asiento(s) en el rango consultado.</p>
+        </div>
+      </div>
+      @for (a of asientos(); track a.id) {
+        <div class="tablebox" style="margin-bottom: 12px">
+          <table>
+            <thead>
+              <tr>
+                <th colspan="3">
+                  {{ a.fecha }} · {{ a.glosa }}
+                  <span class="muted">({{ etiquetaOrigen(a.origenTipo) }})</span>
+                </th>
+              </tr>
+              <tr>
+                <th>Cuenta</th>
+                <th class="num">Debe</th>
+                <th class="num">Haber</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (l of a.lineas; track l.codigoCuenta) {
+                <tr>
+                  <td>{{ l.codigoCuenta }} · {{ l.nombreCuenta }}</td>
+                  <td class="num">{{ l.debe > 0 ? (l.debe | number: '1.2-2') : '' }}</td>
+                  <td class="num">{{ l.haber > 0 ? (l.haber | number: '1.2-2') : '' }}</td>
+                </tr>
+              }
+              <tr class="tot">
+                <td><strong>Totales</strong></td>
+                <td class="num">
+                  <strong>{{ a.totalDebe | number: '1.2-2' }}</strong>
+                </td>
+                <td class="num">
+                  <strong>{{ a.totalHaber | number: '1.2-2' }}</strong>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          @if (a.comentario) {
+            <p class="muted" style="padding: 8px 12px 0">{{ a.comentario }}</p>
+          }
+        </div>
+      }
+      @if (asientos().length === 0 && !cargando()) {
+        <p class="muted" style="text-align: center; padding: 24px">
+          Sin asientos en el rango consultado.
+        </p>
+      }
+    </div>
+  }
+
+  @if (tab === 'mayor' && libroMayor(); as lm) {
+    <div class="card">
+      <div class="table-title">
+        <div>
+          <h3>Libro mayor · {{ lm.codigoCuenta }} · {{ lm.nombreCuenta }}</h3>
+          <p>
+            Saldo final: {{ lm.saldoFinal | number: '1.2-2' }} ({{
+              lm.saldoFinal >= 0 ? 'D' : 'H'
+            }})
+          </p>
+        </div>
+      </div>
+      <div class="tablebox">
+        <table>
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Glosa</th>
+              <th class="num">Debe</th>
+              <th class="num">Haber</th>
+              <th class="num">Saldo</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (m of pagMovimientos.ver(lm.movimientos, lm.codigoCuenta + '|' + desde + '|' + hasta); track m.asientoId) {
+              <tr>
+                <td>{{ m.fecha }}</td>
+                <td>{{ m.glosa }}</td>
+                <td class="num">{{ m.debe > 0 ? (m.debe | number: '1.2-2') : '' }}</td>
+                <td class="num">{{ m.haber > 0 ? (m.haber | number: '1.2-2') : '' }}</td>
+                <td class="num">{{ m.saldo | number: '1.2-2' }} {{ m.saldo >= 0 ? 'D' : 'H' }}</td>
+              </tr>
+            }
+            @if (lm.movimientos.length === 0) {
+              <tr>
+                <td colspan="5" class="muted" style="text-align: center; padding: 24px">
+                  Sin movimientos en el rango consultado.
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+        <app-paginador
+          [page]="pagMovimientos.pagina(lm.movimientos.length)"
+          [size]="pagMovimientos.tamano()"
+          [total]="lm.movimientos.length"
+          (pageChange)="pagMovimientos.irA($event)"
+          (sizeChange)="pagMovimientos.cambiarTamano($event)"
+        />
+    </div>
+  }
+
+  @if (tab === 'plan') {
+    <div class="card">
+      <div class="table-title">
+        <div>
+          <h3>Plan de cuentas</h3>
+          <p class="muted">
+            Codificación PCGE tomada del cuaderno físico del cliente. Confirmar con contabilidad
+            antes de usarse en libros oficiales.
+          </p>
+        </div>
+      </div>
+      <div class="tablebox">
+        <table>
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Nombre</th>
+              <th>Tipo</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (c of pagCuentas.ver(planCuentas(), ''); track c.codigo) {
+              <tr>
+                <td class="num" style="text-align: left">{{ c.codigo }}</td>
+                <td>{{ c.nombre }}</td>
+                <td>{{ c.tipo }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+        <app-paginador
+          [page]="pagCuentas.pagina(planCuentas().length)"
+          [size]="pagCuentas.tamano()"
+          [total]="planCuentas().length"
+          (pageChange)="pagCuentas.irA($event)"
+          (sizeChange)="pagCuentas.cambiarTamano($event)"
+        />
+    </div>
+  }
+</section>

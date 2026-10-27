@@ -6,5 +6,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface TarifaLecheRepository extends JpaRepository<TarifaLeche, Long> {
 
-    Optional<TarifaLeche> findTopByVigenteDesdeLessThanEqualOrderByVigenteDesdeDescIdDesc(LocalDate fecha);
+    Optional<TarifaLeche> findTopByVigenteDesdeLessThanEqualOrderByVigenteDesdeDesc(LocalDate fecha);
 }

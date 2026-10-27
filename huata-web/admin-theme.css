@@ -1,0 +1,11 @@
+
+/* Campo rechazado por el servidor: borde y mensaje en rojo, debajo del campo. */
+.operation-content .campo-con-error input,
+.operation-content .campo-con-error .buscador input {
+  border-color: #c0533f !important;
+  box-shadow: 0 0 0 2px rgba(192, 83, 63, 0.15);
+}
+.operation-content .error-campo {
+  color: #a13c2b;
+  font-weight: 600;
+}

@@ -1,57 +1,169 @@
-# Levanta todo Huata Lácteos (Fase 1) con un solo comando:
-#   docker compose up --build
+# Orquestacion completa del sistema: PostgreSQL + backend (Spring Boot) + frontend (Angular sobre
+# nginx). Un solo comando levanta todo en cualquier maquina con Docker, sin instalar Java, Maven,
+# Node ni PostgreSQL:
 #
-# - db      → PostgreSQL 16 (el objetivo declarado en el Project Charter)
-# - backend → huata (Java 17 + Spring Boot), perfil "postgres", datos DEMO sembrados
-# - web     → huata-web (Angular) servido por nginx, que hace de proxy hacia backend en /api/
+#     cp .env.example .env      # y edita los valores
+#     docker compose up --build
 #
-# Web queda en http://localhost:8081 y el backend (para pruebas directas / Swagger-less API) en
-# http://localhost:8080. Variables ajustables en un archivo ".env" (ver .env.example).
+# Aplicacion web: http://localhost:8081
+# App movil (build web, solo para probar sin APK): http://localhost:8082
+# API directa:     http://localhost:8081/api/v1  (nginx hace de proxy hacia el backend)
+#
+# Solo para trabajar el backend desde el IDE y dejar la base en Docker:
+#
+#     docker compose up db
+#
+# Este archivo es el entorno de desarrollo/demo compartido. El despliegue real (VPS, HTTPS,
+# blue-green, reverse proxy) es alcance de la Fase 2; no confundir uno con otro.
+
+name: huata
 
 services:
   db:
-    image: postgres:16-alpine
-    container_name: huata-postgres
+    image: postgres:17-alpine
+    container_name: huata-db
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: ${DB_NAME:-huata}
-      POSTGRES_USER: ${DB_USER:-huata}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-huata}
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      TZ: America/Lima
+    # El puerto se publica solo para poder inspeccionar la base con DBeaver/psql mientras se
+    # desarrolla. En un despliegue real se quita: backend y db se hablan por la red interna.
+    ports:
+      - "${DB_PORT_HOST:-5432}:5432"
     volumes:
       - huata_pg_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-huata} -d ${DB_NAME:-huata}"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 20
+      start_period: 10s
+
+  # Almacen de objetos compatible con S3 para las fotos de voucher (RNF-13, seccion 24 de CLAUDE.md).
+  # Se decidio MinIO, pero su imagen publica (minio/minio) dejo de estar disponible en Docker Hub;
+  # RustFS es compatible (mismo protocolo S3, mismo puerto). El backend usa un cliente S3 estandar,
+  # asi que en produccion puede apuntar a AWS S3, Cloudflare R2, SeaweedFS o un MinIO con licencia
+  # cambiando solo las variables HUATA_MINIO_*. Sin "ports": solo lo alcanza el backend.
+  almacen:
+    image: rustfs/rustfs:1.0.0
+    container_name: huata-almacen
+    restart: unless-stopped
+    environment:
+      RUSTFS_ACCESS_KEY: ${HUATA_ALMACEN_ACCESS_KEY:?Falta HUATA_ALMACEN_ACCESS_KEY en .env (ver .env.example)}
+      RUSTFS_SECRET_KEY: ${HUATA_ALMACEN_SECRET_KEY:?Falta HUATA_ALMACEN_SECRET_KEY en .env (ver .env.example)}
+    expose:
+      - "9000"
+    volumes:
+      - huata_almacen_data:/data
 
   backend:
     build:
       context: ./huata
+      args:
+        # Solo hace falta en maquinas Windows con inspeccion TLS corporativa; normalmente vacio.
+        MAVEN_OPTS: ${MAVEN_OPTS:-}
     container_name: huata-backend
-    environment:
-      SPRING_PROFILES_ACTIVE: postgres
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_NAME: ${DB_NAME:-huata}
-      DB_USER: ${DB_USER:-huata}
-      DB_PASSWORD: ${DB_PASSWORD:-huata}
-      HUATA_SEED_DEMO: ${HUATA_SEED_DEMO:-true}
-      HUATA_JWT_SECRET: ${HUATA_JWT_SECRET:-huata-lacteos-clave-secreta-desarrollo-cambiar-en-produccion-1234567890}
-      HUATA_CORS_ORIGINS: http://localhost:${WEB_PORT:-8081}
+    restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
-    ports:
-      - "${BACKEND_PORT:-8080}:8080"
+      almacen:
+        condition: service_started
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      HUATA_JWT_SECRET: ${HUATA_JWT_SECRET}
+      HUATA_JWT_EXPIRATION_MIN: ${HUATA_JWT_EXPIRATION_MIN:-480}
+      # El navegador siempre llega por nginx (mismo origen), asi que CORS no se usa en la practica;
+      # se declara igual porque el perfil prod lo exige de forma explicita.
+      HUATA_CORS_ORIGINS: ${HUATA_CORS_ORIGINS}
+      HUATA_SEED_DEMO: ${HUATA_SEED_DEMO:-false}
+      HUATA_SIMULAR_UBICACIONES: ${HUATA_SIMULAR_UBICACIONES:-false}
+      # IVR telefonico (ivr/README.md): clave con la que el mini PC de la planta llama a /api/v1/ivr/**.
+      # Vacia = esa ruta responde 401 a todos.
+      HUATA_IVR_API_KEY: ${HUATA_IVR_API_KEY:-}
+      # Correo saliente para el codigo de verificacion (precios, reapertura de pagos). Sin
+      # SPRING_MAIL_HOST el backend no crea el JavaMailSender y el codigo sale por el log en vez de
+      # por correo real (ver EnviadorDeCodigo) — asi que dejar estas vacias en un entorno sin SMTP
+      # configurado es seguro, no rompe nada.
+      SPRING_MAIL_HOST: ${SPRING_MAIL_HOST:-}
+      SPRING_MAIL_PORT: ${SPRING_MAIL_PORT:-587}
+      SPRING_MAIL_USERNAME: ${SPRING_MAIL_USERNAME:-}
+      SPRING_MAIL_PASSWORD: ${SPRING_MAIL_PASSWORD:-}
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH:-true}
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE:-true}
+      MAIL_FROM: ${MAIL_FROM:-no-reply@huata.coop}
+      HUATA_VERIFICACION_MIN: ${HUATA_VERIFICACION_MIN:-10}
+      # Fotos de voucher (RNF-13): almacen S3 del servicio "almacen", por la red interna.
+      HUATA_MINIO_ENDPOINT: http://almacen:9000
+      HUATA_MINIO_ACCESS_KEY: ${HUATA_ALMACEN_ACCESS_KEY:?Falta HUATA_ALMACEN_ACCESS_KEY en .env (ver .env.example)}
+      HUATA_MINIO_SECRET_KEY: ${HUATA_ALMACEN_SECRET_KEY:?Falta HUATA_ALMACEN_SECRET_KEY en .env (ver .env.example)}
+      HUATA_MINIO_BUCKET: ${HUATA_ALMACEN_BUCKET:-huata-evidencias}
+      # Analizador de leche de planta para "Llamar datos". Vacio = la web avisa que no esta configurado.
+      HUATA_INSTRUMENTO_URL: ${HUATA_INSTRUMENTO_URL:-}
+      # App movil: version del APK publicada en ./descargas (ver docs/APP_MOVIL_ACTUALIZACIONES.md).
+      HUATA_APP_VERSION_ACTUAL: ${HUATA_APP_VERSION_ACTUAL:-}
+      HUATA_APP_VERSION_MINIMA: ${HUATA_APP_VERSION_MINIMA:-}
+      HUATA_APP_URL_DESCARGA: ${HUATA_APP_URL_DESCARGA:-}
+      HUATA_APP_NOTAS: ${HUATA_APP_NOTAS:-}
+      TZ: America/Lima
+    # Sin "ports": el backend no se publica al exterior, solo lo alcanza nginx por la red interna.
+    expose:
+      - "8080"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
 
-  web:
+  frontend:
     build:
       context: ./huata-web
-    container_name: huata-web
+    container_name: huata-frontend
+    restart: unless-stopped
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     ports:
       - "${WEB_PORT:-8081}:80"
+    # APK de la app movil, servido en /descargas/ (solo lectura). Se copia ahi al publicar version.
+    volumes:
+      - ./descargas:/usr/share/nginx/descargas:ro
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost/"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+
+  # Build web de la app Flutter (huata_app/), servido igual que "frontend": nginx + proxy al mismo
+  # backend. Sirve para navegar en el browser los flujos que NO dependen de plugins nativos (login,
+  # listas, formularios); GPS real, camara y OCR on-device solo se verifican compilando el
+  # APK/IPA. Ver la nota larga sobre esto en huata_app/Dockerfile.
+  movil:
+    build:
+      context: ./huata_app
+    container_name: huata-movil
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${MOVIL_PORT:-8082}:80"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost/"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
 
 volumes:
   huata_pg_data:
+  huata_almacen_data:

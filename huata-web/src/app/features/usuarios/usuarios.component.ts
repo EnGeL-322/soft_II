@@ -1,173 +1,161 @@
-import { Component, OnInit, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
-import { PageResponse, Usuario } from '../../core/models/models';
-import { UsuariosService, UsuarioRequest } from '../../core/services/usuarios.service';
-import { PaginadorComponent } from '../../shared/ui/paginador.component';
+import { Component, OnInit, computed, inject, signal, viewChild } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
+import { PERMISO } from '../../core/config/navegacion';
+import { NotificacionesService } from '../../core/notificaciones/notificaciones.service';
+import { AuthService } from '../../core/services/auth.service';
+import { IconoComponent, NombreIcono } from '../../shared/ui/icono.component';
+import { ListaAcopiadoresComponent } from './acopiadores/lista-acopiadores.component';
+import { BuscadorGeneralComponent } from './compartido/buscador-general.component';
+import { CatalogoAccesos, CatalogoTerritorio } from './compartido/catalogos';
+import { ListaInternosComponent } from './internos/lista-internos.component';
+import { ListaProveedoresComponent } from './proveedores/lista-proveedores.component';
+import { RolesPanelComponent } from './roles-panel.component';
 
-const VACIO: UsuarioRequest = { nombreCompleto: '', username: '', email: '', telefono: '', password: '', roles: [] };
+export type Pestana = 'internos' | 'acopiadores' | 'proveedores' | 'roles';
 
+interface DefPestana {
+  id: Pestana;
+  etiqueta: string;
+  icono: NombreIcono;
+  /** Ver la pestaña. Es el mismo permiso que exige el listado en el backend. */
+  lectura: string;
+  /** Mostrar "Nuevo…". Sin él el backend respondería 403. */
+  escritura: string;
+  nuevo: string;
+  descripcion: string;
+}
+
+const PESTANAS: readonly DefPestana[] = [
+  {
+    id: 'internos',
+    etiqueta: 'Internos',
+    icono: 'usuarios',
+    lectura: PERMISO.usuariosRead,
+    escritura: PERMISO.usuariosWrite,
+    nuevo: 'Nuevo usuario interno',
+    descripcion: 'Personal de planta, oficina y gerencia: sus roles y qué puede hacer cada uno.',
+  },
+  {
+    id: 'acopiadores',
+    etiqueta: 'Acopiadores',
+    icono: 'acopiadores',
+    lectura: PERMISO.acopiadoresRead,
+    escritura: PERMISO.acopiadoresWrite,
+    nuevo: 'Nuevo acopiador',
+    descripcion: 'Quienes recogen la leche con la app móvil. Cada uno trabaja en una ruta de su zona.',
+  },
+  {
+    id: 'proveedores',
+    etiqueta: 'Proveedores',
+    icono: 'proveedores',
+    lectura: PERMISO.proveedoresRead,
+    escritura: PERMISO.proveedoresWrite,
+    nuevo: 'Nuevo proveedor',
+    descripcion: 'Quienes entregan leche. Un alta nueva queda activa al guardarla.',
+  },
+  {
+    id: 'roles',
+    etiqueta: 'Roles y vistas',
+    icono: 'llave',
+    lectura: PERMISO.usuariosRead,
+    escritura: PERMISO.usuariosWrite,
+    nuevo: 'Nuevo rol',
+    descripcion: 'Qué vistas trae cada rol. Los cambios se aplican a todas las personas que lo tienen.',
+  },
+];
+
+/**
+ * Usuarios: la única pantalla donde se crean personas. Reúne en pestañas las cuentas internas, los
+ * acopiadores y los proveedores (antes eran tres módulos con tres formularios distintos) y los roles.
+ * Cada pestaña se ve con su propio permiso, así que quien solo consulta el padrón sigue entrando
+ * aquí sin ver las cuentas internas. Todo lo vuelve a validar el backend.
+ *
+ * Enlaces: `?tipo=proveedores` abre esa pestaña y `&nuevo=1` abre además su ficha vacía.
+ */
 @Component({
   selector: 'app-usuarios',
   standalone: true,
-  imports: [FormsModule, PaginadorComponent],
-  template: `
-    <div class="page-head">
-      <div>
-        <div class="kicker">Solo administración</div>
-        <h1>Usuarios y roles</h1>
-        <p>Cuentas de acceso al sistema. Los roles definen qué puede ver y hacer cada persona.</p>
-      </div>
-      <div class="actions">
-        <button type="button" class="btn btn-primary" (click)="nuevo()">+ Nuevo usuario</button>
-      </div>
-    </div>
-
-    <div class="toolbar">
-      <input type="text" placeholder="Buscar…" [(ngModel)]="q" (ngModelChange)="buscar()" />
-    </div>
-
-    <div class="tablebox">
-      <table>
-        <thead>
-          <tr>
-            <th>Nombre</th>
-            <th>Usuario</th>
-            <th>Roles</th>
-            <th class="no-print">Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (u of pagina()?.content ?? []; track u.id) {
-            <tr>
-              <td>{{ u.nombreCompleto }}</td>
-              <td>{{ u.username }}</td>
-              <td>{{ u.roles.join(', ') }}</td>
-              <td>
-                <button type="button" class="btn btn-soft" (click)="editar(u)">Editar</button>
-                <button type="button" class="btn btn-danger" (click)="inactivar(u)">Inactivar</button>
-              </td>
-            </tr>
-          }
-          @if ((pagina()?.content?.length ?? 0) === 0) {
-            <tr>
-              <td colspan="4" class="muted" style="text-align:center; padding:24px">Sin resultados.</td>
-            </tr>
-          }
-        </tbody>
-      </table>
-      @if (pagina(); as pg) {
-        <app-paginador
-          [page]="pg.page"
-          [totalElements]="pg.totalElements"
-          [totalPages]="pg.totalPages"
-          (anterior)="cambiarPagina(pg.page - 1)"
-          (siguiente)="cambiarPagina(pg.page + 1)"
-        />
-      }
-    </div>
-
-    @if (mostrarForm()) {
-      <div class="table-title">
-        <div><h3>{{ editandoId() ? 'Editar usuario' : 'Nuevo usuario' }}</h3></div>
-      </div>
-      <form class="card" (ngSubmit)="guardar()">
-        <div class="form-grid">
-          <div class="field">
-            <label>Nombre completo</label>
-            <input type="text" [(ngModel)]="form.nombreCompleto" name="nombreCompleto" required />
-          </div>
-          <div class="field">
-            <label>Usuario (email)</label>
-            <input type="text" [(ngModel)]="form.username" name="username" required [disabled]="!!editandoId()" />
-          </div>
-          <div class="field">
-            <label>Teléfono</label>
-            <input type="text" [(ngModel)]="form.telefono" name="telefono" />
-          </div>
-          <div class="field">
-            <label>Contraseña {{ editandoId() ? '(dejar vacío para no cambiar)' : '' }}</label>
-            <input type="password" [(ngModel)]="form.password" name="password" />
-          </div>
-        </div>
-        <div class="field" style="margin-top:12px">
-          <label>Roles</label>
-          <div style="display:flex; gap:14px; flex-wrap:wrap">
-            @for (r of rolesDisponibles(); track r) {
-              <label style="display:flex; align-items:center; gap:6px; font-weight:400">
-                <input type="checkbox" [checked]="form.roles.includes(r)" (change)="alternarRol(r)" />
-                {{ r }}
-              </label>
-            }
-          </div>
-        </div>
-        <div class="actions" style="margin-top:14px">
-          <button type="submit" class="btn btn-primary">Guardar</button>
-          <button type="button" class="btn btn-soft" (click)="mostrarForm.set(false)">Cancelar</button>
-        </div>
-      </form>
-    }
-  `,
+  imports: [
+    IconoComponent,
+    BuscadorGeneralComponent,
+    ListaInternosComponent,
+    ListaAcopiadoresComponent,
+    ListaProveedoresComponent,
+    RolesPanelComponent,
+  ],
+  providers: [CatalogoAccesos, CatalogoTerritorio],
+  templateUrl: './usuarios.component.html',
+  styleUrl: './usuarios.component.css',
 })
 export class UsuariosComponent implements OnInit {
-  readonly pagina = signal<PageResponse<Usuario> | null>(null);
-  readonly rolesDisponibles = signal<string[]>([]);
-  readonly mostrarForm = signal(false);
-  readonly editandoId = signal<number | null>(null);
+  private readonly auth = inject(AuthService);
+  private readonly ruta = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly notificaciones = inject(NotificacionesService);
+  protected readonly accesos = inject(CatalogoAccesos);
 
-  q = '';
-  page = 0;
-  form: UsuarioRequest = { ...VACIO, roles: [] };
+  private readonly internos = viewChild(ListaInternosComponent);
+  private readonly acopiadores = viewChild(ListaAcopiadoresComponent);
+  private readonly proveedores = viewChild(ListaProveedoresComponent);
+  private readonly rolesPanel = viewChild(RolesPanelComponent);
 
-  constructor(private readonly usuariosService: UsuariosService) {}
+  readonly pestanas = computed(() => PESTANAS.filter((p) => this.auth.puede(p.lectura)));
+  readonly activa = signal<Pestana>('internos');
+  readonly def = computed(() => PESTANAS.find((p) => p.id === this.activa())!);
+  readonly puedeCrear = computed(() => this.auth.puede(this.def().escritura));
+  readonly puedeEditarRoles = computed(() => this.auth.puede(PERMISO.usuariosWrite));
+  /** ?nuevo=1 solo vale para la primera pestaña que se muestra. */
+  readonly nuevoAlEntrar = signal(false);
+  /** Texto con el que abre la pestaña (buscador general o ?q=). */
+  readonly busqueda = signal('');
+  /** Cambia para volver a montar la pestaña cuando el buscador general apunta a la que ya está abierta. */
+  readonly montaje = signal(0);
 
   ngOnInit(): void {
-    this.usuariosService.roles().subscribe((r) => this.rolesDisponibles.set(r));
-    this.buscar();
+    const params = this.ruta.snapshot.queryParamMap;
+    const pedida = params.get('tipo') as Pestana | null;
+    const visibles = this.pestanas();
+    this.activa.set(visibles.find((p) => p.id === pedida)?.id ?? visibles[0]?.id ?? 'internos');
+    this.nuevoAlEntrar.set(params.get('nuevo') === '1');
+    this.busqueda.set(params.get('q') ?? '');
+    if (this.auth.puede(PERMISO.usuariosRead)) this.accesos.cargar();
   }
 
-  buscar(): void {
-    this.page = 0;
-    this.cargar();
+  elegir(id: Pestana): void {
+    this.nuevoAlEntrar.set(false);
+    this.busqueda.set('');
+    this.activa.set(id);
+    // La pestaña queda en la URL: recargar o compartir el enlace vuelve al mismo sitio.
+    this.router.navigate([], { relativeTo: this.ruta, queryParams: { tipo: id }, replaceUrl: true });
   }
 
-  cambiarPagina(p: number): void {
-    this.page = p;
-    this.cargar();
-  }
-
-  private cargar(): void {
-    this.usuariosService.listar(this.q, this.page).subscribe((pg) => this.pagina.set(pg));
+  /** Desde el buscador general: abre esa pestaña con el texto ya puesto en su buscador. */
+  buscarEn({ tipo, q }: { tipo: Pestana; q: string }): void {
+    this.nuevoAlEntrar.set(false);
+    this.busqueda.set(q);
+    this.activa.set(tipo);
+    this.montaje.update((n) => n + 1);
+    this.router.navigate([], { relativeTo: this.ruta, queryParams: { tipo, q }, replaceUrl: true });
   }
 
   nuevo(): void {
-    this.editandoId.set(null);
-    this.form = { ...VACIO, roles: [] };
-    this.mostrarForm.set(true);
-  }
-
-  editar(u: Usuario): void {
-    this.editandoId.set(u.id);
-    this.form = { nombreCompleto: u.nombreCompleto, username: u.username, email: u.email, telefono: u.telefono, password: '', roles: [...u.roles] };
-    this.mostrarForm.set(true);
-  }
-
-  alternarRol(rol: string): void {
-    this.form.roles = this.form.roles.includes(rol) ? this.form.roles.filter((r) => r !== rol) : [...this.form.roles, rol];
-  }
-
-  guardar(): void {
-    const id = this.editandoId();
-    const accion = id ? this.usuariosService.actualizar(id, this.form) : this.usuariosService.crear(this.form);
-    accion.subscribe(() => {
-      this.mostrarForm.set(false);
-      this.cargar();
-    });
-  }
-
-  inactivar(u: Usuario): void {
-    if (!window.confirm(`¿Inactivar a ${u.nombreCompleto}?`)) {
-      return;
+    switch (this.activa()) {
+      case 'internos':
+        return this.internos()?.nuevo();
+      case 'acopiadores':
+        return this.acopiadores()?.nuevo();
+      case 'proveedores':
+        return this.proveedores()?.nuevo();
+      case 'roles':
+        void this.rolesPanel()?.nuevo();
+        return;
     }
-    this.usuariosService.inactivar(u.id).subscribe(() => this.cargar());
+  }
+
+  alCambiarRoles(mensaje: string): void {
+    this.notificaciones.exito(mensaje);
+    this.accesos.cargar();
+    // Si el rol editado es uno de los propios, el menú y los botones deben reflejarlo ya.
+    this.auth.refrescarSesion();
   }
 }

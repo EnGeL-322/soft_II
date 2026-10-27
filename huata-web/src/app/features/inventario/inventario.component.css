@@ -1,0 +1,406 @@
+/* Inventario: una tarjeta, una vista a la vez. Usa las variables del tema activo. */
+
+.inv-avisos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.inv-aviso {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--amber-soft);
+  color: var(--amber);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.inv {
+  padding: 0;
+  overflow: visible;
+}
+
+.inv-barra {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.inv-pestanas {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--gray-soft);
+}
+
+.inv-pestanas button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.inv-pestanas button span {
+  font-size: 12px;
+  font-weight: 700;
+  opacity: 0.7;
+}
+
+.inv-pestanas button.activo {
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.1);
+}
+
+.inv-buscar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--muted);
+  background: var(--panel);
+}
+
+.inv-buscar:focus-within {
+  border-color: var(--green);
+}
+
+.inv-buscar input {
+  width: 200px;
+  border: 0;
+  outline: 0;
+  padding: 8px 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.inv-barra select {
+  width: auto;
+  min-width: 180px;
+  margin-left: auto;
+}
+
+/* ---- Listas ---- */
+
+.inv-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  transition: opacity 0.15s ease;
+}
+
+.inv-lista.cargando {
+  opacity: 0.5;
+}
+
+.inv-fila {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.inv-fila:last-child {
+  border-bottom: 0;
+}
+
+.inv-icono {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  flex: none;
+  border-radius: 10px;
+  background: var(--gray-soft);
+  color: var(--muted);
+}
+
+.inv-icono.leche {
+  background: var(--green-soft);
+  color: var(--green);
+}
+
+.inv-fecha {
+  width: 52px;
+  flex: none;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.inv-nombre {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.inv-nombre strong {
+  font-size: 14.5px;
+  font-weight: 600;
+}
+
+.inv-nombre small {
+  color: var(--muted);
+  font-size: 12.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inv-cantidad {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  text-align: right;
+}
+
+.inv-cantidad strong {
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.inv-cantidad small {
+  color: var(--red);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.inv-cantidad small.pronto {
+  color: var(--amber);
+}
+
+.inv-cantidad .entra {
+  color: var(--green);
+}
+
+.inv-cantidad .sale {
+  color: var(--red);
+}
+
+.inv-fila.agotado .inv-cantidad strong {
+  color: var(--red);
+}
+
+.inv-acciones {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.inv-menu {
+  position: relative;
+}
+
+.inv-mas {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.inv-mas:hover {
+  background: var(--gray-soft);
+  color: var(--text);
+}
+
+.inv-menu-lista {
+  position: absolute;
+  right: 0;
+  top: 36px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  min-width: 170px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.14);
+}
+
+.inv-menu-lista button {
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 13.5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.inv-menu-lista button:hover {
+  background: var(--gray-soft);
+}
+
+.inv-menu-lista button.peligro {
+  color: var(--red);
+}
+
+.inv-subtitulo {
+  padding: 12px 18px 4px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.inv-vacio {
+  padding: 40px 16px;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* ---- Ventanas (ajustar y editar) ---- */
+
+.ventana {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 440px;
+}
+
+.ventana h3 {
+  margin: 0;
+}
+
+.ventana-ayuda {
+  margin: -6px 0 0;
+}
+
+.ventana-tipo {
+  display: flex;
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--gray-soft);
+}
+
+.ventana-tipo button,
+.ventana-motivos button {
+  border: 0;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+.ventana-tipo button {
+  flex: 1;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.ventana-tipo button.activo {
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.1);
+}
+
+.ventana-motivos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.ventana-motivos button {
+  padding: 5px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 12.5px;
+  color: var(--text);
+}
+
+.ventana-motivos button.activo {
+  border-color: var(--green);
+  background: var(--green-soft);
+  color: var(--green);
+}
+
+.ventana-resultado {
+  margin: 0;
+  font-weight: 600;
+  color: var(--green);
+}
+
+.ventana-resultado.negativo {
+  color: var(--red);
+}
+
+@media (max-width: 640px) {
+  .inv-buscar,
+  .inv-barra select {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .inv-buscar input {
+    width: 100%;
+  }
+
+  .inv-fila {
+    flex-wrap: wrap;
+    padding: 12px;
+  }
+
+  .inv-acciones {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+.inv-receta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--line);
+  background: var(--green-soft);
+  font-size: 13.5px;
+}
+
+.inv-link {
+  border: 0;
+  background: transparent;
+  color: var(--green);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}

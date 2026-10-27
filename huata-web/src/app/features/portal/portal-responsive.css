@@ -9,7 +9,7 @@
   color: var(--subtle);
 }
 .consultation .eyebrow {
-  color: #00644e;
+  color: #0f6b52;
 }
 .query-card {
   padding: 30px;
@@ -29,10 +29,10 @@
 .query-input input {
   width: 100%;
   min-width: 0;
-  border: 1px solid #d4c29a;
+  border: 1px solid #e2e8f0;
   border-radius: 7px;
   padding: 12px;
-  background: #fbf7ec;
+  background: #f1f4f8;
 }
 .query-result {
   margin-top: 24px;
@@ -50,7 +50,7 @@
   font-size: 14px;
 }
 .query-card .query-error {
-  color: #b32a1c;
+  color: #b4232a;
 }
 footer {
   border-top: 1px solid var(--border);

@@ -1,260 +1,110 @@
-<section class="operation-hero">
-  <div>
-    <p class="eyebrow">Centro de operación</p>
-    <h1>Control diario de Huata Lácteos</h1>
-    <p class="hero-description">
-      Control general, configuración, proveedores, calidad, pagos, logística y auditoría.
-    </p>
-  </div>
-  <div class="operating-date">
-    <label for="fecha-operativa">Fecha operativa</label
-    ><input
-      id="fecha-operativa"
-      type="date"
-      [(ngModel)]="fecha"
-      [max]="hoy"
-      [disabled]="guardando()"
-      (ngModelChange)="cargar()"
-    /><span class="day-status">{{
-      cargando()
-        ? 'Cargando jornada…'
-        : !data()
-          ? 'Sin datos disponibles'
-          : cerrado
-            ? 'Conciliación cerrada'
-            : 'Jornada abierta'
-    }}</span>
-  </div>
-</section>
-<nav class="quick-actions" aria-label="Acciones rápidas">
-  <a routerLink="/productores" [queryParams]="{ nuevo: true }"><span>＋</span> Nuevo proveedor</a
-  ><a routerLink="/recojo" [queryParams]="{ nuevo: true }"><span>◫</span> Nueva recepción</a
-  ><a routerLink="/calidad"><span>✓</span> Registrar calidad</a
-  ><a routerLink="/liquidaciones"><span>S/</span> Liquidaciones</a>
-  @if (auth.tieneRol('ADMINISTRADOR')) {
-    <a routerLink="/parametros"><span>⚙</span> Configuración</a>
-  }
-</nav>
-@if (error()) {
-  <div class="feedback error" role="alert">
-    {{ error() }}
-    <button type="button" (click)="cargar()" [disabled]="guardando()">Actualizar datos</button>
-  </div>
-}
-@if (mensaje()) {
-  <p class="feedback success" role="status">{{ mensaje() }}</p>
-}
-@if (cargando()) {
-  <p class="loading" role="status">Cargando el resumen de la jornada…</p>
-}
-@if (data(); as d) {
-  <section class="operation-metrics" aria-label="Indicadores de la jornada">
-    <article>
-      <span>Acopio aceptado</span><strong>{{ d.aceptados | number: '1.1-1' }} L</strong
-      ><small>{{ d.recepcionesAceptadas }} recepciones · incluye observadas</small>
-    </article>
-    <article>
-      <span>Leche observada</span><strong>{{ d.observados | number: '1.1-1' }} L</strong
-      ><small>{{ d.controlesObservados }} controles</small>
-    </article>
-    <article class="rejected">
-      <span>Rechazada</span><strong>{{ d.rechazados | number: '1.1-1' }} L</strong
-      ><small>{{ d.entregasRechazadas }} entregas</small>
-    </article>
-    <article>
-      <span>Proveedores atendidos</span><strong>{{ d.proveedores }}</strong
-      ><small>{{ d.rutas.length }} rutas con recepciones</small>
-    </article>
-    <article class="purchase">
-      <span>Compra estimada</span
-      ><strong>{{
-        d.compraEstimada == null ? '—' : 'S/ ' + (d.compraEstimada | number: '1.2-2')
-      }}</strong
-      ><small>{{
-        d.compraEstimada == null
-          ? 'Sin tarifa vigente para la fecha'
-          : 'Según tarifas vigentes · sin ajustes'
-      }}</small>
-    </article>
-  </section>
-  <section id="cierre" class="reconciliation">
-    <div class="reconciliation-head">
-      <div>
-        <span class="module-label">Módulo principal</span>
-        <p class="eyebrow">Cierre y reconciliación</p>
-        <h2>Cierre diario de acopio</h2>
-        <p>
-          Compara litros aceptados contra el volumen recibido en planta y registra la conciliación
-          de la jornada.
-        </p>
-      </div>
-      <span class="state-label">{{ cerrado ? 'Cerrado' : 'Abierto' }}</span>
+<section class="page dashboard">
+  <div class="page-head">
+    <div>
+      <h1>Inicio</h1>
+      <p>Pendientes del día, cifras de acopio y accesos rápidos.</p>
     </div>
-    <form class="reconciliation-form" (ngSubmit)="cerrar()">
-      <div class="reconciliation-values">
-        <div>
-          <span>Sistema</span><strong>{{ sistema | number: '1.1-1' }} L</strong
-          ><small>{{ cerrado ? 'Litros registrados al cerrar' : 'Litros aceptados' }}</small>
-        </div>
-        <div>
-          <label for="litros-planta">Ingreso en planta</label
-          ><input
-            id="litros-planta"
-            name="litros"
-            type="number"
-            min="0"
-            step="0.1"
-            [(ngModel)]="litrosPlanta"
-            placeholder="Registrar litros"
-            [disabled]="cerrado || guardando() || !auth.tieneRol('ADMINISTRADOR')"
-          /><small>Dato de cierre</small>
-        </div>
-        <div>
-          <span>Variación</span
-          ><strong [class.difference]="variacion !== null && variacion !== 0">{{
-            variacion === null ? '—' : (variacion | number: '1.1-1') + ' L'
-          }}</strong
-          ><small>{{
-            variacion === null ? 'Sin comparar' : 'Ingreso en planta menos sistema'
-          }}</small>
-        </div>
-      </div>
-      <label class="observation-label" for="observacion">Observación del cierre</label
-      ><textarea
-        id="observacion"
-        name="observacion"
-        rows="2"
-        maxlength="1000"
-        [(ngModel)]="observacion"
-        placeholder="Ej. diferencia por medición, derrame o ajuste documentado"
-        [disabled]="cerrado || guardando() || !auth.tieneRol('ADMINISTRADOR')"
-      ></textarea>
-      @if (cerrado && d.cierre && d.cierre.litrosSistema !== d.aceptados) {
-        <p class="feedback error">
-          El acopio cambió después de la conciliación. Reabre y revisa los totales.
-        </p>
+    <div class="actions">
+      <label class="field home-date"
+        ><span>Fecha</span
+        ><input type="date" [(ngModel)]="fecha" [max]="hoy" (change)="cargar()" /></label
+      ><button class="btn btn-soft" type="button" (click)="cargar()" [disabled]="cargando()">
+        {{ cargando() ? 'Actualizando…' : 'Actualizar' }}
+      </button>
+    </div>
+  </div>
+  <section class="home-attention" aria-labelledby="tareas-pendientes">
+    <div class="home-section-head">
+      <h2 id="tareas-pendientes">Requiere atención</h2>
+      @if (actualizado()) {
+        <small>Actualizado {{ actualizado() | date: 'HH:mm' : '-0500' }}</small>
       }
-      <div class="closing-actions">
-        <small>La conciliación guarda el balance; no bloquea nuevos registros de recepción.</small>
-        @if (auth.tieneRol('ADMINISTRADOR')) {
-          <button type="submit" class="primary" [disabled]="cerrado || guardando()">
-            {{ guardando() ? 'Guardando…' : 'Cerrar jornada' }}</button
-          ><button type="button" [disabled]="!cerrado || guardando()" (click)="reabrir()">
-            Reabrir
-          </button>
-        } @else {
-          <small>El administrador gestiona el cierre.</small>
+    </div>
+    @if (error()) {
+      <p class="note" role="alert">{{ error() }}</p>
+    }
+    @for (aviso of avisos(); track aviso) {
+      <p class="note" role="status">{{ aviso }}</p>
+    }
+    @if (cargando()) {
+      <p class="muted" role="status">Consultando pendientes…</p>
+    }
+    @for (pendiente of pendientes(); track pendiente.ruta) {
+      <a class="home-pending" [routerLink]="'/' + pendiente.ruta"
+        ><span class="pending-count">{{ pendiente.cantidad }}</span
+        ><span>{{ pendiente.texto }}</span
+        ><span class="pending-open">Revisar <app-icono nombre="flecha" [tamano]="14" /></span></a
+      >
+    }
+    @if (!cargando() && !error() && !avisos().length && !pendientes().length) {
+      <p class="home-clear">No hay pendientes en las secciones consultadas.</p>
+    }
+  </section>
+  @if (indicadores().length) {
+    <section class="home-kpis" aria-labelledby="indicadores-dia">
+      <h2 id="indicadores-dia" class="home-kpis-title">Acopio del {{ fecha | date: 'dd/MM/yyyy' }}</h2>
+      <div class="home-kpi-grid">
+        @for (k of indicadores(); track k.etiqueta) {
+          @if (k.ruta) {
+            <a [class]="'home-kpi tono-' + k.tono" [routerLink]="'/' + k.ruta" [queryParams]="k.query"
+              ><span>{{ k.etiqueta }}</span
+              ><strong>{{ k.valor | number: k.decimales }}{{ k.unidad ? ' ' + k.unidad : '' }}</strong></a
+            >
+          } @else {
+            <div [class]="'home-kpi tono-' + k.tono">
+              <span>{{ k.etiqueta }}</span
+              ><strong>{{ k.valor | number: k.decimales }}{{ k.unidad ? ' ' + k.unidad : '' }}</strong>
+            </div>
+          }
         }
       </div>
-    </form>
-  </section>
-  <section class="operation-tabs">
-    <div class="tab-buttons" role="tablist" aria-label="Seguimiento de la operación">
-      <button
-        id="tab-alertas"
-        role="tab"
-        aria-controls="panel-operacion"
-        [attr.aria-selected]="tab === 'alertas'"
-        [class.active]="tab === 'alertas'"
-        (click)="tab = 'alertas'"
+    </section>
+  }
+  <nav class="home-tasks" aria-label="Accesos rápidos">
+    @for (item of accesosPrincipales(); track item.ruta) {
+      <a class="home-task" [routerLink]="'/' + item.ruta" [title]="descripciones[item.ruta]"
+        ><app-icono class="task-icon" [nombre]="item.icono" /><span class="task-text"
+          ><strong>{{ etiquetaDe(item) }}</strong><small>{{ descripciones[item.ruta] }}</small></span
+        ></a
       >
-        <span>▲</span> Alertas y pendientes <b>{{ alertas.length }}</b>
-      </button>
-      <button
-        id="tab-rutas"
-        role="tab"
-        aria-controls="panel-operacion"
-        [attr.aria-selected]="tab === 'rutas'"
-        [class.active]="tab === 'rutas'"
-        (click)="tab = 'rutas'"
-      >
-        <span>↝</span> Rutas
-      </button>
-      <button
-        id="tab-actividad"
-        role="tab"
-        aria-controls="panel-operacion"
-        [attr.aria-selected]="tab === 'actividad'"
-        [class.active]="tab === 'actividad'"
-        (click)="tab = 'actividad'"
-      >
-        <span>▤</span> Actividad reciente
-      </button>
-    </div>
-    <div
-      id="panel-operacion"
-      class="tab-panel"
-      role="tabpanel"
-      [attr.aria-labelledby]="'tab-' + tab"
-    >
-      @if (tab === 'alertas') {
-        <p class="panel-description">
-          El sistema prioriza lo que requiere acción, sin repetir los mismos gráficos de otros
-          módulos.
+    } @empty {
+      <p class="note">Tu cuenta no tiene secciones disponibles. Consulta al administrador.</p>
+    }
+  </nav>
+  @if (data(); as d) {
+    <details class="module-extra home-report">
+      <summary>Ver resumen de acopio de esta fecha</summary>
+      <div class="home-section-head">
+        <p>
+          {{ fecha | date: 'dd/MM/yyyy' }} · {{ d.aceptados | number: '1.0-1' }} L aceptados ·
+          {{ d.proveedores }} proveedores con entregas
         </p>
-        <div class="activity-list">
-          @for (a of alertas; track a.titulo) {
-            <div class="alert-row">
-              <span class="alert-icon">{{ a.icono }}</span>
-              <div>
-                <strong>{{ a.titulo }}</strong
-                ><small>{{ a.detalle }}</small>
-              </div>
-              @if (a.ruta === '#cierre') {
-                <a href="#cierre">Revisar →</a>
-              } @else {
-                <a [routerLink]="a.ruta">Revisar →</a>
-              }
-            </div>
-          } @empty {
-            <p class="empty">No hay pendientes por atender.</p>
-          }
-        </div>
-      }
-      @if (tab === 'rutas') {
-        <div class="panel-description">
-          <span>{{ d.rutas.length }} rutas con recepciones en la fecha seleccionada</span
-          ><a routerLink="/rutas">Gestionar rutas →</a>
-        </div>
-        <div class="activity-list">
-          @for (r of d.rutas; track r.nombre) {
-            <div class="activity-row">
-              <div>
-                <strong>{{ r.nombre }}</strong
-                ><small>{{ r.recepciones }} recepciones registradas</small>
-              </div>
-              <b>{{ r.litros | number: '1.1-1' }} L</b>
-            </div>
-          } @empty {
-            <p class="empty">No hay recepciones de rutas para esta fecha.</p>
-          }
-        </div>
-      }
-      @if (tab === 'actividad') {
-        <div class="panel-description">
-          <span>Recepción, calidad, pagos y configuración · últimas acciones del sistema.</span
-          ><a routerLink="/trazabilidad">Ver trazabilidad →</a>
-        </div>
-        <div class="activity-list">
-          @if (!auth.tieneRol('ADMINISTRADOR')) {
-            <p class="empty">La actividad de auditoría está disponible para el administrador.</p>
-          } @else if (errorActividad) {
-            <p class="empty">{{ errorActividad }}</p>
-          } @else {
-            @for (a of actividad(); track a.id) {
-              <div class="activity-row">
-                <div>
-                  <strong>{{ a.accion }} · {{ a.entidad }}</strong
-                  ><small>{{ a.detalle }}</small>
-                </div>
-                <time>{{ a.fecha | date: 'yyyy-MM-dd HH:mm' : '-0500' }}</time>
-              </div>
+        <button type="button" class="btn btn-soft" (click)="exportar()">Exportar CSV</button>
+      </div>
+      <div class="tablebox">
+        <table>
+          <thead>
+            <tr>
+              <th>Ruta</th>
+              <th>Litros aceptados</th>
+              <th>Recepciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (ruta of d.rutas; track ruta.nombre) {
+              <tr>
+                <td>{{ ruta.nombre }}</td>
+                <td>{{ ruta.litros | number: '1.0-1' }} L</td>
+                <td>{{ ruta.recepciones }}</td>
+              </tr>
             } @empty {
-              <p class="empty">Sin actividad registrada.</p>
+              <tr>
+                <td colspan="3">Sin recepciones en esta fecha.</td>
+              </tr>
             }
-          }
-        </div>
-      }
-    </div>
-  </section>
-}
+          </tbody>
+        </table>
+      </div>
+    </details>
+  }
+</section>

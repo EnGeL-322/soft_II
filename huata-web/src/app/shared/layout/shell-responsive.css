@@ -1,91 +1,115 @@
-@media (min-width: 1750px) {
-  .operation-layout {
-    grid-template-columns: 335px minmax(0, 1fr);
+@media (max-width: 1100px) {
+  .operation-content {
+    padding: 18px 18px 32px;
   }
-}
-@media (max-width: 1250px) {
   .operation-header {
-    flex-wrap: wrap;
-    padding: 15px 24px;
+    padding: 0 18px;
   }
-  .header-tools {
-    flex: 1;
-    justify-content: flex-end;
-  }
-  .operation-brand small {
-    font-size: 10px;
-  }
-  .search-container {
-    width: 230px;
-  }
-  .role-label {
+  .user-name {
     display: none;
   }
+}
+@media (max-width: 760px) {
   .operation-layout {
-    grid-template-columns: 230px minmax(0, 1fr);
-    gap: 22px;
-    padding: 28px 24px;
+    display: block;
   }
-  .nav-group a {
-    font-size: 14px;
+  .operation-sidebar {
+    display: none;
+    position: fixed;
+    top: 52px;
+    left: 0;
+    bottom: 0;
+    width: 250px;
+    height: calc(100dvh - 52px);
+    z-index: 50;
+    box-shadow: 8px 0 30px #1e3c3333;
+  }
+  .operation-sidebar.menu-open {
+    display: flex;
+  }
+  /* En el celular el menú es un panel que se abre y cierra: contraerlo no aplica. */
+  .sidebar-collapse {
+    display: none;
+  }
+  .sidebar-contraida .operation-sidebar {
     padding: 14px 10px;
   }
-}
-@media (max-width: 850px) {
-  .operation-header {
-    position: relative;
+  .sidebar-contraida .operation-brand strong,
+  .sidebar-contraida .nav-text,
+  .sidebar-contraida .nav-group-title {
+    display: initial;
   }
-  .header-tools {
-    flex-wrap: wrap;
+  .sidebar-contraida .menu-search {
+    display: block;
+  }
+  .sidebar-contraida .nav-group {
+    padding-top: 0;
+    border-top: 0;
+  }
+  .sidebar-contraida .nav-link,
+  .sidebar-contraida .nav-sublink,
+  .sidebar-contraida .sidebar-footer a {
     justify-content: flex-start;
-    width: 100%;
+    padding: 0 8px;
   }
-  .search-container {
-    flex: 1;
-    min-width: 200px;
+  .sidebar-contraida .nav-sub {
+    margin: 1px 0 4px 16px;
+    padding-left: 8px;
+    border-left: 1px solid #ffffff26;
+  }
+  /* En el celular los controles del menú son cómodos de pulsar. */
+  .nav-link,
+  .menu-search input {
+    min-height: 42px;
+  }
+  .nav-sublink {
+    min-height: 38px;
+  }
+  .operation-header {
+    position: sticky;
+    top: 0;
+    z-index: 60;
+    padding: 0 12px;
+  }
+  .menu-toggle {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: #2f5748;
+    font-size: 20px;
+  }
+  .workspace-label {
+    margin-right: auto;
+  }
+  .workspace-label span {
+    display: none;
+  }
+  .logout {
+    height: 40px;
+    width: 40px;
+    justify-content: center;
+    padding: 0;
+  }
+  .logout-text {
+    display: none;
+  }
+  .operation-content {
+    padding: 14px 12px 32px;
+  }
+  .skip-link {
+    left: 10px;
+  }
+}
+@media print {
+  .operation-sidebar,
+  .operation-header {
+    display: none;
   }
   .operation-layout {
     display: block;
-    padding: 20px 16px;
-  }
-  .operation-sidebar {
-    position: static;
-    max-height: none;
-    display: flex;
-    gap: 16px;
-    overflow: auto;
-    padding: 12px;
-    margin-bottom: 24px;
-  }
-  .session-card {
-    display: none;
-  }
-  .nav-group {
-    flex-shrink: 0;
-  }
-  .nav-group h2 {
-    margin: 0 8px 8px;
-    font-size: 11px;
-  }
-  .nav-group a {
-    display: inline-flex;
-    font-size: 12px;
-    margin: 0;
-    padding: 10px;
-  }
-  .nav-group a span {
-    display: none;
-  }
-  .notification-panel {
-    right: -80px;
-    width: 300px;
-  }
-  .public-exit,
-  .logout {
-    font-size: 12px;
-    padding: 12px;
-  }
-  .operation-brand strong {
-    font-size: 17px;
   }
 }

@@ -1,0 +1,92 @@
+<div class="roles">
+  <nav class="roles-lista" aria-label="Roles">
+    @if (creando()) {
+      <button type="button" class="rol-item activo"><span>Nuevo rol</span></button>
+    }
+    @for (rol of internos(); track rol.id) {
+      <button type="button" class="rol-item" [class.activo]="!creando() && elegido()?.id === rol.id" (click)="elegir(rol)">
+        <span>{{ rol.etiqueta }}</span>
+        @if (rol.usuarios) {
+          <small [title]="rol.usuarios + (rol.usuarios === 1 ? ' persona' : ' personas')">{{ rol.usuarios }}</small>
+        }
+      </button>
+    }
+    @if (deModulo().length) {
+      <p class="roles-sep">Se asignan en su pestaña</p>
+      @for (rol of deModulo(); track rol.id) {
+        <button type="button" class="rol-item" [class.activo]="!creando() && elegido()?.id === rol.id" (click)="elegir(rol)">
+          <span>{{ rol.etiqueta }}</span>
+          @if (rol.usuarios) {
+            <small [title]="rol.usuarios + (rol.usuarios === 1 ? ' persona' : ' personas')">{{ rol.usuarios }}</small>
+          }
+        </button>
+      }
+    }
+  </nav>
+
+  @if (creando() || elegido()) {
+    <section class="rol-detalle">
+      <header class="rol-cabecera">
+        <input class="rol-nombre" type="text" aria-label="Nombre del rol" placeholder="Nombre del rol" maxlength="80"
+          [ngModel]="etiqueta()" (ngModelChange)="etiqueta.set($event)" [disabled]="!puedeEditar() || guardando()" />
+        <span class="rol-meta">
+          {{ elegido()?.sistema ? 'Predefinido' : creando() ? 'Nuevo' : 'Propio' }}
+          @if (elegido(); as rol) {
+            · {{ rol.usuarios }} {{ rol.usuarios === 1 ? 'persona' : 'personas' }}
+          }
+        </span>
+      </header>
+      <input class="rol-descripcion" type="text" aria-label="Descripción" placeholder="Descripción (opcional)" maxlength="200"
+        [ngModel]="descripcion()" (ngModelChange)="descripcion.set($event)" [disabled]="!puedeEditar() || guardando()" />
+
+      @if (creando()) {
+        <label class="rol-partir">
+          Partir de
+          <select [(ngModel)]="copiarDe" (ngModelChange)="copiar()">
+            <option value="">ningún rol</option>
+            @for (r of internos(); track r.id) {
+              @if (!r.permisosBloqueados) {
+                <option [value]="r.nombre">{{ r.etiqueta }}</option>
+              }
+            }
+          </select>
+        </label>
+      }
+      @if (elegido()?.permisosBloqueados) {
+        <p class="note">Las vistas de este rol no se editan: es una cuenta externa (proveedor).</p>
+      }
+      @if (error()) {
+        <p class="note red" role="alert">{{ error() }}</p>
+      }
+
+      <app-selector-vistas [catalogo]="catalogo()" [seleccion]="permisos()" [soloLectura]="soloLectura()"
+        (cambios)="aplicarCambios($event)" />
+
+      @if (puedeEditar()) {
+        <footer class="rol-pie">
+          <div>
+            @if (elegido(); as rol) {
+              @if (rol.sistema) {
+                <button type="button" class="btn btn-soft" [disabled]="guardando() || rol.permisosBloqueados" (click)="restaurar()">
+                  Restaurar estándar
+                </button>
+              } @else {
+                <button type="button" class="btn btn-soft peligro" [disabled]="guardando()" (click)="eliminar()">Eliminar</button>
+              }
+            }
+          </div>
+          <div class="rol-pie-acciones">
+            @if (hayCambios()) {
+              <button type="button" class="btn btn-soft" [disabled]="guardando()" (click)="descartar()">Descartar</button>
+            }
+            <button type="button" class="btn btn-primary" [disabled]="guardando() || !hayCambios()" (click)="guardar()">
+              {{ guardando() ? 'Guardando…' : creando() ? 'Crear rol' : 'Guardar cambios' }}
+            </button>
+          </div>
+        </footer>
+      }
+    </section>
+  } @else {
+    <p class="muted">Cargando roles…</p>
+  }
+</div>

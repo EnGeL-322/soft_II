@@ -1,0 +1,79 @@
+/* Vistas de una sección (Producción, Ventas, Pagos): colgadas de su item con una guía vertical. */
+.nav-sub {
+  display: grid;
+  gap: 1px;
+  margin: 1px 0 4px 16px;
+  padding-left: 8px;
+  border-left: 1px solid #ffffff26;
+}
+.nav-sublink {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 8px;
+  border-radius: 6px;
+  color: #bdd1c4;
+  font-size: 12.5px;
+}
+.nav-sublink:hover {
+  background: #ffffff12;
+  color: white;
+}
+.nav-sublink:hover .nav-icon {
+  color: white;
+}
+.nav-sublink.sub-activo {
+  background: #ffffff1a;
+  color: white;
+  font-weight: 600;
+}
+.nav-sublink.sub-activo .nav-icon {
+  color: white;
+}
+.nav-sublink:focus-visible {
+  outline: 2px solid #9fd3b6;
+  outline-offset: -2px;
+}
+
+/* Estado del canal de cambios (tiempo real) en la barra superior. */
+.en-vivo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #fbf0e2;
+  color: #a15c14;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.en-vivo-punto {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.en-vivo-activo {
+  background: #e5f3ef;
+  color: #0f6b52;
+}
+.en-vivo-activo .en-vivo-punto {
+  animation: latido-en-vivo 2s ease-in-out infinite;
+}
+@keyframes latido-en-vivo {
+  50% {
+    opacity: 0.35;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .en-vivo-activo .en-vivo-punto {
+    animation: none;
+  }
+}
+@media (max-width: 560px) {
+  .en-vivo-texto {
+    display: none;
+  }
+}

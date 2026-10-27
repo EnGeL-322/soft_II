@@ -1,0 +1,118 @@
+<section class="page amigable mi-cuenta">
+  <div class="page-head">
+    <div>
+      <h1>Mi cuenta</h1>
+      <p>Tus datos, tu contraseña y el usuario con el que entras a la web y a la app.</p>
+    </div>
+  </div>
+
+  @if (error()) {
+    <div class="mensaje mensaje-error" role="alert">{{ error() }}</div>
+  }
+
+  @if (cuenta(); as c) {
+    <section class="perfil">
+      <span class="perfil-avatar" aria-hidden="true">{{ iniciales() }}</span>
+      <div>
+        <h2>{{ c.nombreCompleto }}</h2>
+        <p>{{ c.username }}</p>
+        <div class="perfil-chips">
+          @for (r of c.roles; track r) {
+            <span class="chip">{{ r }}</span>
+          }
+          @if (c.ultimoAcceso) {
+            <span class="chip">Último acceso {{ c.ultimoAcceso | date: 'dd/MM HH:mm' }}</span>
+          }
+        </div>
+      </div>
+    </section>
+
+    <div class="bloques">
+      <!-- Datos personales -->
+      <form class="card bloque" (ngSubmit)="guardarDatos()">
+        <h3>Datos personales</h3>
+        <p class="muted">
+          {{ c.puedeEditarNombre ? 'Así te verán en la planta y en los registros.' : 'Tu nombre lo corrige la planta en tu ficha, porque identifica tus pagos.' }}
+        </p>
+        <div class="field">
+          <label for="mc-nombre">Nombre completo</label>
+          <input id="mc-nombre" name="nombre" [(ngModel)]="nombre" [disabled]="!c.puedeEditarNombre" autocomplete="name" />
+        </div>
+        <div class="field">
+          <label for="mc-correo">Correo</label>
+          <input id="mc-correo" name="correo" type="email" [(ngModel)]="correo" autocomplete="email" placeholder="Sin registrar" />
+        </div>
+        <div class="field">
+          <label for="mc-telefono">Teléfono</label>
+          <input id="mc-telefono" name="telefono" type="tel" [(ngModel)]="telefono" autocomplete="tel" placeholder="Sin registrar" />
+        </div>
+        @if (errorDatos()) {
+          <p class="note red" role="alert">{{ errorDatos() }}</p>
+        }
+        <div class="bloque-pie">
+          <button type="submit" class="btn btn-primary" [disabled]="guardando() !== null || !datosCambiados()">
+            {{ guardando() === 'datos' ? 'Guardando…' : 'Guardar datos' }}
+          </button>
+        </div>
+      </form>
+
+      <!-- Contraseña -->
+      <form class="card bloque" (ngSubmit)="cambiarClave()" autocomplete="off">
+        <h3>Contraseña</h3>
+        <p class="muted">Mínimo {{ claveMinima }} caracteres. Mejor si mezclas mayúsculas, números y símbolos.</p>
+        <div class="field">
+          <label for="mc-clave-actual">Contraseña actual</label>
+          <input id="mc-clave-actual" name="claveActual" [type]="verClaves ? 'text' : 'password'" [(ngModel)]="claveActual" autocomplete="current-password" />
+        </div>
+        <div class="field">
+          <label for="mc-clave-nueva">Nueva contraseña</label>
+          <input id="mc-clave-nueva" name="claveNueva" [type]="verClaves ? 'text' : 'password'" [(ngModel)]="claveNueva" autocomplete="new-password" />
+          <div class="fuerza" [attr.data-nivel]="fuerza()" aria-live="polite">
+            <span></span><span></span><span></span>
+            <small>{{ etiquetasFuerza[fuerza()] }}</small>
+          </div>
+        </div>
+        <div class="field">
+          <label for="mc-clave-repetida">Repite la nueva contraseña</label>
+          <input id="mc-clave-repetida" name="claveRepetida" [type]="verClaves ? 'text' : 'password'" [(ngModel)]="claveRepetida" autocomplete="new-password" />
+        </div>
+        <label class="ver-claves">
+          <input type="checkbox" name="verClaves" [(ngModel)]="verClaves" /> Mostrar contraseñas
+        </label>
+        @if (errorClave()) {
+          <p class="note red" role="alert">{{ errorClave() }}</p>
+        }
+        <div class="bloque-pie">
+          <button type="submit" class="btn btn-primary" [disabled]="guardando() !== null">
+            {{ guardando() === 'clave' ? 'Cambiando…' : 'Cambiar contraseña' }}
+          </button>
+        </div>
+      </form>
+
+      <!-- Usuario -->
+      <form class="card bloque" (ngSubmit)="cambiarUsuario()" autocomplete="off">
+        <h3>Usuario</h3>
+        <p class="muted">Es con lo que inicias sesión. Tu usuario actual es <strong>{{ c.username }}</strong>.</p>
+        <div class="field">
+          <label for="mc-usuario">Nuevo usuario</label>
+          <!-- "new-password" en la clave de este bloque evita que el navegador lo rellene con el login guardado. -->
+          <input id="mc-usuario" name="usuarioNuevo" [(ngModel)]="usuarioNuevo" autocomplete="off" spellcheck="false" />
+        </div>
+        <div class="field">
+          <label for="mc-clave-usuario">Tu contraseña (para confirmar)</label>
+          <input id="mc-clave-usuario" name="claveUsuario" type="password" [(ngModel)]="claveUsuario" autocomplete="new-password" />
+        </div>
+        @if (errorUsuario()) {
+          <p class="note red" role="alert">{{ errorUsuario() }}</p>
+        }
+        <div class="bloque-pie">
+          <button type="submit" class="btn btn-primary" [disabled]="guardando() !== null">
+            {{ guardando() === 'usuario' ? 'Cambiando…' : 'Cambiar usuario' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  } @else if (!error()) {
+    <p class="muted">Cargando tu cuenta…</p>
+  }
+</section>

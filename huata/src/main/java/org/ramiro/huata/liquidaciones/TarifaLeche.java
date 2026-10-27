@@ -28,6 +28,10 @@ public class TarifaLeche extends BaseEntity {
     @Column(nullable = false)
     private Double precioObservada;
 
+    /** S/ por litro de un proveedor Excelencia. NULL en tarifas anteriores a la regla 7.4. */
+    @Column(name = "precio_excelencia")
+    private Double precioExcelencia;
+
     @Column(nullable = false)
     private LocalDate vigenteDesde;
 

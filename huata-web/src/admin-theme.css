@@ -1,0 +1,1309 @@
+/* Identidad de vista-administrador.html. Fuentes incluidas en la referencia, servidas localmente. */
+@font-face {
+  font-family: 'Instrument Sans';
+  src: url('/fonts/instrument-sans.woff2') format('woff2');
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Instrument Serif';
+  src: url('/fonts/instrument-serif.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+:root {
+  --bg: #efece4;
+  --panel: #fffdf8;
+  --panel2: #f5f3ed;
+  --text: #23302b;
+  --muted: #66756d;
+  --line: #dfe2d9;
+  --green: #2f5748;
+  --green2: #437862;
+  --green-soft: #eaf0ec;
+  --brand: #2f5748;
+  --brand-600: #2f5748;
+  --brand-700: #1e3c33;
+  --brand-tint: #eaf0ec;
+  --amber: #8a6430;
+  --amber-soft: #f1e8dc;
+  --red: #9d5244;
+  --red-soft: #f5e7e2;
+  --g50: #f5f3ed;
+  --g100: #efede5;
+  --radius: 14px;
+  --shadow: none;
+}
+body,
+button,
+input,
+select,
+textarea {
+  font-family: 'Instrument Sans', system-ui, sans-serif !important;
+}
+body {
+  background: var(--bg) !important;
+}
+h1,
+h2,
+h3,
+h4 {
+  font-family: 'Instrument Sans', system-ui, sans-serif !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.2px !important;
+}
+.operation-content h1 {
+  font-family: 'Instrument Serif', Georgia, serif !important;
+  font-weight: 400 !important;
+  font-size: 38px;
+  line-height: 1.1;
+  margin: 5px 0 8px;
+}
+.operation-content h2,
+.operation-content h3 {
+  font-size: 16px;
+}
+.operation-content .page-head {
+  align-items: center;
+  margin-bottom: 24px;
+  gap: 14px;
+}
+.operation-content .page-head p {
+  font-size: 12px !important;
+  line-height: 1.65;
+  max-width: 720px;
+}
+.operation-content .kicker {
+  font-size: 9px !important;
+  letter-spacing: 1.7px !important;
+  color: #66756d !important;
+  font-weight: 500;
+}
+.operation-content .card,
+.operation-content .stat,
+.operation-content .kpi,
+.operation-content .tablebox {
+  background: #fffdf8 !important;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: none;
+}
+.operation-content .stat,
+.operation-content .kpi {
+  padding: 18px;
+}
+.operation-content .kpi strong,
+.operation-content .stat > strong {
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-weight: 400;
+  font-size: 34px;
+  display: block;
+  line-height: 1.2;
+  margin: 8px 0;
+}
+.operation-content .kpi span,
+.operation-content .stat > span {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--muted);
+}
+.operation-content .kpi small {
+  font-size: 11px;
+  color: var(--muted);
+}
+.operation-content .table-title {
+  background: transparent !important;
+  margin: 0 0 16px;
+}
+.operation-content table {
+  min-width: 560px;
+}
+.operation-content th {
+  background: #f5f3ed !important;
+  font-size: 10px !important;
+  letter-spacing: 1px !important;
+  padding: 12px 16px;
+}
+.operation-content td {
+  font-size: 12px !important;
+  padding: 13px 16px;
+  border-top: 1px solid #eeece4;
+}
+.operation-content tbody tr:hover {
+  background: #f4f5ee !important;
+}
+.operation-content .tablebox {
+  overflow: auto;
+}
+.operation-content .card:has(> table) {
+  overflow: auto;
+}
+.operation-content .btn {
+  border-radius: 9px;
+  font-size: 12px !important;
+  padding: 10px 14px !important;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+.operation-content .btn-primary {
+  background: #2f5748 !important;
+}
+.operation-content .btn-soft {
+  background: #f0eee6 !important;
+}
+.operation-content input,
+.operation-content select,
+.operation-content textarea {
+  background: #f8f6f0 !important;
+  border: 1px solid #dfe2d9;
+  border-radius: 9px;
+  padding: 10px 12px;
+  font-size: 12px !important;
+  min-width: 0;
+  max-width: 100%;
+}
+.operation-content .field label,
+.operation-content .field > span {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+}
+.operation-content .sec-tabs {
+  border-radius: 11px;
+  border: 1px solid var(--line);
+  background: #fffdf8;
+  padding: 5px;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.operation-content .sec-tab {
+  border-radius: 7px;
+  border: 0;
+  padding: 11px 14px;
+  font-size: 12px;
+  flex: initial;
+}
+.operation-content .sec-tab.active {
+  background: #2f5748 !important;
+  color: #fffdf8 !important;
+}
+.operation-content .note {
+  border-radius: 10px;
+  padding: 12px 15px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.operation-content .error {
+  background: #f5e7e2;
+  color: #8b3f31;
+  padding: 12px 16px;
+  border-radius: 10px;
+}
+.operation-content :focus-visible {
+  outline: 2px solid #437862;
+  outline-offset: 3px;
+}
+@media (max-width: 760px) {
+  .operation-content h1 {
+    font-size: 32px;
+  }
+  .operation-content .page-head {
+    align-items: flex-start;
+  }
+  .operation-content .form-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .operation-content .kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .operation-content .card {
+    padding: 14px;
+  }
+  .operation-content .stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .operation-content .sec-tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+  }
+  .operation-content .sec-tab {
+    white-space: nowrap;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    scroll-behavior: auto !important;
+    transition: none !important;
+  }
+}
+.operation-content .route-editor-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+  margin-top: 12px;
+}
+.operation-content .route-editor-grid.gps-layout {
+  grid-template-columns: minmax(0, 2fr) minmax(320px, 0.8fr);
+}
+.route-editor-grid > div {
+  min-width: 0;
+}
+.operation-content .route-editor-grid table {
+  min-width: 430px;
+}
+@media (max-width: 1000px) {
+  .operation-content .route-editor-grid {
+    grid-template-columns: 1fr;
+  }
+  .operation-content .route-editor-grid.gps-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Flujo territorial (Rutas y mapa > Zonas, acopiador y ruta): lista de zonas a la izquierda y los
+   tres pasos de la zona seleccionada a la derecha. */
+.operation-content .territorio-grid {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.55fr) minmax(0, 2fr);
+  gap: 18px;
+  align-items: start;
+  margin-top: 12px;
+}
+.territorio-grid > * {
+  min-width: 0;
+}
+.zona-lista {
+  display: grid;
+  gap: 8px;
+  max-height: 560px;
+  overflow: auto;
+}
+.zona-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 13px;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.zona-item:hover {
+  background: #f8faf8;
+}
+.zona-item.activa {
+  border-color: #9db9ad;
+  background: #eef4f0;
+  box-shadow: 0 6px 18px rgba(26, 68, 54, 0.08);
+}
+.zona-color {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+}
+.zona-datos {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.zona-datos strong {
+  font-size: 14px;
+}
+.zona-datos small {
+  color: var(--muted);
+  font-size: 11px;
+}
+@media (max-width: 1000px) {
+  .operation-content .territorio-grid {
+    grid-template-columns: 1fr;
+  }
+  .zona-lista {
+    max-height: 260px;
+  }
+}
+.operation-content .planning-costs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  background: #eaf0ec;
+  border: 1px solid #d6e0d6;
+  border-radius: 12px;
+  padding: 20px;
+  margin: 20px 0 12px;
+}
+.planning-costs > div {
+  display: grid;
+  gap: 8px;
+}
+.planning-costs span {
+  font-size: 10px;
+  color: var(--muted);
+}
+.planning-costs strong {
+  font-size: 16px;
+  color: var(--green);
+}
+@media (max-width: 1000px) {
+  .operation-content .planning-costs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Fila del proveedor que se está ubicando en el mapa (Rutas y mapa > paso 3). */
+.operation-content tr.fila-activa > td {
+  background: #eef4f0;
+}
+
+/* ---------------------------------------------------------------------------
+   Editor con mapa (Rutas y mapa: dibujar la zona y el recorrido).
+
+   El mapa va AL COSTADO y fijo. Antes iba debajo de la tabla de puntos, así que
+   cada punto que se añadía lo empujaba más abajo y había que hacer scroll para
+   volver a ver dónde se estaba dibujando — justo mientras se dibujaba.
+   --------------------------------------------------------------------------- */
+.operation-content .editor-mapa {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(380px, 1.15fr);
+  gap: 18px;
+  align-items: start;
+  margin-top: 12px;
+}
+.operation-content .editor-mapa-datos {
+  min-width: 0;
+  display: grid;
+  gap: 14px;
+  align-content: start;
+}
+/* La tabla de puntos no crece sin fin: pasa de ~8 filas y se desplaza dentro de sí misma,
+   de modo que los botones de abajo y el mapa siguen donde estaban. */
+.operation-content .editor-mapa-datos .tablebox {
+  max-height: 420px;
+  overflow: auto;
+}
+.operation-content .editor-mapa-datos table {
+  min-width: 0;
+}
+.operation-content .editor-mapa-datos thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #eef2ee;
+}
+.operation-content .editor-mapa-lienzo {
+  position: sticky;
+  top: 12px;
+  height: 560px;
+  padding: 0;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+/* ---------- Materia prima por unidad (receta) ----------
+   Campos grandes, blancos y con borde marcado: dentro de una tabla, con el tamaño de 12px y el
+   fondo crema del tema, los campos casi no se distinguían de la fila. */
+.operation-content .insumos {
+  margin-top: 20px;
+  display: grid;
+  gap: 12px;
+}
+.operation-content .insumos-cabecera h3 {
+  margin: 0 0 4px;
+  font-size: 17px;
+}
+.operation-content .insumos-cabecera p {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--muted);
+}
+.operation-content .insumo-fila {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1.6fr) minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: start;
+  padding: 16px;
+  background: #fff;
+  border: 1.5px solid #c9d3c8;
+  border-radius: 12px;
+}
+/* Variantes: con una columna más (compras: cantidad + costo) o sin botón de quitar (consumo). */
+.operation-content .insumo-fila.tres-campos {
+  grid-template-columns: 40px minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr) auto;
+}
+.operation-content .insumo-fila.sin-quitar {
+  grid-template-columns: 40px minmax(0, 1.6fr) minmax(0, 1fr);
+}
+/* Nombre fijo (no editable), con el mismo alto que un campo para que la fila quede alineada. */
+.operation-content .insumo-nombre {
+  display: flex;
+  align-items: center;
+  min-height: 46px;
+  padding: 0 14px;
+  background: var(--green-soft);
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+.operation-content .insumos-total {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  align-items: baseline;
+  padding: 14px 16px;
+  background: var(--green-soft);
+  border-radius: 12px;
+  font-size: 15px;
+}
+.operation-content .insumos-total strong {
+  font-size: 20px;
+  color: var(--green);
+}
+.operation-content .insumos-cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.operation-content .insumos-cabecera > div {
+  display: grid;
+  gap: 4px;
+}
+.operation-content .insumo-fila:focus-within {
+  border-color: var(--green2);
+  box-shadow: 0 0 0 3px rgba(67, 120, 98, 0.15);
+}
+.operation-content .insumo-numero {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin-top: 24px;
+  border-radius: 50%;
+  background: var(--green);
+  color: #fff;
+  font-weight: 700;
+  font-size: 15px;
+}
+.operation-content .insumo-campo {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.operation-content .insumo-campo label,
+.operation-content .insumo-etiqueta {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+.operation-content .insumo-fila input {
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 14px;
+  font-size: 15px !important;
+  background: #fff !important;
+  border: 1.5px solid #b3bfb2;
+  border-radius: 10px;
+  color: var(--text);
+}
+.operation-content .insumo-fila .buscador input {
+  padding-right: 40px;
+}
+.operation-content .insumo-fila .buscador-flecha {
+  width: 30px;
+  height: 30px;
+  font-size: 18px;
+}
+.operation-content .insumo-fila input:focus {
+  outline: none;
+  border-color: var(--green2);
+  box-shadow: 0 0 0 3px rgba(67, 120, 98, 0.18);
+}
+.operation-content .insumo-fila input::placeholder {
+  color: #8a948c;
+}
+.operation-content .insumo-con-unidad {
+  display: flex;
+  align-items: stretch;
+}
+.operation-content .insumo-con-unidad input {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.operation-content .insumo-unidad {
+  display: grid;
+  place-items: center;
+  min-width: 78px;
+  padding: 0 12px;
+  background: var(--green-soft);
+  border: 1.5px solid #b3bfb2;
+  border-left: 0;
+  border-radius: 0 10px 10px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--green);
+}
+.operation-content .insumo-ejemplo {
+  font-size: 12.5px;
+  color: var(--green2);
+}
+.operation-content .insumo-quitar {
+  margin-top: 24px;
+  min-height: 46px;
+  padding: 0 16px;
+  border: 1.5px solid #e2c3bb;
+  border-radius: 10px;
+  background: #fff;
+  color: var(--red, #a15344);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.operation-content .insumo-quitar:hover:not(:disabled) {
+  background: #fbefeb;
+}
+.operation-content .insumo-quitar:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.operation-content .insumo-agregar {
+  min-height: 52px;
+  border: 2px dashed #9fb5a8;
+  border-radius: 12px;
+  background: #fbfcfa;
+  color: var(--green);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.operation-content .insumo-agregar:hover {
+  background: var(--green-soft);
+  border-color: var(--green2);
+}
+@media (max-width: 760px) {
+  .operation-content .insumo-fila,
+  .operation-content .insumo-fila.tres-campos,
+  .operation-content .insumo-fila.sin-quitar {
+    grid-template-columns: 36px minmax(0, 1fr);
+  }
+  .operation-content .insumo-fila > .insumo-campo ~ .insumo-campo,
+  .operation-content .insumo-quitar {
+    grid-column: 2;
+  }
+  .operation-content .insumo-quitar {
+    margin-top: 0;
+    justify-self: start;
+  }
+  .operation-content .insumo-numero {
+    margin-top: 24px;
+  }
+}
+
+/* Las columnas de coordenadas se alinean entre sí y no bailan al escribir. */
+.operation-content .editor-mapa-datos td.num input[type='number'] {
+  width: 100%;
+  min-width: 110px;
+  text-align: right;
+}
+.operation-content .editor-mapa-datos th.num,
+.operation-content .editor-mapa-datos td.num {
+  text-align: right;
+  white-space: nowrap;
+}
+.operation-content .editor-mapa-datos td .actions {
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+}
+@media (max-width: 1100px) {
+  .operation-content .editor-mapa {
+    grid-template-columns: 1fr;
+  }
+  .operation-content .editor-mapa-lienzo {
+    position: static;
+    height: 420px;
+  }
+  .operation-content .editor-mapa-datos .tablebox {
+    max-height: none;
+  }
+}
+
+/* =====================================================================================
+   Pantallas amigables (Recetas y productos, Produccion): pensadas para quien no conoce la
+   jerga del sistema. Letra mas grande, pasos numerados, botones con texto claro y tarjetas en
+   lugar de tablas donde se trata de entender, no de comparar filas.
+   ===================================================================================== */
+.operation-content .amigable {
+  font-size: 15px;
+}
+.operation-content .amigable a {
+  color: var(--green2);
+  font-weight: 600;
+}
+.operation-content .amigable .page-head p {
+  font-size: 16px;
+}
+
+/* Guia de pasos */
+.operation-content .guia-pasos {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+.operation-content .guia-pasos li {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 14px 16px;
+  background: #fff;
+  border: 1.5px solid #c9d3c8;
+  border-radius: 14px;
+}
+.operation-content .guia-pasos li.hecho {
+  border-color: #8fc2a2;
+  background: #f3faf5;
+}
+.operation-content .guia-pasos li.hecho .guia-num {
+  background: var(--green2);
+}
+.operation-content .guia-pasos b {
+  display: block;
+  font-size: 15.5px;
+}
+.operation-content .guia-pasos small {
+  font-size: 13px;
+  color: var(--muted);
+}
+.operation-content .guia-num {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--green);
+  color: #fff;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.operation-content .ayuda-nota {
+  margin: 0 0 16px;
+  padding: 12px 16px;
+  background: #f4f7f2;
+  border-left: 4px solid var(--green2);
+  border-radius: 10px;
+  font-size: 14.5px;
+}
+
+/* Mensajes grandes: verde = hecho, rojo = hay que corregir algo, ambar = atencion. */
+.operation-content .mensaje {
+  margin: 0 0 16px;
+  padding: 14px 18px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+}
+.operation-content .mensaje-ok {
+  background: #e3f1e8;
+  border: 1.5px solid #8fc2a2;
+  color: #1f5a3a;
+}
+.operation-content .mensaje-error {
+  background: #fbeae6;
+  border: 1.5px solid #e0a595;
+  color: #8a3222;
+}
+.operation-content .mensaje-aviso {
+  background: #fdf3de;
+  border: 1.5px solid #e2c37f;
+  color: #6b4d10;
+}
+
+/* Bloques (secciones grandes) */
+.operation-content .bloque {
+  margin-bottom: 20px;
+  padding: 20px;
+  background: #fffdf8;
+  border: 1.5px solid #dcdfd4;
+  border-radius: 16px;
+}
+.operation-content .bloque-cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.operation-content .bloque-cabecera h2 {
+  margin: 0 0 4px;
+  font-size: 21px;
+}
+.operation-content .bloque-cabecera p {
+  margin: 0;
+  font-size: 15px;
+  color: var(--muted);
+}
+.operation-content .paso-titulo {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+/* Botones */
+.operation-content .boton-grande,
+.operation-content .boton-secundario,
+.operation-content .boton-texto {
+  min-height: 46px;
+  padding: 0 20px;
+  border-radius: 11px;
+  font-size: 15px !important;
+  font-weight: 600;
+  cursor: pointer;
+}
+.operation-content .boton-grande {
+  background: var(--green);
+  color: #fff;
+  border: 0;
+}
+.operation-content .boton-grande:hover:not(:disabled) {
+  background: var(--green2);
+}
+.operation-content .boton-secundario {
+  background: #fff;
+  color: var(--green);
+  border: 1.5px solid #9fb5a8;
+}
+.operation-content .boton-secundario:hover:not(:disabled) {
+  background: var(--green-soft);
+}
+.operation-content .boton-texto {
+  background: transparent;
+  border: 0;
+  color: var(--muted);
+  text-decoration: underline;
+  padding: 0 8px;
+}
+.operation-content .boton-grande:disabled,
+.operation-content .boton-secundario:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.operation-content .botonera {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+/* Campos de formulario grandes */
+.operation-content .campos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+.operation-content .campo {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+  min-width: 0;
+}
+.operation-content .campo-ancho {
+  grid-column: 1 / -1;
+}
+.operation-content .campo label,
+.operation-content .campo .campo-etiqueta {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--text);
+}
+.operation-content .campo small {
+  font-size: 13px;
+  color: var(--muted);
+}
+.operation-content .campo .opcional {
+  font-weight: 400;
+  color: var(--muted);
+}
+.operation-content .amigable .campo input,
+.operation-content .amigable .campo select {
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 14px;
+  font-size: 15.5px !important;
+  background: #fff !important;
+  border: 1.5px solid #b3bfb2;
+  border-radius: 10px;
+  color: var(--text);
+}
+.operation-content .amigable .campo .buscador input {
+  padding-right: 40px;
+}
+.operation-content .amigable .campo input:focus,
+.operation-content .amigable .campo select:focus {
+  outline: none;
+  border-color: var(--green2);
+  box-shadow: 0 0 0 3px rgba(67, 120, 98, 0.18);
+}
+.operation-content .campo-destacado input {
+  font-size: 20px !important;
+  font-weight: 700;
+}
+.operation-content .panel-formulario {
+  margin-bottom: 18px;
+  padding: 18px;
+  background: #fff;
+  border: 2px solid var(--green2);
+  border-radius: 14px;
+}
+.operation-content .panel-formulario h3 {
+  margin: 0 0 14px;
+  font-size: 18px;
+}
+.operation-content .opcionales {
+  margin-top: 18px;
+  padding: 12px 16px;
+  background: #fff;
+  border: 1.5px dashed #c9d3c8;
+  border-radius: 12px;
+}
+.operation-content .opcionales summary {
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--green);
+}
+.operation-content .opcionales[open] summary {
+  margin-bottom: 14px;
+}
+
+/* Tarjetas de producto */
+.operation-content .tarjetas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 14px;
+}
+.operation-content .tarjeta-producto {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+  padding: 18px;
+  background: #fff;
+  border: 1.5px solid #c9d3c8;
+  border-radius: 14px;
+}
+.operation-content .tarjeta-producto.inactivo {
+  background: #f6f5f1;
+  opacity: 0.8;
+}
+.operation-content .tarjeta-producto header {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: flex-start;
+}
+.operation-content .tarjeta-producto h3 {
+  margin: 0;
+  font-size: 19px;
+}
+.operation-content .tarjeta-producto header small {
+  font-size: 13.5px;
+  color: var(--muted);
+}
+.operation-content .tarjeta-producto .descripcion {
+  margin: 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+.operation-content .tarjeta-producto footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.operation-content .estado {
+  flex: none;
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: #ecebe6;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.operation-content .estado.estado-ok {
+  background: #dcefe3;
+  color: #1f5a3a;
+}
+.operation-content .estado.estado-falta {
+  background: #fbeae6;
+  color: #8a3222;
+}
+.operation-content .estado.estado-limita {
+  background: #fdf3de;
+  color: #6b4d10;
+}
+
+/* Produccion: cuanto alcanza con lo que hay en el almacen */
+.operation-content .pestanas-produccion {
+  display: flex;
+  margin: 0 0 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.operation-content .pestanas-produccion .sec-tab {
+  flex: 1;
+  min-height: 48px;
+  font-size: 15px;
+  font-weight: 600;
+}
+.operation-content .accion-principal {
+  margin: 0 0 18px;
+}
+.operation-content .panel-registro {
+  display: grid;
+  gap: 16px;
+  border: 2px solid var(--green2);
+  background: #fff;
+}
+.operation-content .panel-registro .bloque-cabecera {
+  margin-bottom: 0;
+  align-items: center;
+}
+.operation-content .capacidad {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  padding: 14px 18px;
+  background: #e3f1e8;
+  border-radius: 12px;
+  color: #1f5a3a;
+}
+.operation-content .capacidad.capacidad-cero {
+  background: #fbeae6;
+  color: #8a3222;
+}
+.operation-content .capacidad-numero {
+  font-size: 34px;
+  line-height: 1;
+}
+.operation-content .capacidad-texto {
+  font-size: 16px;
+  font-weight: 600;
+}
+.operation-content .limitante {
+  margin: -6px 0 0;
+  font-size: 14.5px;
+}
+.operation-content .insumos-estado {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.operation-content .insumos-estado li {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  grid-template-areas: 'icono nombre estado' 'icono dato estado';
+  align-items: center;
+  column-gap: 10px;
+  padding: 10px 14px;
+  background: #fff;
+  border: 1.5px solid #c9d3c8;
+  border-radius: 12px;
+}
+.operation-content .insumos-estado li.insumo-limita {
+  border-color: #e2c37f;
+}
+.operation-content .insumos-estado li.insumo-falta {
+  border-color: #e0a595;
+  background: #fffaf8;
+}
+.operation-content .insumo-icono {
+  grid-area: icono;
+  font-size: 20px;
+  font-weight: 700;
+  text-align: center;
+}
+.operation-content .insumo-alcanza .insumo-icono {
+  color: #1f5a3a;
+}
+.operation-content .insumo-limita .insumo-icono {
+  color: #a8791c;
+}
+.operation-content .insumo-falta .insumo-icono {
+  color: #8a3222;
+}
+/* Anula la caja de .insumo-nombre de la receta: aqui el nombre es una linea de texto. */
+.operation-content .insumos-estado .insumo-nombre {
+  grid-area: nombre;
+  display: block;
+  min-height: 0;
+  padding: 0;
+  background: none;
+  font-size: 15.5px;
+  font-weight: 600;
+}
+.operation-content .insumos-estado .insumo-dato {
+  grid-area: dato;
+}
+.operation-content .insumos-estado .estado {
+  grid-area: estado;
+}
+.operation-content .aviso-accion {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0;
+}
+.operation-content .cantidad-fila {
+  display: flex;
+  gap: 10px;
+}
+.operation-content .cantidad-fila input {
+  flex: 1;
+  min-width: 0;
+}
+.operation-content .texto-falta,
+.operation-content .campo small.texto-falta {
+  color: #8a3222;
+  font-weight: 600;
+}
+.operation-content .descuento {
+  padding: 12px 16px;
+  background: var(--green-soft);
+  border-radius: 12px;
+}
+.operation-content .descuento ul {
+  margin: 6px 0;
+  padding-left: 20px;
+  line-height: 1.7;
+}
+.operation-content .costo-aprox {
+  color: var(--muted);
+  font-size: 13.5px;
+}
+.operation-content .detalle-lote {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px 16px;
+  margin: 0;
+}
+.operation-content .detalle-lote dt {
+  font-size: 12px;
+  color: var(--muted);
+}
+.operation-content .detalle-lote dd {
+  margin: 0;
+  font-weight: 600;
+}
+@media (max-width: 640px) {
+  .operation-content .accion-principal .boton-grande,
+  .operation-content .panel-registro .botonera .boton-grande {
+    width: 100%;
+    min-height: 54px;
+    font-size: 17px !important;
+  }
+  .operation-content .capacidad-numero {
+    font-size: 30px;
+  }
+}
+.operation-content .receta-resumen {
+  padding: 12px 14px;
+  background: var(--green-soft);
+  border-radius: 10px;
+}
+.operation-content .receta-titulo {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--green);
+}
+.operation-content .receta-resumen ul {
+  margin: 6px 0 0;
+  padding-left: 20px;
+  font-size: 15px;
+  line-height: 1.6;
+}
+.operation-content .receta-falta {
+  padding: 12px 14px;
+  background: #fdf3de;
+  border: 1.5px solid #e2c37f;
+  border-radius: 10px;
+  color: #6b4d10;
+  font-size: 14px;
+  font-weight: 600;
+}
+.operation-content .receta-futura {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--green2);
+}
+.operation-content .vacio {
+  color: var(--muted);
+  font-size: 15px;
+}
+.operation-content .editor-receta {
+  border: 2px solid var(--green2);
+  background: #fbfdfb;
+  scroll-margin-top: 16px;
+}
+.operation-content .historial summary {
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--green);
+}
+.operation-content .insumo-fila.con-alerta {
+  border-color: #e0a595;
+}
+.operation-content .insumo-alerta {
+  color: #8a3222;
+  font-size: 13px;
+  font-weight: 600;
+}
+.operation-content .insumo-dato {
+  font-size: 13.5px;
+  color: var(--muted);
+}
+.operation-content .insumo-dato b {
+  color: var(--text);
+}
+.operation-content .insumo-dato.falta b {
+  color: #8a3222;
+}
+.operation-content .fila-agregar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+  margin-bottom: 14px;
+}
+.operation-content .fila-agregar .campo {
+  flex: 1 1 260px;
+}
+.operation-content .lista-personas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.operation-content .lista-personas li:not(.vacio) {
+  padding: 8px 14px;
+  background: #fff;
+  border: 1.5px solid #c9d3c8;
+  border-radius: 999px;
+  font-size: 14.5px;
+}
+
+/* Resumen final (produccion) */
+.operation-content .resumen-final {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+.operation-content .resumen-final > div {
+  padding: 14px 16px;
+  background: #fff;
+  border: 1.5px solid #dcdfd4;
+  border-radius: 12px;
+}
+.operation-content .resumen-final span {
+  display: block;
+  font-size: 13.5px;
+  color: var(--muted);
+}
+.operation-content .resumen-final strong {
+  font-size: 21px;
+  color: var(--green);
+}
+.operation-content .resumen-final .principal {
+  background: var(--green);
+  border-color: var(--green);
+}
+.operation-content .resumen-final .principal span,
+.operation-content .resumen-final .principal strong {
+  color: #fff;
+}
+
+/* Opciones Sí/No grandes (Reglas de la leche). */
+.operation-content .opcion-radio {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1.5px solid #c9d3c8;
+  border-radius: 10px;
+  background: #fff;
+  font-size: 15px;
+  cursor: pointer;
+}
+.operation-content .opcion-radio input {
+  width: 20px;
+  height: 20px;
+  min-height: 0 !important;
+}
+
+/* Selector "Ver recorrido como" y leyenda del mapa de seguimiento GPS. */
+.operation-content .recorrido-opciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  margin: 0 0 12px;
+}
+.operation-content .recorrido-opciones-titulo {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.operation-content .recorrido-opciones .sec-tab {
+  font-size: 13px !important;
+  min-height: 36px;
+  padding: 0 16px;
+}
+.operation-content .recorrido-leyenda {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.operation-content .recorrido-leyenda i {
+  display: inline-block;
+  width: 22px;
+  height: 4px;
+  border-radius: 2px;
+  margin-left: 8px;
+}
+.operation-content .recorrido-leyenda .ley-real {
+  background: #2f6fc4;
+}
+.operation-content .recorrido-leyenda .ley-plan {
+  background: #437862;
+}
+
+.acciones-fila{display:flex;align-items:center;justify-content:flex-end;gap:8px;white-space:nowrap}.accion-icono{display:inline-grid;place-items:center;width:34px;height:34px;border:1px solid #85ad97;border-radius:8px;background:#fff;color:#245a43;font-size:18px;line-height:1;font-weight:700;cursor:pointer}.accion-icono:hover{background:#edf6f0}.accion-eliminar{border-color:#d9aaa4;color:#a64038}.accion-icono:disabled{opacity:.45;cursor:not-allowed}.acciones-fila input,.acciones-fila select{min-width:80px}

@@ -1,0 +1,125 @@
+/* Notificaciones rápidas: pequeñas, arriba a la derecha (abajo está el botón de mensajería),
+   sin bloquear lo que hay detrás. Colores del sistema: verde éxito, rojo error, ámbar aviso,
+   azul información. */
+:host {
+  --exito: #2f7a52;
+  --error: #b3412e;
+  --aviso: #a86f12;
+  --info: #2f6496;
+}
+.pila {
+  position: fixed;
+  top: 62px;
+  right: 16px;
+  z-index: 1100;
+  display: grid;
+  gap: 8px;
+  width: min(360px, calc(100vw - 32px));
+  pointer-events: none;
+}
+.toast {
+  pointer-events: auto;
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) 24px;
+  align-items: start;
+  gap: 10px;
+  padding: 10px 10px 10px 12px;
+  background: #fff;
+  border: 1px solid #dfe6e0;
+  border-left: 4px solid var(--color);
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(20, 40, 30, 0.12);
+  color: #23302b;
+  font-size: 13px;
+  line-height: 1.4;
+  animation: entrar 0.18s ease-out;
+}
+.toast-exito {
+  --color: var(--exito);
+}
+.toast-error {
+  --color: var(--error);
+}
+.toast-aviso {
+  --color: var(--aviso);
+}
+.toast-info {
+  --color: var(--info);
+}
+.icono {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  border-radius: 50%;
+  background: var(--color);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+p {
+  margin: 1px 0 0;
+  overflow-wrap: anywhere;
+}
+.veces {
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: 4px;
+  background: #eef2ef;
+  color: #55665c;
+  font-size: 11px;
+  font-weight: 600;
+}
+.cerrar {
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #6b7b70;
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+}
+.cerrar:hover {
+  background: #f1f4f1;
+}
+.cerrar:focus-visible {
+  outline: 2px solid var(--color);
+  outline-offset: 1px;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+@keyframes entrar {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation: none;
+  }
+}
+@media (max-width: 760px) {
+  .pila {
+    top: 58px;
+    right: 8px;
+    left: 8px;
+    width: auto;
+  }
+  .cerrar {
+    width: 36px;
+    height: 36px;
+  }
+  .toast {
+    grid-template-columns: 22px minmax(0, 1fr) 36px;
+  }
+}

@@ -1,0 +1,126 @@
+/* Solo lo propio de esta pantalla; botones, campos y tablas vienen del sistema global. */
+
+/* Franja de resumen: un tipo de leche por columna, con su color, precio y destino. */
+.niveles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+.nivel {
+  display: grid;
+  gap: 2px;
+  padding: 12px 14px;
+  border-left: 3px solid var(--color);
+}
+.nivel + .nivel {
+  border-top: 0;
+}
+.nivel-buena {
+  --color: #3f8a5f;
+}
+.nivel-observada {
+  --color: #c9952f;
+}
+.nivel-rechazada {
+  --color: #b5503d;
+}
+.nivel-excelencia {
+  --color: #437862;
+  background: #f7faf7;
+}
+.nivel-nombre {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color);
+}
+.nivel strong {
+  font-size: 20px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.nivel small {
+  font-size: 12px;
+  color: var(--muted);
+}
+.resumen-pie {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 16px;
+  padding: 8px 14px;
+  border-top: 1px solid var(--line);
+  font-size: 12.5px;
+}
+.resumen {
+  margin-bottom: 14px;
+}
+
+/* Dos paneles lado a lado en escritorio, uno debajo del otro en pantallas chicas. */
+.columnas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr));
+  gap: 14px;
+  align-items: start;
+}
+.panel {
+  padding: 14px 16px;
+}
+.panel-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.panel-cabecera h2 {
+  margin: 0;
+}
+.panel-pie {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.regla {
+  display: grid;
+  gap: 6px;
+  padding: 10px 0;
+  border-top: 1px solid #edf1ed;
+}
+.regla:first-of-type {
+  border-top: 0;
+  padding-top: 0;
+}
+.regla small {
+  font-size: 12px;
+  color: var(--muted);
+}
+.opciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.con-unidad {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+.con-unidad input {
+  width: 80px;
+}
+
+.codigo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 6px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.codigo .field {
+  width: 150px;
+}

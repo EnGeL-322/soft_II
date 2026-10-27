@@ -1,118 +1,173 @@
-<header class="operation-header">
-  <a class="operation-brand" routerLink="/dashboard"
-    ><span>HL</span>
-    <div>
-      <strong>Huata Lácteos · Control</strong
-      ><small>Acopio · calidad · pagos · reportes · Excel</small>
-    </div></a
-  >
-  <div class="header-tools">
-    <div class="search-container">
-      <form class="global-search" (ngSubmit)="buscar()">
-        <button type="submit" aria-label="Buscar" [disabled]="buscando">⌕</button
-        ><input
-          name="busqueda"
-          [(ngModel)]="consulta"
-          placeholder="Buscar proveedor, código, recepción…"
-          aria-label="Buscar proveedor, código o recepción"
-        /><button
-          type="button"
-          aria-label="Limpiar búsqueda"
-          (click)="consulta = ''; resultadosBusqueda = null; errorBusqueda = ''"
-        >
-          ×
-        </button>
-      </form>
-      @if (buscando || resultadosBusqueda !== null || errorBusqueda) {
-        <div class="search-results" aria-live="polite">
-          @if (buscando) {
-            <p>Buscando…</p>
-          }
-          @if (errorBusqueda) {
-            <p>{{ errorBusqueda }}</p>
-          }
-          @if (resultadosBusqueda; as resultados) {
-            <strong>{{ resultados.length }} recepciones encontradas</strong>
-            @for (r of resultados.slice(0, 8); track r.recojoId) {
-              <a routerLink="/trazabilidad" (click)="resultadosBusqueda = null"
-                ><b>{{ r.productorCodigo }} · {{ r.productorNombre }}</b
-                ><small
-                  >Recepción #{{ r.recojoId }} · {{ r.rutaNombre || 'Sin ruta' }} ·
-                  {{ r.litros }} L</small
-                ></a
-              >
-            } @empty {
-              <p>No hay coincidencias.</p>
-            }
-          }
-        </div>
-      }
-    </div>
-    <div class="role-label">
-      <small>ROL ACTIVO</small><strong>{{ rol }}</strong>
-    </div>
-    <div class="notifications">
+<a class="skip-link" href="#contenido">Saltar al contenido</a>
+<div class="operation-layout" [class.sidebar-contraida]="contraido()">
+  <aside class="operation-sidebar" aria-label="Menú principal" [class.menu-open]="menuAbierto()">
+    <div class="sidebar-top">
+      <a
+        class="operation-brand"
+        [routerLink]="inicio() ? '/dashboard' : '/' + (resultados()[0]?.ruta ?? 'portal')"
+        (click)="navegar()"
+        title="Huata Lácteos"
+        ><span aria-hidden="true">H</span><strong>Huata</strong></a
+      >
       <button
         type="button"
-        class="notification-toggle"
-        aria-label="Notificaciones"
-        [attr.aria-expanded]="mostrarNotificaciones()"
-        (click)="alternarNotificaciones()"
+        class="sidebar-collapse"
+        (click)="alternarContraido()"
+        [attr.aria-label]="contraido() ? 'Expandir menú' : 'Contraer menú'"
+        [title]="contraido() ? 'Expandir menú' : 'Contraer menú'"
+        [attr.aria-pressed]="contraido()"
       >
-        <svg
-          viewBox="0 0 24 24"
-          width="23"
-          height="23"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.6"
-          aria-hidden="true"
-        >
-          <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z" />
-          <path d="M10 21h4" />
-        </svg>
-        @if (noLeidas() > 0) {
-          <span>{{ noLeidas() }}</span>
-        }
+        <app-icono [nombre]="contraido() ? 'expandir' : 'contraer'" [tamano]="16" />
       </button>
-      @if (mostrarNotificaciones()) {
-        <div class="notification-panel">
-          <strong>Notificaciones</strong>
-          @for (n of notificaciones(); track n.id) {
-            <button type="button" (click)="abrirNotificacion(n)">
-              <b>{{ n.titulo }} {{ !n.leida ? '· nueva' : '' }}</b
-              ><small>{{ n.mensaje }}</small>
-            </button>
-          } @empty {
-            <p>Sin notificaciones.</p>
-          }
-        </div>
-      }
     </div>
-    <a class="public-exit" routerLink="/portal">Panel público</a
-    ><button class="logout" type="button" (click)="auth.logout()">Salir</button>
-  </div>
-</header>
-<div class="operation-layout">
-  <aside class="operation-sidebar" aria-label="Menú de módulos">
-    <div class="session-card">
-      <small>Sesión activa</small><strong>{{ rol }}</strong>
-      <p>{{ auth.nombreCompleto() }}</p>
-      <p>Control de acopio, calidad y seguimiento de la operación.</p>
+    <div class="menu-search">
+      <label for="buscar-seccion" class="sr-only">Buscar una sección</label>
+      <app-icono class="menu-search-icono" nombre="buscar" [tamano]="15" />
+      <input
+        id="buscar-seccion"
+        type="search"
+        [ngModel]="busquedaMenu()"
+        (ngModelChange)="busquedaMenu.set($event)"
+        placeholder="Buscar sección…"
+        autocomplete="off"
+      />
     </div>
-    @for (grupo of grupos; track grupo.nombre) {
-      @if (items(grupo.rutas).length) {
-        <div class="nav-group">
-          <h2>{{ grupo.nombre }}</h2>
-          @for (item of items(grupo.rutas); track item.ruta) {
-            <a [routerLink]="'/' + item.ruta" routerLinkActive="selected"
-              ><span>{{ item.icono }}</span
-              >{{ item.etiqueta }}</a
-            >
-          }
-        </div>
+    <nav id="menu-modulos" aria-label="Secciones">
+      @if (inicio(); as item) {
+        <a
+          class="nav-link"
+          [routerLink]="'/' + item.ruta"
+          routerLinkActive="selected"
+          ariaCurrentWhenActive="page"
+          [attr.title]="contraido() ? 'Inicio' : null"
+          (click)="navegar()"
+          ><app-icono class="nav-icon" [nombre]="item.icono" /><span class="nav-text"
+            >Inicio</span
+          ></a
+        >
       }
-    }
+      @for (grupo of grupos; track grupo) {
+        @if (items(grupo).length) {
+          <div class="nav-group" role="group" [attr.aria-labelledby]="'grupo-' + $index">
+            <span class="nav-group-title" [id]="'grupo-' + $index">{{ grupo }}</span>
+            @for (item of items(grupo); track item.ruta) {
+              <a
+                class="nav-link"
+                [routerLink]="'/' + item.ruta"
+                routerLinkActive="selected"
+                ariaCurrentWhenActive="page"
+                [attr.title]="contraido() ? etiquetaDe(item) : null"
+                (click)="navegar()"
+                ><app-icono class="nav-icon" [nombre]="item.icono" /><span class="nav-text">{{
+                  etiquetaDe(item)
+                }}</span></a
+              >
+              @if (subitemsDe(item).length > 1 && muestraSubitems(item)) {
+                <div class="nav-sub" role="group" [attr.aria-label]="etiquetaDe(item)">
+                  @for (sub of subitemsDe(item); track sub.vista) {
+                    <a
+                      class="nav-sublink"
+                      [routerLink]="'/' + item.ruta"
+                      [queryParams]="{ vista: sub.vista }"
+                      [class.sub-activo]="
+                        seccionActual()?.ruta === item.ruta && subitemActual() === sub
+                      "
+                      [attr.aria-current]="
+                        seccionActual()?.ruta === item.ruta && subitemActual() === sub
+                          ? 'page'
+                          : null
+                      "
+                      [attr.title]="contraido() ? sub.etiqueta : null"
+                      (click)="navegar()"
+                      ><app-icono class="nav-icon" [nombre]="sub.icono" [tamano]="14" /><span
+                        class="nav-text"
+                        >{{ sub.etiqueta }}</span
+                      ></a
+                    >
+                  }
+                </div>
+              }
+            }
+          </div>
+        }
+      }
+      @if (busquedaMenu().trim() && !resultados().length) {
+        <p class="menu-empty" role="status">No encontramos esa sección. Prueba con otra palabra.</p>
+      }
+    </nav>
+    <div class="sidebar-footer">
+      <a routerLink="/portal" [attr.title]="contraido() ? 'Portal público' : null"
+        ><app-icono nombre="externo" [tamano]="15" /><span class="nav-text">Portal público</span></a
+      >
+    </div>
   </aside>
-  <main class="operation-content"><router-outlet /></main>
+  @if (menuAbierto()) {
+    <button
+      class="menu-backdrop"
+      type="button"
+      aria-label="Cerrar menú"
+      (click)="menuAbierto.set(false)"
+    ></button>
+  }
+  <div class="operation-main">
+    <header class="operation-header">
+      <button
+        type="button"
+        class="menu-toggle"
+        (click)="menuAbierto.set(!menuAbierto())"
+        [attr.aria-expanded]="menuAbierto()"
+        aria-controls="menu-modulos"
+        aria-label="Abrir menú"
+      >
+        <app-icono nombre="menu" [tamano]="20" />
+      </button>
+      <div class="workspace-label">
+        @if (seccionActual(); as item) {
+          @if (item.ruta !== 'dashboard') {
+            <span>{{ item.grupo }}</span
+            ><span class="workspace-sep" aria-hidden="true">/</span>
+          }
+          @if (subitemActual(); as sub) {
+            <span>{{ etiquetaDe(item) }}</span
+            ><span class="workspace-sep" aria-hidden="true">/</span>
+            <strong>{{ sub.etiqueta }}</strong>
+          } @else {
+            <strong>{{ etiquetaDe(item) }}</strong>
+          }
+        } @else if (urlActual().startsWith('/mi-cuenta')) {
+          <strong>Mi cuenta</strong>
+        }
+      </div>
+      <div class="header-tools">
+        <span
+          class="en-vivo"
+          [class.en-vivo-activo]="estadoEnVivo() === 'conectado'"
+          role="status"
+          [title]="
+            estadoEnVivo() === 'conectado'
+              ? 'En vivo: lo que guarde cualquier persona aparece aquí al momento'
+              : 'Reconectando… mientras tanto, la pantalla no se actualiza sola'
+          "
+          ><span class="en-vivo-punto" aria-hidden="true"></span
+          ><span class="en-vivo-texto">{{
+            estadoEnVivo() === 'conectado' ? 'En vivo' : 'Reconectando…'
+          }}</span></span
+        >
+        <a
+          class="user-link"
+          routerLink="/mi-cuenta"
+          routerLinkActive="activo"
+          title="Mi cuenta: datos, contraseña y usuario"
+          ><span class="user-avatar" aria-hidden="true">{{ iniciales }}</span
+          ><span class="user-name"
+            >{{ auth.nombreCompleto() }}<small>{{ rol }}</small></span
+          ></a
+        ><button class="logout" type="button" (click)="auth.logout()" title="Cerrar sesión">
+          <app-icono nombre="salir" [tamano]="15" /><span class="logout-text">Salir</span>
+        </button>
+      </div>
+    </header>
+    <main id="contenido" class="operation-content" tabindex="-1"><router-outlet /></main>
+  </div>
 </div>
+<app-mensajeria-flotante />

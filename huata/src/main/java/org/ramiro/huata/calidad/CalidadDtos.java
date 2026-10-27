@@ -11,8 +11,16 @@ record ParametroCalidadResponse(Long id, String nombre, Double valorMin, Double 
     }
 }
 
+/**
+ * Un control cuelga de un recojo (recojoId) o, si el testeador se adelanto al acopiador, de un
+ * proveedor (productorId) a la espera de que el acopiador registre el recojo. Uno de los dos es
+ * obligatorio; lo valida CalidadService.
+ */
 record ControlCalidadRequest(
-        @NotNull Long recojoId,
+        Long recojoId,
+        Long productorId,
+        LugarAnalisis lugarAnalisis,
+        Instant fechaHora,
         Double densidad,
         Double puntoCongelacion,
         Double acidez,
@@ -35,6 +43,9 @@ record ControlCalidadResponse(
         Long recojoId,
         Long productorId,
         String productorNombre,
+        String productorCodigo,
+        LugarAnalisis lugarAnalisis,
+        Instant fechaHora,
         Double densidad,
         Double puntoCongelacion,
         Double acidez,
@@ -51,14 +62,20 @@ record ControlCalidadResponse(
         Olor olor,
         Aspecto aspecto,
         String motivoRechazo,
-        Instant fecha) {
+        Instant fecha,
+        String aprobadoPor,
+        Instant aprobadoEn,
+        String advertencia) {
 
     static ControlCalidadResponse from(ControlCalidad c) {
         return new ControlCalidadResponse(
                 c.getId(),
-                c.getRecojo().getId(),
-                c.getRecojo().getProductor().getId(),
-                c.getRecojo().getProductor().getNombres() + " " + c.getRecojo().getProductor().getApellidos(),
+                c.getRecojo() != null ? c.getRecojo().getId() : null,
+                c.proveedor().getId(),
+                c.proveedor().getNombres() + " " + c.proveedor().getApellidos(),
+                c.proveedor().getCodigo(),
+                c.getLugarAnalisis(),
+                c.getFechaHora(),
                 c.getDensidad(),
                 c.getPuntoCongelacion(),
                 c.getAcidez(),
@@ -75,7 +92,10 @@ record ControlCalidadResponse(
                 c.getOlor(),
                 c.getAspecto(),
                 c.getMotivoRechazo(),
-                c.getCreatedAt());
+                c.getCreatedAt(),
+                c.getAprobadoPor(),
+                c.getAprobadoEn(),
+                c.getAdvertencia());
     }
 }
 
@@ -109,7 +129,25 @@ record CambiarEstadoIncidenciaRequest(@NotNull EstadoIncidencia estado) {}
 
 record EvidenciaCalidadRequest(Long controlCalidadId, Long incidenciaId, @NotNull TipoEvidencia tipo, @NotNull String urlArchivo) {}
 
-record EvidenciaCalidadResponse(Long id, Long controlCalidadId, Long incidenciaId, TipoEvidencia tipo, String urlArchivo, EstadoEvidencia estado) {
+/**
+ * {@code tieneArchivo} indica que la foto esta en el almacen propio y se descarga por
+ * {@code urlArchivo} con el mismo token. No se devuelve la clave interna del almacen.
+ */
+record EvidenciaCalidadResponse(
+        Long id,
+        Long controlCalidadId,
+        Long incidenciaId,
+        TipoEvidencia tipo,
+        String urlArchivo,
+        EstadoEvidencia estado,
+        boolean tieneArchivo,
+        String tipoContenido,
+        Long tamanoBytes,
+        String textoOcr,
+        String valoresOcr,
+        Double confianzaOcr,
+        String verificadoPor,
+        Instant fecha) {
     static EvidenciaCalidadResponse from(EvidenciaCalidad e) {
         return new EvidenciaCalidadResponse(
                 e.getId(),
@@ -117,6 +155,14 @@ record EvidenciaCalidadResponse(Long id, Long controlCalidadId, Long incidenciaI
                 e.getIncidencia() != null ? e.getIncidencia().getId() : null,
                 e.getTipo(),
                 e.getUrlArchivo(),
-                e.getEstado());
+                e.getEstado(),
+                e.getClaveArchivo() != null,
+                e.getTipoContenido(),
+                e.getTamanoBytes(),
+                e.getTextoOcr(),
+                e.getValoresOcr(),
+                e.getConfianzaOcr(),
+                e.getVerificadoPor(),
+                e.getCreatedAt());
     }
 }

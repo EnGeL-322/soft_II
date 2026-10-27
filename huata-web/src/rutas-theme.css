@@ -1,0 +1,1601 @@
+/*
+ * Rutas y mapa. Rediseño 2026-10: dos espacios (Seguimiento y Territorio), el mapa como protagonista
+ * y una sola cosa por pantalla. Todo va bajo #rutas para no tocar el resto de la aplicación y usa
+ * las variables de color del tema (--panel, --line, --green…), así sigue al tema general.
+ */
+
+#rutas {
+  --rt-gap: 16px;
+  --rt-radius: 12px;
+  --rt-map-h: calc(100vh - 290px);
+  --rt-accent: var(--green, #2f5748);
+  --rt-accent-soft: var(--green-soft, #eaf0ec);
+  --rt-warn: var(--amber, #8a6430);
+  --rt-warn-soft: var(--amber-soft, #f1e8dc);
+  --rt-danger: var(--red, #9d5244);
+  color: var(--text);
+}
+
+#rutas .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+#rutas .rt-muted {
+  color: var(--muted);
+}
+
+/* ------------------------------------------------------------------ Cabecera */
+
+#rutas .rt-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--rt-gap);
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+#rutas .rt-head h1 {
+  margin: 2px 0 0;
+  font-size: 24px;
+  line-height: 1.2;
+}
+#rutas .rt-head-actions {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+#rutas .rt-date {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--muted);
+}
+#rutas .rt-date input {
+  height: 34px;
+  min-width: 150px;
+}
+#rutas .rt-date-inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+/* Interruptor entre los dos espacios */
+#rutas .rt-switch {
+  display: inline-grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: var(--rt-gap);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--rt-radius);
+  min-width: min(560px, 100%);
+}
+#rutas .rt-switch button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+#rutas .rt-switch button:hover {
+  background: var(--rt-accent-soft);
+}
+#rutas .rt-switch button.active {
+  background: var(--rt-accent);
+  color: #fff;
+}
+#rutas .rt-switch-icon {
+  font-size: 18px;
+  width: 22px;
+  text-align: center;
+}
+#rutas .rt-switch-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+#rutas .rt-switch-text strong {
+  font-size: 14px;
+}
+#rutas .rt-switch-text small {
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+#rutas .rt-alert {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* ------------------------------------------------------------------ Piezas comunes */
+
+#rutas .rt-panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--rt-radius);
+}
+#rutas .rt-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 14px 10px;
+}
+#rutas .rt-panel-head h3 {
+  margin: 0;
+  font-size: 15px;
+}
+#rutas .rt-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 7px;
+  margin-left: 4px;
+  border-radius: 999px;
+  background: var(--rt-accent-soft);
+  color: var(--rt-accent);
+  font-size: 11px;
+  font-weight: 700;
+  vertical-align: middle;
+}
+#rutas .rt-empty {
+  padding: 18px 14px;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+  list-style: none;
+}
+#rutas .rt-empty strong {
+  display: block;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+#rutas .rt-btn-sm {
+  height: 30px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+#rutas .rt-tag {
+  display: inline-block;
+  padding: 1px 8px;
+  margin-right: 4px;
+  border-radius: 999px;
+  background: var(--rt-accent-soft);
+  color: var(--rt-accent);
+  font-size: 11px;
+  font-weight: 600;
+}
+#rutas .rt-state {
+  font-weight: 600;
+  color: var(--muted);
+}
+#rutas .rt-state-ok {
+  color: var(--rt-accent);
+}
+#rutas .rt-state-warn {
+  color: var(--rt-warn);
+}
+#rutas .rt-danger,
+#rutas .rt-danger-text {
+  color: var(--rt-danger) !important;
+}
+#rutas .rt-hint {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  margin: 10px 0;
+  border-radius: 10px;
+  background: var(--rt-warn-soft);
+  font-size: 13px;
+}
+#rutas .rt-hint p {
+  margin: 0;
+}
+#rutas .rt-hint-accent {
+  background: var(--rt-accent-soft);
+}
+
+/* Desplegables ("ver más") */
+#rutas .rt-disclosure {
+  margin-top: 10px;
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+#rutas .rt-disclosure > summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0;
+  cursor: pointer;
+  list-style: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+#rutas .rt-disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+#rutas .rt-disclosure > summary::before {
+  content: '›';
+  display: inline-block;
+  width: 12px;
+  color: var(--muted);
+  transition: transform 0.15s ease;
+}
+#rutas .rt-disclosure[open] > summary::before {
+  transform: rotate(90deg);
+}
+#rutas .rt-disclosure > summary span {
+  margin-left: auto;
+  font-weight: 500;
+  color: var(--muted);
+  font-size: 12px;
+}
+#rutas .rt-nested {
+  margin-left: 12px;
+}
+
+/* Menú de acciones secundarias (⋯) */
+#rutas .rt-menu {
+  position: relative;
+}
+#rutas .rt-menu > summary {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+  list-style: none;
+  color: var(--muted);
+  font-weight: 700;
+  background: var(--panel);
+}
+#rutas .rt-menu > summary::-webkit-details-marker {
+  display: none;
+}
+#rutas .rt-menu[open] > summary {
+  background: var(--rt-accent-soft);
+}
+#rutas .rt-menu-list {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 1000;
+  min-width: 180px;
+  padding: 4px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 10px 28px rgba(15, 33, 25, 0.12);
+}
+#rutas .rt-menu-list button {
+  display: block;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  text-align: left;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+}
+#rutas .rt-menu-list button:hover:not(:disabled) {
+  background: var(--rt-accent-soft);
+}
+#rutas .rt-menu-list button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ------------------------------------------------------------------ SEGUIMIENTO */
+
+#rutas .rt-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+#rutas .rt-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 14px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--rt-radius);
+}
+#rutas .rt-kpi span {
+  font-size: 12px;
+  color: var(--muted);
+}
+#rutas .rt-kpi strong {
+  font-size: 20px;
+  line-height: 1.2;
+}
+#rutas .rt-kpi small {
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+#rutas .rt-live {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr) 300px;
+  gap: 12px;
+  align-items: stretch;
+}
+
+/* Lista de rutas */
+#rutas .routes-picker {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: calc(var(--rt-map-h) + 90px);
+}
+#rutas .rt-search {
+  margin: 0 12px 8px;
+  height: 34px;
+  width: auto;
+}
+#rutas .rt-route-list {
+  flex: 1;
+  overflow: auto;
+  padding: 0 8px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+#rutas .route-option {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 9px 10px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  color: var(--text);
+}
+#rutas .route-option:hover {
+  background: var(--rt-accent-soft);
+}
+#rutas .route-option.selected {
+  background: var(--rt-accent-soft);
+  border-color: var(--rt-accent);
+}
+#rutas .route-option small {
+  font-size: 12px;
+  color: var(--muted);
+}
+#rutas .route-overview {
+  border-bottom: 1px solid var(--line);
+  border-radius: 9px 9px 0 0;
+  margin-bottom: 4px;
+}
+#rutas .rt-route-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+#rutas .rt-route-name {
+  font-weight: 600;
+  font-size: 14px;
+}
+#rutas .rt-route-liters {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+}
+#rutas .rt-route-person {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+#rutas .rt-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #b9c2bd;
+  flex: none;
+}
+#rutas .rt-dot-ok {
+  background: var(--rt-accent);
+}
+#rutas .rt-dot-warn {
+  background: #d39b38;
+}
+
+/* Mapa de seguimiento */
+#rutas .rt-map-panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+#rutas .rt-map-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px 8px;
+}
+#rutas .rt-map-head h3 {
+  margin: 0;
+  font-size: 16px;
+}
+#rutas .rt-map-head p {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+#rutas .rt-live-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #eef1ef;
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+#rutas .rt-live-pill i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #9aa59f;
+}
+#rutas .rt-live-pill.on {
+  background: var(--rt-accent-soft);
+  color: var(--rt-accent);
+}
+#rutas .rt-live-pill.on i {
+  background: #2e9268;
+  box-shadow: 0 0 0 3px rgba(46, 146, 104, 0.2);
+}
+#rutas .rt-segmented {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  margin: 0 14px 8px;
+  align-self: flex-start;
+  background: #eef1ef;
+  border-radius: 9px;
+}
+#rutas .rt-segmented button {
+  padding: 4px 12px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+}
+#rutas .rt-segmented button.active {
+  background: var(--panel);
+  color: var(--text);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(15, 33, 25, 0.1);
+}
+/* Altura fija (no min-height): el mapa ocupa el 100% de su contenedor y un porcentaje no se
+   resuelve contra un min-height, el mapa quedaba en 320px con un hueco vacío debajo. */
+#rutas .rt-map-canvas {
+  flex: none;
+  height: max(420px, var(--rt-map-h));
+}
+#rutas .rt-map-canvas app-mapa {
+  display: block;
+  height: 100%;
+}
+#rutas .rt-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 8px 14px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--muted);
+}
+#rutas .rt-legend span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+#rutas .legend-position {
+  width: 8px;
+  height: 12px;
+  background: #3388bd;
+  border-radius: 7px 7px 7px 0;
+  transform: rotate(-35deg);
+}
+#rutas .legend-real,
+#rutas .legend-plan {
+  width: 20px;
+  height: 3px;
+  background: #2f6fc4;
+  border-radius: 3px;
+}
+#rutas .legend-plan {
+  background: #437862;
+}
+
+/* Detalle de la ruta */
+#rutas .rt-side {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+#rutas .routes-route-detail {
+  padding: 16px;
+}
+#rutas .rt-person {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+#rutas .rt-person small {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+#rutas .rt-person strong {
+  font-size: 15px;
+}
+#rutas .rt-avatar {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--rt-accent);
+  color: #fff;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+#rutas .rt-facts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 12px 0 0;
+}
+#rutas .rt-facts dt {
+  font-size: 12px;
+  color: var(--muted);
+}
+#rutas .rt-facts dd {
+  margin: 2px 0 0;
+  font-weight: 700;
+  font-size: 15px;
+}
+#rutas .rt-facts-compact dd {
+  font-size: 13px;
+}
+#rutas .rt-gps-events {
+  max-height: 200px;
+  overflow: auto;
+  margin-top: 8px;
+  font-size: 12px;
+}
+#rutas .rt-gps-events div {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  border-bottom: 1px dashed var(--line);
+}
+#rutas .rt-overview,
+#rutas .rt-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 28px 20px;
+  text-align: center;
+  height: 100%;
+}
+#rutas .rt-overview p,
+#rutas .rt-placeholder p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+  max-width: 340px;
+}
+#rutas .rt-overview-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--rt-accent-soft);
+  color: var(--rt-accent);
+  font-size: 22px;
+}
+
+/* Proveedores (desplegable bajo el mapa) */
+#rutas .rt-providers {
+  margin-top: 12px;
+  padding: 0 14px;
+}
+#rutas .rt-providers > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  cursor: pointer;
+  list-style: none;
+}
+#rutas .rt-providers > summary::-webkit-details-marker {
+  display: none;
+}
+#rutas .rt-providers > summary span:first-child {
+  display: flex;
+  flex-direction: column;
+}
+#rutas .rt-providers > summary small {
+  font-size: 12px;
+  color: var(--muted);
+}
+#rutas .rt-providers[open] {
+  padding-bottom: 14px;
+}
+#rutas .rt-table-scroll {
+  max-height: 340px;
+  overflow: auto;
+}
+#rutas .rt-cell-empty {
+  text-align: center;
+  padding: 20px;
+}
+
+/* ------------------------------------------------------------------ TERRITORIO */
+
+#rutas .rt-territory {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+/* Zonas */
+#rutas .rt-zones {
+  position: sticky;
+  top: 12px;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 200px);
+}
+#rutas .rt-zone-list {
+  flex: 1;
+  overflow: auto;
+  padding: 0 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: none;
+}
+#rutas .rt-zone {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 10px;
+  margin: 0;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  box-shadow: none;
+  text-align: left;
+  cursor: pointer;
+  color: var(--text);
+}
+#rutas .rt-zone:hover {
+  background: var(--rt-accent-soft);
+}
+#rutas .rt-zone.activa {
+  background: var(--rt-accent-soft);
+  border-color: var(--rt-accent);
+}
+#rutas .zona-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+  flex: none;
+}
+#rutas .rt-zone-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+#rutas .rt-zone-text strong {
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#rutas .rt-zone-text small {
+  font-size: 12px;
+  color: var(--muted);
+}
+#rutas .rt-flag {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--rt-warn-soft);
+  color: var(--rt-warn);
+  font-size: 11px;
+  font-weight: 800;
+}
+#rutas .rt-new-zone {
+  display: flex;
+  gap: 6px;
+  padding: 10px;
+  border-top: 1px solid var(--line);
+}
+#rutas .rt-new-zone input {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+}
+
+/* Zona abierta */
+#rutas .rt-zone-main {
+  min-width: 0;
+}
+#rutas .rt-howto {
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: paso;
+  text-align: left;
+  font-size: 13px;
+  color: var(--muted);
+}
+#rutas .rt-howto li {
+  counter-increment: paso;
+  display: flex;
+  gap: 8px;
+  padding: 4px 0;
+}
+#rutas .rt-howto li::before {
+  content: counter(paso);
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--rt-accent-soft);
+  color: var(--rt-accent);
+  font-size: 11px;
+  font-weight: 700;
+  flex: none;
+}
+#rutas .rt-howto b {
+  color: var(--text);
+  margin-right: 4px;
+}
+#rutas .rt-placeholder {
+  min-height: 380px;
+}
+
+#rutas .rt-zone-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+#rutas .rt-zone-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+#rutas .rt-zone-title .zona-color {
+  width: 16px;
+  height: 16px;
+}
+#rutas .rt-zone-title h2 {
+  margin: 0;
+  font-size: 20px;
+}
+#rutas .rt-inline-form {
+  display: flex;
+  gap: 6px;
+}
+#rutas .rt-inline-form input {
+  height: 32px;
+}
+#rutas .rt-zone-stats {
+  display: flex;
+  gap: 14px;
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--muted);
+}
+#rutas .rt-zone-stats b {
+  color: var(--text);
+  font-size: 15px;
+}
+
+/* Pasos */
+#rutas .rt-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 10px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--rt-radius);
+}
+#rutas .rt-steps button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+}
+#rutas .rt-steps button:hover:not(:disabled) {
+  background: var(--rt-accent-soft);
+  color: var(--text);
+}
+#rutas .rt-steps button.active {
+  background: var(--rt-accent-soft);
+  color: var(--rt-accent);
+}
+#rutas .rt-steps button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+#rutas .rt-step-num {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  font-size: 11px;
+}
+#rutas .rt-step-num.done {
+  background: var(--rt-accent);
+  border-color: var(--rt-accent);
+  color: #fff;
+}
+
+/* Editor: panel a la izquierda, mapa grande a la derecha */
+#rutas .rt-editor {
+  display: grid;
+  grid-template-columns: minmax(340px, 420px) minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+#rutas .rt-editor > * {
+  min-width: 0;
+}
+#rutas .rt-editor-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+#rutas .rt-editor-map {
+  position: sticky;
+  top: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+#rutas .rt-editor-map .rt-map-canvas {
+  height: max(460px, calc(100vh - 300px));
+}
+#rutas .rt-map-hint {
+  padding: 9px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--line);
+}
+#rutas .rt-map-hint-on {
+  background: var(--rt-accent);
+  color: #fff;
+}
+
+/* Bloques del panel */
+#rutas .rt-block {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--rt-radius);
+  padding: 14px;
+  margin: 0;
+}
+#rutas details.rt-block {
+  padding: 8px 14px;
+}
+#rutas .rt-block-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+#rutas .rt-block-head h4 {
+  margin: 0;
+  font-size: 14px;
+}
+#rutas .rt-block-head p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+#rutas .rt-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+#rutas .rt-toolbar-end {
+  justify-content: flex-end;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  margin-top: 12px;
+}
+#rutas .rt-color {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+}
+#rutas .rt-color input {
+  width: 30px;
+  height: 30px;
+  padding: 2px;
+  border-radius: 8px;
+}
+#rutas .rt-next {
+  align-self: flex-end;
+}
+#rutas .rt-route-pick {
+  margin-bottom: 8px;
+}
+
+/* Listas (rutas, personas, puntos) */
+#rutas .rt-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+#rutas .rt-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+}
+#rutas .rt-item.selected {
+  border-color: var(--rt-accent);
+  background: var(--rt-accent-soft);
+}
+#rutas .rt-item-off {
+  opacity: 0.6;
+}
+#rutas .rt-item-stack {
+  flex-direction: column;
+  align-items: stretch;
+}
+#rutas .rt-item-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+#rutas .rt-item-main strong {
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#rutas .rt-item-main small {
+  font-size: 12px;
+  color: var(--muted);
+}
+#rutas .rt-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+#rutas .rt-item-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+#rutas .rt-item-control app-buscador {
+  flex: 1;
+  min-width: 140px;
+}
+#rutas .rt-order {
+  width: 58px;
+  height: 32px;
+  text-align: center;
+}
+#rutas .rt-pin {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--rt-accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  flex: none;
+}
+#rutas .rt-pin-soft {
+  background: var(--rt-accent-soft);
+  color: var(--rt-accent);
+}
+
+/* Botones de alta de puntos */
+#rutas .rt-add {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+#rutas .rt-add-btn {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px;
+  border: 1.5px dashed var(--line);
+  border-radius: 10px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  color: var(--text);
+}
+#rutas .rt-add-btn:hover:not(:disabled) {
+  border-color: var(--rt-accent);
+  background: var(--rt-accent-soft);
+}
+#rutas .rt-add-btn b {
+  font-size: 13px;
+  color: var(--rt-accent);
+}
+#rutas .rt-add-btn small {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* Formularios del panel */
+#rutas .rt-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  margin-bottom: 10px;
+  border-radius: 10px;
+  background: #f6f8f7;
+  border: 1px solid var(--line);
+}
+#rutas .rt-form-accent {
+  border-color: var(--rt-accent);
+  background: var(--rt-accent-soft);
+}
+#rutas .rt-form-inline {
+  flex: 1;
+  margin: 0;
+}
+#rutas .rt-form .field {
+  margin: 0;
+}
+#rutas .rt-form-title {
+  margin: 0;
+  font-weight: 700;
+  font-size: 14px;
+}
+#rutas .rt-form-title small {
+  display: block;
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--muted);
+}
+#rutas .rt-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+#rutas .rt-form-row:has(.rt-field-narrow) {
+  grid-template-columns: 1fr 80px;
+}
+#rutas .rt-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+#rutas .rt-locate {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--panel);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--rt-accent);
+}
+#rutas .rt-locate.missing {
+  color: var(--rt-warn);
+}
+
+/* Coordenadas (avanzado) */
+#rutas .rt-coords {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+  max-height: 260px;
+  overflow: auto;
+}
+#rutas .rt-coord {
+  display: grid;
+  grid-template-columns: 22px 1fr 1fr auto;
+  align-items: center;
+  gap: 6px;
+}
+#rutas .rt-coord input {
+  height: 30px;
+  min-width: 0;
+  font-size: 12px;
+}
+#rutas .rt-coord-n {
+  font-size: 11px;
+  color: var(--muted);
+  text-align: right;
+}
+#rutas .rt-coord-actions {
+  display: inline-flex;
+}
+#rutas .rt-coord-actions button {
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--muted);
+  cursor: pointer;
+}
+#rutas .rt-coord-actions button:first-child {
+  border-radius: 6px 0 0 6px;
+}
+#rutas .rt-coord-actions button:last-child {
+  border-radius: 0 6px 6px 0;
+}
+#rutas .rt-coord-actions button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* ------------------------------------------------------------------ Responsivo */
+
+/* ------------------------------------------------------------------ UNA SOLA PANTALLA (2026-10-25) */
+/* Pedido del cliente: nada de pestañas Seguimiento/Territorio. Rutas a la izquierda, mapa al centro
+   y, al costado, lo de la ruta o zona elegida: Seguimiento, Límite, Rutas y personas, Puntos. */
+
+#rutas .rt-small {
+  font-size: 12px;
+}
+
+#rutas .rt-workspace {
+  display: grid;
+  grid-template-columns: 250px minmax(0, 1fr) 380px;
+  gap: 12px;
+  align-items: start;
+}
+#rutas .rt-workspace > * {
+  min-width: 0;
+}
+
+/* Lista de zonas y rutas */
+#rutas .rt-nav {
+  position: sticky;
+  top: 12px;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 120px);
+}
+#rutas .rt-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 6px;
+  margin-top: 4px;
+  border-top: 1px solid var(--line);
+}
+#rutas .rt-group-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+#rutas .rt-group-head:hover {
+  background: var(--rt-accent-soft);
+}
+#rutas .rt-group-head.activa {
+  background: var(--rt-accent-soft);
+  border-color: var(--rt-accent);
+}
+#rutas .rt-group-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#rutas .rt-group-count {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted);
+  text-transform: none;
+  letter-spacing: 0;
+}
+#rutas .rt-group-empty {
+  margin: 0;
+  padding: 2px 10px 6px 28px;
+  font-size: 12px;
+  color: var(--muted);
+}
+#rutas .rt-route {
+  padding-left: 28px;
+}
+
+/* Mapa */
+#rutas .rt-workspace .rt-map-panel {
+  position: sticky;
+  top: 12px;
+}
+#rutas .rt-workspace .rt-map-canvas {
+  height: max(440px, calc(100vh - 260px));
+}
+#rutas .rt-lock {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #eef1ef;
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+#rutas .rt-lock.on {
+  background: #fff4d6;
+  color: #8a5a00;
+  font-weight: 600;
+}
+
+/* Panel derecho */
+#rutas .rt-side {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+#rutas .rt-side-head {
+  padding: 12px 14px;
+}
+#rutas .rt-side-head .rt-zone-title {
+  justify-content: space-between;
+}
+#rutas .rt-side-head .rt-zone-title > div:not(.rt-inline-form) {
+  flex: 1;
+  min-width: 0;
+}
+#rutas .rt-side-head small {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+#rutas .rt-side-head h2 {
+  margin: 0;
+  font-size: 18px;
+}
+#rutas .rt-side-head .rt-zone-stats {
+  margin: 8px 0 0;
+}
+#rutas .rt-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 2px;
+  padding: 3px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--rt-radius);
+}
+#rutas .rt-tabs button {
+  padding: 8px 4px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--muted);
+  cursor: pointer;
+}
+#rutas .rt-tabs button:hover:not(:disabled) {
+  background: var(--rt-accent-soft);
+  color: var(--text);
+}
+#rutas .rt-tabs button.active {
+  background: var(--rt-accent);
+  color: #fff;
+}
+#rutas .rt-tabs button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+#rutas .rt-side-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+#rutas .rt-side .rt-overview {
+  min-height: 260px;
+}
+
+/* Edición: siempre explícita y visible */
+#rutas .rt-editing {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  margin-top: 8px;
+  border: 1.5px solid #e2b33a;
+  border-radius: 10px;
+  background: #fffaf0;
+  font-size: 13px;
+}
+#rutas .rt-editing p {
+  margin: 0;
+}
+#rutas .rt-danger-zone {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1px dashed #e3b9b0;
+  border-radius: var(--rt-radius);
+  font-size: 12px;
+  color: var(--rt-danger);
+}
+
+@media (max-width: 1400px) {
+  #rutas .rt-workspace {
+    grid-template-columns: 230px minmax(0, 1fr) 340px;
+  }
+  #rutas .rt-tabs button {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 1180px) {
+  #rutas .rt-workspace {
+    grid-template-columns: 230px minmax(0, 1fr);
+  }
+  #rutas .rt-side {
+    grid-column: 1 / -1;
+  }
+  #rutas .rt-workspace .rt-map-panel {
+    position: static;
+  }
+}
+
+@media (max-width: 760px) {
+  #rutas .rt-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  #rutas .rt-workspace {
+    grid-template-columns: 1fr;
+  }
+  #rutas .rt-nav {
+    position: static;
+    max-height: 320px;
+  }
+  #rutas .rt-workspace .rt-map-canvas {
+    height: 360px;
+  }
+  #rutas .rt-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  #rutas .rt-add,
+  #rutas .rt-form-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media print {
+  #rutas .rt-map-canvas {
+    height: 420px;
+  }
+}
+
+/* Icono de recorrido en cada ruta (Rutas y personas) */
+#rutas .rt-icon-btn {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--rt-accent);
+  cursor: pointer;
+}
+#rutas .rt-icon-btn:hover,
+#rutas .rt-icon-btn.on {
+  background: var(--rt-accent);
+  border-color: var(--rt-accent);
+  color: #fff;
+}
+#rutas .rt-recorrido {
+  border-color: var(--rt-accent);
+}
+
+/* El límite se abre en "Rutas y personas" (icono junto al ⋯ de la zona) */
+/* Las piezas del límite forman una sola tarjeta: cabecera, coordenadas, historial y riesgo. */
+#rutas .rt-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1.5px solid var(--rt-accent);
+  border-radius: var(--rt-radius);
+  background: var(--panel);
+  overflow: hidden;
+}
+#rutas .rt-grupo > .rt-block,
+#rutas .rt-grupo > details.rt-block {
+  border: 0;
+  border-radius: 0;
+  border-top: 1px solid var(--line);
+  margin: 0;
+}
+#rutas .rt-grupo > .rt-block:first-child {
+  border-top: 0;
+}
+#rutas .rt-grupo > .rt-danger-zone {
+  border: 0;
+  border-top: 1px dashed #e3b9b0;
+  border-radius: 0;
+  background: #fdf7f5;
+}
+#rutas .rt-side-head .rt-zone-title {
+  gap: 8px;
+}
+#rutas .rt-icon-btn.rt-icon-alerta:not(.on) {
+  color: var(--rt-warn);
+  border-color: #e2b33a;
+  background: #fffaf0;
+}
+
+/* Opciones de mapa de cada ruta: recorrido de la ruta o límite de su zona */
+#rutas .rt-menu > summary.rt-icon-btn {
+  color: var(--rt-accent);
+}
+#rutas .rt-menu[open] > summary.rt-icon-btn,
+#rutas .rt-menu > summary.rt-icon-btn.on {
+  background: var(--rt-accent);
+  border-color: var(--rt-accent);
+  color: #fff;
+}
+#rutas .rt-menu-rich {
+  min-width: 290px;
+  padding: 6px;
+}
+#rutas .rt-menu-title {
+  margin: 2px 6px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+#rutas .rt-menu-rich button {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 9px 8px;
+  border-radius: 8px;
+}
+#rutas .rt-menu-rich button.on {
+  background: var(--rt-accent-soft);
+}
+#rutas .rt-menu-ico {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: 8px;
+  background: var(--rt-accent-soft);
+  color: var(--rt-accent);
+}
+#rutas .rt-menu-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+#rutas .rt-menu-text b {
+  font-size: 13px;
+  color: var(--text);
+}
+#rutas .rt-menu-text small {
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--muted);
+  white-space: normal;
+}

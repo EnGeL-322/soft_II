@@ -1,0 +1,187 @@
+/* Ventana de confirmación: pequeña, centrada, título corto con icono y botones compactos.
+   El botón destructivo es rojo; el principal normal, verde del sistema. */
+:host {
+  --verde: #376d50;
+  --rojo: #b3412e;
+  --ambar: #a86f12;
+  --azul: #2f6496;
+}
+.fondo {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(16, 32, 24, 0.42);
+  animation: aparecer 0.15s ease-out;
+}
+.caja {
+  width: min(420px, 100%);
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  padding: 18px 18px 16px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 18px 50px rgba(16, 32, 24, 0.25);
+  color: #23302b;
+  animation: subir 0.16s ease-out;
+}
+.caja-confirmacion {
+  --color: var(--verde);
+}
+.caja-peligro {
+  --color: var(--rojo);
+}
+.caja-aviso {
+  --color: var(--ambar);
+}
+.caja-info {
+  --color: var(--azul);
+}
+.cabecera {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) 28px;
+  align-items: center;
+  gap: 10px;
+}
+.icono {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color) 14%, #fff);
+  color: var(--color);
+  font-size: 15px;
+  font-weight: 800;
+}
+h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.cerrar {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #6b7b70;
+  font-size: 19px;
+  line-height: 1;
+  cursor: pointer;
+}
+.cerrar:hover {
+  background: #f1f4f1;
+}
+.mensaje {
+  margin: 8px 0 0 38px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: #4a5a50;
+}
+form {
+  margin-top: 14px;
+}
+.campo {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #3c5245;
+}
+.opcional {
+  font-weight: 400;
+  color: #6b7b70;
+}
+textarea {
+  width: 100%;
+  min-height: 72px;
+  padding: 8px 10px;
+  border: 1px solid #cfd9d1;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 13px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+textarea:focus {
+  outline: none;
+  border-color: var(--verde);
+  box-shadow: 0 0 0 3px rgba(55, 109, 80, 0.15);
+}
+.botones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 14px;
+}
+.botones button {
+  min-height: 32px;
+  padding: 0 14px;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-cancelar {
+  background: #fff;
+  border: 1px solid #cfdad1;
+  color: #2f5748;
+}
+.btn-cancelar:hover {
+  background: #f2f6f3;
+}
+.btn-confirmar {
+  background: var(--verde);
+  border: 1px solid var(--verde);
+  color: #fff;
+}
+.caja-peligro .btn-confirmar {
+  background: var(--rojo);
+  border-color: var(--rojo);
+}
+.btn-confirmar:hover:not(:disabled) {
+  filter: brightness(0.94);
+}
+.btn-confirmar:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+button:focus-visible {
+  outline: 2px solid var(--color);
+  outline-offset: 2px;
+}
+@keyframes aparecer {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes subir {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fondo,
+  .caja {
+    animation: none;
+  }
+}
+@media (max-width: 760px) {
+  .botones button {
+    flex: 1;
+    min-height: 42px;
+  }
+  .cerrar {
+    width: 36px;
+    height: 36px;
+  }
+  .cabecera {
+    grid-template-columns: 28px minmax(0, 1fr) 36px;
+  }
+}

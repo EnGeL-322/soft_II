@@ -1,11 +1,20 @@
+/* Paleta alineada con la capa final "verde andino" de prototype-theme.css (--brand/--g50/--warn...):
+   este componente tiene su propio :host encapsulado por Angular, así que no hereda esas variables
+   globales automáticamente — se replican aquí los mismos valores para que el portal público (lo
+   primero que ve cualquier visitante) no se vea de un tema distinto al resto de la app. */
 :host {
   display: block;
-  background: #fbf7ec;
-  color: #1c201c;
+  background: #fbf9f3;
+  color: #16241c;
   font-size: 16px;
-  --border: #e5d7b8;
-  --subtle: #786d5a;
-  --primary: #195c3c;
+  --border: #e2e0d5;
+  --subtle: #5b6a62;
+  --primary: #1d5c40;
+  --primary-dark: #14432f;
+  --ink: #16241c;
+  --cream: #fbf9f3;
+  --panel-alt: #f4f7f4;
+  --amber: #8e4c1a;
 }
 a {
   text-decoration: none;
@@ -19,7 +28,7 @@ a:focus-visible,
 button:focus-visible,
 input:focus-visible,
 select:focus-visible {
-  outline: 3px solid #539479;
+  outline: 3px solid var(--primary);
   outline-offset: 3px;
 }
 .wrap {
@@ -27,7 +36,7 @@ select:focus-visible {
   margin: auto;
 }
 .community-strip {
-  background: #f5f0e2;
+  background: var(--panel-alt);
   border-bottom: 1px solid var(--border);
   color: var(--subtle);
   font-size: 14px;
@@ -49,7 +58,7 @@ select:focus-visible {
   position: sticky;
   top: 0;
   z-index: 10;
-  background: #fbf7ec;
+  background: var(--cream);
   border-bottom: 1px solid var(--border);
 }
 .navigation {
@@ -113,15 +122,15 @@ nav a:hover {
   white-space: nowrap;
 }
 .public-button:hover {
-  background: #26754f;
+  background: var(--primary-dark);
 }
 .public-button:disabled {
   opacity: 0.6;
   cursor: wait;
 }
 .hero {
-  background: #11251c;
-  color: white;
+  background: var(--primary-dark);
+  color: #f6f1e5;
   padding: 80px 0 100px;
 }
 .hero-grid {
@@ -135,11 +144,11 @@ nav a:hover {
   letter-spacing: 1.6px;
   font-size: 14px;
   font-weight: 600;
-  color: #00644e;
+  color: var(--primary);
   margin: 0 0 20px;
 }
 .hero .eyebrow {
-  color: #b8c4bd;
+  color: #bcd6c7;
 }
 .hero h1 {
   font-size: clamp(38px, 3.5vw, 58px);
@@ -148,7 +157,7 @@ nav a:hover {
   letter-spacing: -1.8px;
 }
 .hero-description {
-  color: #d3d6cc;
+  color: #d7e3da;
   line-height: 1.65;
   font-size: 21px;
   margin: 28px 0 40px;
@@ -160,11 +169,11 @@ nav a:hover {
 }
 .outline {
   background: transparent;
-  border-color: #7b887e;
+  border-color: #6f8478;
 }
 .price-card {
-  background: #21342b;
-  border: 1px solid #4a584e;
+  background: var(--primary-dark);
+  border: 1px solid #2e5342;
   border-radius: 10px;
   padding: 32px;
 }
@@ -172,19 +181,19 @@ nav a:hover {
   font-size: 42px;
 }
 .price-card > p:not(.eyebrow) {
-  border-top: 1px solid #4a584e;
+  border-top: 1px solid #2e5342;
   margin: 24px 0 8px;
   padding-top: 20px;
-  color: #d3d6cc;
+  color: #d7e3da;
   line-height: 1.6;
 }
 .price-card small {
-  color: #b8c4bd;
+  color: #d7e3da;
   font-size: 12px;
 }
 .summary {
   padding: 90px 0;
-  background: #f5f0e2;
+  background: var(--panel-alt);
 }
 .metrics {
   display: grid;
@@ -192,11 +201,11 @@ nav a:hover {
   gap: 26px;
 }
 .metrics > div {
-  border-left: 2px solid #cec09e;
+  border-left: 2px solid var(--border);
   padding: 5px 0 3px 24px;
 }
 .metrics > div:nth-child(2) {
-  border-color: #a86215;
+  border-color: var(--amber);
 }
 .metrics > div:nth-child(3) {
   border-color: var(--primary);

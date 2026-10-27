@@ -1,0 +1,403 @@
+<section class="page amigable">
+  <div class="page-head">
+    <div>
+      <h1>Calidad de la leche</h1>
+      <p>Avisos del día y resultados de cada proveedor.</p>
+    </div>
+    <a class="btn btn-soft" routerLink="/portal">Calidad por zona ↗</a>
+  </div>
+
+  @if (error()) {
+    <div class="mensaje mensaje-error" role="alert">{{ error() }}</div>
+  }
+
+  <nav class="sec-tabs" aria-label="Qué quieres revisar">
+    <button
+      class="sec-tab"
+      type="button"
+      [class.active]="vista() === 'incidencias'"
+      [attr.aria-pressed]="vista() === 'incidencias'"
+      (click)="vista.set('incidencias')"
+    >
+      Avisos del día
+    </button>
+    <button
+      class="sec-tab"
+      type="button"
+      [class.active]="vista() === 'aprobar'"
+      [attr.aria-pressed]="vista() === 'aprobar'"
+      (click)="vista.set('aprobar')"
+    >
+      Por aprobar
+      @if (porAprobar().length) {
+        <span class="badge badge-ambar">{{ porAprobar().length }}</span>
+      }
+    </button>
+    <button
+      class="sec-tab"
+      type="button"
+      [class.active]="vista() === 'historial'"
+      [attr.aria-pressed]="vista() === 'historial'"
+      (click)="vista.set('historial')"
+    >
+      Buscar proveedor
+    </button>
+  </nav>
+
+  <!-- ================= AVISOS DEL DÍA ================= -->
+  @if (vista() === 'incidencias') {
+    <section class="card">
+      <div class="barra">
+        <div class="selector-dia" role="group" aria-label="Día">
+          <button type="button" class="btn btn-soft" [class.activo]="fecha === hoy" (click)="fecha = hoy">Hoy</button>
+          <button type="button" class="btn btn-soft" [class.activo]="fecha === ayer" (click)="fecha = ayer">Ayer</button>
+          <input type="date" aria-label="Otro día" [(ngModel)]="fecha" [max]="hoy" />
+        </div>
+        @if (!cargando()) {
+          <div class="contadores" aria-label="Resumen del día">
+            <span class="contador c-rojo"><b>{{ contarEstado('ABIERTA') }}</b> pendientes</span>
+            <span class="contador c-ambar"><b>{{ contarEstado('EN_SEGUIMIENTO') }}</b> en seguimiento</span>
+            <span class="contador c-verde"><b>{{ contarEstado('CERRADA') }}</b> resueltos</span>
+          </div>
+        }
+      </div>
+
+      <div class="tablebox">
+        <table>
+          <thead>
+            <tr>
+              <th>Hora</th>
+              <th>Proveedor</th>
+              <th>Problema</th>
+              <th>Detalle</th>
+              <th>Estado</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (i of pagAvisos.ver(incidenciasDelDia(), fecha); track i.id) {
+              <tr>
+                <td>{{ i.fecha | date: 'HH:mm' : '-0500' }}</td>
+                <td>{{ i.productorNombre }}</td>
+                <td><b>{{ i.tipo }}</b></td>
+                <td class="wrap">{{ i.descripcion || '—' }}</td>
+                <td>
+                  <span
+                    class="badge"
+                    [class.badge-rojo]="i.estado === 'ABIERTA'"
+                    [class.badge-ambar]="i.estado === 'EN_SEGUIMIENTO'"
+                    [class.badge-verde]="i.estado === 'CERRADA'"
+                    >{{ textoEstado(i.estado) }}</span
+                  >
+                </td>
+                <td class="num">
+                  <button type="button" class="btn-sm" (click)="verHistorial(i.productorId, i.productorNombre)">
+                    Historial
+                  </button>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="6" class="empty">
+                  {{ cargando() ? 'Cargando avisos…' : 'Sin avisos de calidad ' + (fecha === hoy ? 'hoy.' : 'este día.') }}
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <app-paginador
+        [page]="pagAvisos.pagina(incidenciasDelDia().length)"
+        [size]="pagAvisos.tamano()"
+        [total]="incidenciasDelDia().length"
+        (pageChange)="pagAvisos.irA($event)"
+        (sizeChange)="pagAvisos.cambiarTamano($event)"
+      />
+    </section>
+  }
+
+  @if (vista() === 'incidencias' && sinRecojo().length) {
+    <!-- El testeador analiza en campo antes de que pase el acopiador; el análisis se une solo al
+         recojo cuando el acopiador lo registra. Aquí se ven los que todavía esperan. -->
+    <section class="card sin-recojo">
+      <div class="table-title">
+        <div>
+          <h3>Análisis de campo esperando el recojo</h3>
+          <p>Últimos 7 días. Se vinculan solos cuando el acopiador registra el recojo del proveedor.</p>
+        </div>
+      </div>
+      <div class="tablebox">
+        <table>
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Proveedor</th>
+              <th>Resultado</th>
+              <th>Revisó</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (c of sinRecojo(); track c.id) {
+              <tr>
+                <td>{{ c.fechaHora ?? c.fecha | date: 'dd/MM/yy HH:mm' : '-0500' }}</td>
+                <td>{{ c.productorNombre }} <span class="muted">{{ c.productorCodigo }}</span></td>
+                <td>
+                  <span
+                    class="badge"
+                    [class.badge-verde]="c.resultado === 'ACEPTADA'"
+                    [class.badge-ambar]="c.resultado === 'OBSERVADA'"
+                    [class.badge-rojo]="c.resultado === 'RECHAZADA'"
+                    >{{ textoResultado(c.resultado) }}</span
+                  >
+                </td>
+                <td>{{ c.responsable || '—' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+
+  <!-- ================= POR APROBAR (V48/V49) =================
+       La app registra los análisis; los aprueba quien tenga calidad.aprobar, en la app o aquí. -->
+  @if (vista() === 'aprobar') {
+    <section class="card">
+      <div class="table-title">
+        <div>
+          <h3>Análisis con advertencia</h3>
+          <p>
+            Los que cumplen el estándar de calidad se aprueban solos. Aquí quedan los que no lo
+            cumplen (últimos 14 días). Los aprueba quien tenga el permiso, aquí o desde la app móvil.
+          </p>
+        </div>
+      </div>
+      <div class="tablebox">
+        <table>
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Proveedor</th>
+              <th>Origen</th>
+              <th>Resultado</th>
+              <th class="num">Densidad</th>
+              <th class="num">Grasa</th>
+              <th>Advertencia</th>
+              <th>Registró</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (c of porAprobar(); track c.id) {
+              <tr>
+                <td>{{ c.fechaHora ?? c.fecha | date: 'dd/MM/yy HH:mm' : '-0500' }}</td>
+                <td>{{ c.productorNombre }} <span class="muted">{{ c.productorCodigo }}</span></td>
+                <td>{{ textoOrigen(c) }} · {{ textoLugar(c) }}</td>
+                <td>
+                  <span
+                    class="badge"
+                    [class.badge-verde]="c.resultado === 'ACEPTADA'"
+                    [class.badge-ambar]="c.resultado === 'OBSERVADA'"
+                    [class.badge-rojo]="c.resultado === 'RECHAZADA'"
+                    >{{ textoResultado(c.resultado) }}</span
+                  >
+                </td>
+                <td class="num">
+                  {{ c.densidad == null ? '—' : (c.densidad | number: (c.densidad < 2 ? '1.4-4' : '1.1-1')) }}
+                </td>
+                <td class="num">{{ c.grasa != null ? (c.grasa | number: '1.1-2') + ' %' : '—' }}</td>
+                <td class="wrap">
+                  @if (c.advertencia) {
+                    <span class="flag flag-aviso" style="margin-left: 0; white-space: normal">{{ c.advertencia }}</span>
+                  } @else {
+                    <span class="muted">Sin evaluar</span>
+                  }
+                </td>
+                <td>{{ c.responsable || '—' }}</td>
+                <td class="num" style="white-space: nowrap">
+                  <button type="button" class="btn-sm" (click)="verVoucher(c.id)">Voucher</button>
+                  @if (puedeAprobar()) {
+                    <button type="button" class="btn-sm" [disabled]="aprobando() !== null" (click)="aprobar(c)">
+                      {{ aprobando() === c.id ? 'Aprobando…' : 'Aprobar' }}
+                    </button>
+                  }
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="9" class="empty">No hay análisis con advertencia: todos cumplen el estándar.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+
+  <!-- ================= HISTORIAL DE UN PROVEEDOR ================= -->
+  @if (vista() === 'historial') {
+    <section class="card">
+      <form class="barra" (ngSubmit)="buscar()">
+        <label class="sr-only" for="cal-buscar">Nombre o código del proveedor</label>
+        <input
+          id="cal-buscar"
+          class="buscador"
+          type="search"
+          name="busqueda"
+          [(ngModel)]="busqueda"
+          required
+          placeholder="Nombre o código del proveedor"
+        />
+        <button class="btn btn-primary" [disabled]="buscando()">
+          {{ buscando() ? 'Buscando…' : 'Buscar' }}
+        </button>
+      </form>
+
+      @if (busquedaHecha()) {
+        <div class="resultados">
+          @for (p of proveedores(); track p.id) {
+            <button
+              type="button"
+              class="btn-sm"
+              [class.activo]="nombre() === p.nombres + ' ' + p.apellidos"
+              (click)="verHistorial(p.id, p.nombres + ' ' + p.apellidos)"
+            >
+              {{ p.nombres }} {{ p.apellidos }} <span class="muted">· {{ p.codigo }}</span>
+            </button>
+          } @empty {
+            <span class="vacio">Sin resultados para «{{ busqueda }}».</span>
+          }
+          @if (totalResultados() > proveedores().length) {
+            <span class="vacio">Se muestran 20 de {{ totalResultados() }}; escribe más del nombre.</span>
+          }
+        </div>
+      }
+
+      @if (nombre()) {
+        <div class="barra cabecera-proveedor">
+          <h2>{{ nombre() }}</h2>
+          @if (controles().length) {
+            <div class="contadores">
+              <span class="contador c-verde"><b>{{ resumenControles().buenas }}</b> buenas</span>
+              <span class="contador c-ambar"><b>{{ resumenControles().observadas }}</b> observadas</span>
+              <span class="contador c-rojo"><b>{{ resumenControles().rechazadas }}</b> rechazadas</span>
+            </div>
+          }
+        </div>
+
+        <div class="tablebox">
+          <table>
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Lugar</th>
+                <th>Resultado</th>
+                <th class="num">Densidad</th>
+                <th class="num">Temp.</th>
+                <th class="num">Grasa</th>
+                <th>Observación</th>
+                <th>Revisó</th>
+                <th>Aprobación</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (c of pagControles.ver(controles(), nombre()); track c.id) {
+                <tr>
+                  <td>{{ c.fechaHora ?? c.fecha | date: 'dd/MM/yy HH:mm' : '-0500' }}</td>
+                  <td>
+                    {{ textoLugar(c) }}
+                    @if (c.lugarAnalisis === 'CAMPO' && c.recojoId == null) {
+                      <span class="flag flag-aviso" title="El acopiador todavía no registró el recojo">Sin recojo</span>
+                    }
+                  </td>
+                  <td>
+                    <span
+                      class="badge"
+                      [class.badge-verde]="c.resultado === 'ACEPTADA'"
+                      [class.badge-ambar]="c.resultado === 'OBSERVADA'"
+                      [class.badge-rojo]="c.resultado === 'RECHAZADA'"
+                      >{{ textoResultado(c.resultado) }}</span
+                    >
+                  </td>
+                  <!-- g/ml (1.0332) con 4 decimales; grados de lactodensímetro (30.5) con 1. -->
+                  <td class="num">
+                    {{
+                      c.densidad == null
+                        ? '—'
+                        : (c.densidad | number: (c.densidad < 2 ? '1.4-4' : '1.1-1'))
+                    }}
+                  </td>
+                  <td class="num">{{ c.temperatura != null ? (c.temperatura | number: '1.1-1') + ' °C' : '—' }}</td>
+                  <td class="num">{{ c.grasa != null ? (c.grasa | number: '1.1-2') + ' %' : '—' }}</td>
+                  <td class="wrap">{{ c.motivoRechazo || c.revisionVisual || '—' }}</td>
+                  <td>{{ c.responsable || '—' }}</td>
+                  <td [title]="c.advertencia || ''">
+                    <span
+                      class="badge"
+                      [class.badge-verde]="!!c.aprobadoEn"
+                      [class.badge-ambar]="!c.aprobadoEn"
+                      >{{ textoAprobacion(c) }}</span
+                    >
+                  </td>
+                  <td class="num">
+                    <button
+                      type="button"
+                      class="btn-sm"
+                      (click)="verVoucher(c.id)"
+                      [disabled]="abriendoVoucher() === c.id"
+                    >
+                      {{ abriendoVoucher() === c.id ? 'Abriendo…' : 'Voucher' }}
+                    </button>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="10" class="empty">
+                    {{ cargandoHistorial() ? 'Consultando…' : 'Este proveedor no tiene entregas revisadas.' }}
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <app-paginador
+          [page]="pagControles.pagina(controles().length)"
+          [size]="pagControles.tamano()"
+          [total]="controles().length"
+          (pageChange)="pagControles.irA($event)"
+          (sizeChange)="pagControles.cambiarTamano($event)"
+        />
+      }
+    </section>
+  }
+
+  <!-- Voucher en ventana modal: la foto original y quién confirmó los datos. -->
+  @if (voucher(); as v) {
+    <div class="prototype-modal" role="dialog" aria-modal="true" aria-labelledby="voucher-titulo" (click)="cerrarVoucher()">
+      <div class="prototype-modal-box voucher" (click)="$event.stopPropagation()">
+        <div class="modal-cabecera">
+          <h2 id="voucher-titulo">Voucher del control</h2>
+          <button type="button" class="btn btn-soft" (click)="cerrarVoucher()">Cerrar</button>
+        </div>
+        @if (v.url) {
+          <img [src]="v.url" alt="Foto del voucher del analizador" />
+          <p class="vacio">
+            Confirmado por {{ v.evidencia?.verificadoPor || '—' }}
+            @if (v.evidencia?.confianzaOcr != null) {
+              · lectura automática {{ v.evidencia!.confianzaOcr! * 100 | number: '1.0-0' }} %
+            }
+          </p>
+          @if (v.evidencia?.textoOcr) {
+            <details class="opcionales">
+              <summary>Texto leído automáticamente</summary>
+              <pre>{{ v.evidencia!.textoOcr }}</pre>
+            </details>
+          }
+        } @else {
+          <p class="vacio">{{ v.mensaje }}</p>
+        }
+      </div>
+    </div>
+  }
+</section>

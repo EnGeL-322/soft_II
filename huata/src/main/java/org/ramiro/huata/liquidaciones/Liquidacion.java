@@ -34,8 +34,20 @@ public class Liquidacion extends BaseEntity {
     @Column(nullable = false)
     private Double litrosTotales = 0.0;
 
+    /** Bruto: suma de los subtotales de las entregas, antes de ajustes. */
     @Column(nullable = false)
     private Double montoTotal = 0.0;
+
+    /**
+     * Suma de los ajustes CON su signo (regla 7.7): negativa si predominan descuentos, penalidades
+     * o adelantos; positiva si predominan bonificaciones.
+     */
+    @Column(nullable = false)
+    private Double ajustesTotal = 0.0;
+
+    /** Lo que realmente se paga: montoTotal + ajustesTotal. Es el importe de la boleta. */
+    @Column(nullable = false)
+    private Double montoNeto = 0.0;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)

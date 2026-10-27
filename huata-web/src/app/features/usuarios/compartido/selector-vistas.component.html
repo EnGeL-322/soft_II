@@ -1,0 +1,77 @@
+<p class="sv-resumen">
+  Ve <strong>{{ pantallas() }}</strong> de {{ totalPantallas() }} pantallas.
+  <span class="sv-leyenda"><b>Ver</b> = solo mirar · <b>Todo</b> = también registrar, editar y aprobar</span>
+</p>
+
+<ng-template #lista let-grupos>
+  <div class="sv-grid">
+    @for (g of grupos; track g.modulo) {
+      <section class="sv-grupo">
+        <h4>{{ g.modulo }}</h4>
+        @for (v of g.vistas; track v.codigo) {
+          <div class="sv-vista" [class.apagada]="nivel(v) === 'no'">
+            <div class="sv-fila">
+              <span class="sv-nombre" [title]="v.descripcion ?? ''">
+                {{ v.nombre }}
+                @switch (marca(v)) {
+                  @case ('quitada') { <i class="sv-marca quitada" title="El rol la da; a esta persona se le quitó">quitada</i> }
+                  @case ('extra') { <i class="sv-marca extra" title="Dada solo a esta persona">extra</i> }
+                  @case ('ajustada') { <i class="sv-marca extra" title="Distinta de lo que da el rol">ajustada</i> }
+                }
+              </span>
+              <span class="sv-niveles" role="radiogroup" [attr.aria-label]="'Acceso a ' + v.nombre">
+                <button type="button" role="radio" [attr.aria-checked]="nivel(v) === 'no'" [class.on]="nivel(v) === 'no'"
+                  [disabled]="soloLectura()" (click)="fijarNivel(v, 'no')">No</button>
+                <button type="button" role="radio" [attr.aria-checked]="nivel(v) === 'ver'" [class.on]="nivel(v) === 'ver'"
+                  [disabled]="soloLectura()" (click)="fijarNivel(v, 'ver')">Ver</button>
+                @if (acciones(v).length) {
+                  <button type="button" role="radio" [attr.aria-checked]="nivel(v) === 'todo'"
+                    [class.on]="nivel(v) === 'todo'" [class.medio]="nivel(v) === 'parcial'"
+                    [disabled]="soloLectura()" (click)="fijarNivel(v, 'todo')">Todo</button>
+                }
+              </span>
+            </div>
+            @if (ajustable(v) && nivel(v) !== 'no') {
+              @if (detalleAbierto(v)) {
+                <div class="sv-acciones">
+                  @for (a of acciones(v); track a.permiso) {
+                    <label class="sv-accion" [title]="a.descripcion ?? ''">
+                      <input type="checkbox" [checked]="tiene(a.permiso)" [disabled]="soloLectura()"
+                        (change)="alternarAccion(v, a.permiso)" />
+                      {{ a.etiqueta }}
+                    </label>
+                  }
+                </div>
+              } @else if (!soloLectura()) {
+                <button type="button" class="sv-ajustar" (click)="alternarDetalle(v)">Ajustar qué puede hacer</button>
+              }
+            }
+          </div>
+        }
+      </section>
+    }
+  </div>
+</ng-template>
+
+@if (modoRol()) {
+  <ng-container *ngTemplateOutlet="lista; context: { $implicit: delRol() }" />
+} @else {
+  @if (delRol().length) {
+    <ng-container *ngTemplateOutlet="lista; context: { $implicit: delRol() }" />
+  } @else {
+    <p class="sv-vacio">Elige un rol para ver sus vistas.</p>
+  }
+  <button type="button" class="sv-otras" [attr.aria-expanded]="verOtras()" (click)="verOtras.set(!verOtras())">
+    {{ verOtras() ? '−' : '+' }} Dar otras vistas a esta persona
+    @if (extrasActivas()) {
+      <span class="sv-cuenta">{{ extrasActivas() }}</span>
+    }
+  </button>
+  @if (verOtras()) {
+    @if (otras().length) {
+      <ng-container *ngTemplateOutlet="lista; context: { $implicit: otras() }" />
+    } @else {
+      <p class="sv-vacio">No hay más vistas.</p>
+    }
+  }
+}

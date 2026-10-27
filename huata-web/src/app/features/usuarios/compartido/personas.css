@@ -1,0 +1,301 @@
+/* Estilos comunes de las pestañas de Usuarios (internos, acopiadores, proveedores) y sus fichas. */
+
+/* ---------- Barra de filtros ---------- */
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.filtros .buscar {
+  flex: 1 1 240px;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 12.5px;
+  background: #fff;
+}
+.filtros select {
+  flex: 0 1 190px;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 12.5px;
+  background: #fff;
+}
+.filtros .limpiar {
+  font-size: 12px;
+}
+.filtros .acciones-extra {
+  margin-left: auto;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* ---------- Filas ---------- */
+.persona {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.persona > span:last-child {
+  display: grid;
+}
+.persona small {
+  color: var(--muted);
+  font-size: 11px;
+}
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--green-soft);
+  color: var(--green);
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+tr.inactivo td {
+  opacity: 0.6;
+}
+.etiquetas {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.secundario {
+  color: var(--muted);
+  font-size: 11.5px;
+}
+.col-acciones {
+  width: 1%;
+  white-space: nowrap;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.vacio {
+  text-align: center;
+  padding: 24px;
+  color: var(--muted);
+}
+
+/* ---------- Botones de icono con su descripción al pasar el mouse ---------- */
+.acciones-fila {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: flex-end;
+}
+.icon-btn {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--green);
+  cursor: pointer;
+}
+.icon-btn:hover {
+  background: var(--green-soft);
+}
+.icon-btn.activa {
+  color: var(--amber);
+}
+.icon-btn.peligro {
+  color: var(--red);
+}
+.icon-btn.peligro:hover {
+  background: var(--red-soft);
+  border-color: var(--red);
+}
+.icon-btn:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+/*
+ * Descripción encima del botón al pasar el mouse. Va alineada a la derecha del botón (crece hacia la
+ * izquierda) y no existe mientras no se muestra: centrada y solo transparente, la de la última columna
+ * salía por el borde derecho y la tabla ganaba un scroll horizontal que la hacía "moverse".
+ */
+.icon-btn[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  right: 0;
+  z-index: 5;
+  display: none;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: #1f2a24;
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 1.3;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.icon-btn[data-tip]:hover::after,
+.icon-btn[data-tip]:focus-visible::after {
+  display: block;
+}
+
+/* ---------- Fichas ---------- */
+.pasos {
+  display: flex;
+  gap: 4px;
+  padding: 0 28px;
+  border-bottom: 1px solid #e7e4dc;
+}
+.pasos button {
+  border: 0;
+  background: none;
+  padding: 10px 12px;
+  font-size: 12.5px;
+  color: var(--muted);
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+}
+.pasos button.activo {
+  color: var(--green);
+  border-color: var(--green);
+  font-weight: 700;
+}
+.pasos b {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ece8dc;
+  font-size: 10px;
+  margin-right: 4px;
+}
+.pasos .activo b {
+  background: var(--green);
+  color: #fff;
+}
+.ficha-nota {
+  margin: 0 28px;
+}
+h3.seccion-ficha {
+  margin: 18px 0 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+h3.seccion-ficha:first-child {
+  margin-top: 0;
+}
+.campo-ancho {
+  grid-column: 1 / -1;
+}
+.campo-ancho textarea {
+  min-height: 70px;
+}
+.campo-con-error input {
+  border-color: var(--red);
+}
+.error-campo {
+  color: var(--red);
+}
+.clave {
+  display: flex;
+  gap: 6px;
+}
+.clave input {
+  flex: 1;
+  min-width: 0;
+}
+.ayuda {
+  font-size: 12px;
+  margin: 0 0 12px;
+}
+.role-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+/* Compactas: nombre y cuántas pantallas; la descripción va en el tooltip. */
+.role-option {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 9px 11px;
+  border: 1px solid #dfe2d9;
+  border-radius: 10px;
+  cursor: pointer;
+  background: #f9f7f1;
+}
+.role-option.chosen {
+  border-color: #437862;
+  background: #eaf0ec;
+}
+.role-option input {
+  width: 16px;
+  height: 16px;
+  margin: 2px 0;
+  flex-shrink: 0;
+  accent-color: #2f5748;
+}
+.role-option > span:nth-child(2) {
+  display: grid;
+  gap: 1px;
+  flex: 1;
+}
+.role-option strong {
+  font-size: 12.5px;
+}
+.role-option small {
+  font-size: 10.5px;
+  line-height: 1.45;
+  color: #66756d;
+}
+.role-option em {
+  font-style: normal;
+  font-size: 10.5px;
+  color: var(--green);
+  font-weight: 600;
+}
+.resumen-accesos {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  font-size: 12px;
+}
+
+@media (max-width: 640px) {
+  .pasos {
+    padding: 0 10px;
+    overflow-x: auto;
+  }
+  .ficha-nota {
+    margin: 0 16px;
+  }
+  .filtros select {
+    flex: 1 1 140px;
+  }
+  .filtros .acciones-extra {
+    margin-left: 0;
+  }
+}

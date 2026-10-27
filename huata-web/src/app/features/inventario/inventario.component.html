@@ -1,0 +1,290 @@
+<section class="page">
+  <div class="page-head">
+    <div>
+      <h1>Inventario</h1>
+      <p>Lo que hay en el almacén y en cámara. Se actualiza solo con cada compra, producción y venta.</p>
+    </div>
+  </div>
+
+  @if (error()) {
+    <div class="note" role="alert">{{ error() }}</div>
+  }
+
+  <!-- Lo que necesita atención, solo si hay algo. -->
+  @if (agotados().length || vencimientos().length) {
+    <div class="inv-avisos">
+      @if (agotados().length) {
+        <button type="button" class="inv-aviso" (click)="cambiarVista('insumos')">
+          <app-icono nombre="alerta" [tamano]="16" />
+          {{ agotados().length === 1 ? agotados()[0].nombre + ' está agotado' : agotados().length + ' insumos agotados' }}
+        </button>
+      }
+      @if (vencimientos().length && puedeVerTerminado()) {
+        <button type="button" class="inv-aviso" (click)="cambiarVista('camara')">
+          <app-icono nombre="alerta" [tamano]="16" />
+          {{ vencimientos().length === 1 ? '1 lote vence pronto' : vencimientos().length + ' lotes vencen pronto' }}
+        </button>
+      }
+    </div>
+  }
+
+  <div class="card inv">
+    <div class="inv-barra">
+      <div class="inv-pestanas" role="tablist" aria-label="Inventario">
+        <button type="button" role="tab" [attr.aria-selected]="vista() === 'insumos'" [class.activo]="vista() === 'insumos'" (click)="cambiarVista('insumos')">
+          Almacén <span>{{ materiasPrimas().length }}</span>
+        </button>
+        @if (puedeVerTerminado()) {
+          <button type="button" role="tab" [attr.aria-selected]="vista() === 'camara'" [class.activo]="vista() === 'camara'" (click)="cambiarVista('camara')">
+            En cámara <span>{{ unidadesEnCamara() }}</span>
+          </button>
+        }
+        <button type="button" role="tab" [attr.aria-selected]="vista() === 'movimientos'" [class.activo]="vista() === 'movimientos'" (click)="cambiarVista('movimientos')">
+          Movimientos
+        </button>
+      </div>
+
+      @if (vista() === 'insumos') {
+        <label class="inv-buscar">
+          <app-icono nombre="buscar" [tamano]="16" />
+          <input type="search" placeholder="Buscar insumo" aria-label="Buscar insumo" [ngModel]="busqueda()" (ngModelChange)="busqueda.set($event)" />
+        </label>
+      }
+      @if (vista() === 'movimientos') {
+        <select aria-label="Ver movimientos de" [ngModel]="materiaPrimaFiltro" (ngModelChange)="verMovimientosDe($event)">
+          <option [ngValue]="null">Todo</option>
+          @for (m of materiasPrimas(); track m.id) {
+            <option [ngValue]="m.id">{{ m.nombre }}</option>
+          }
+        </select>
+      }
+    </div>
+
+    <!-- ===== Almacén: leche e insumos ===== -->
+    @if (vista() === 'insumos') {
+      @if (recetaElegida(); as r) {
+        <div class="inv-receta">
+          <span>Lo que lleva <strong>{{ r.productoNombre }}</strong> y cuánto hay de cada cosa.</span>
+          <button type="button" class="inv-link" (click)="verTodosLosInsumos()">Ver todo el almacén</button>
+        </div>
+      }
+      <ul class="inv-lista">
+        @for (m of insumosVisibles(); track m.id) {
+          <li class="inv-fila" [class.agotado]="!m.lecheAcopio && m.stock <= 0">
+            <span class="inv-icono" [class.leche]="m.lecheAcopio">
+              <app-icono [nombre]="m.lecheAcopio ? 'acopio' : 'inventario'" [tamano]="18" />
+            </span>
+            <div class="inv-nombre">
+              <strong>{{ m.nombre }}</strong>
+              <small>
+                @if (porUnidad(m.id) != null) {
+                  1 {{ recetaElegida()?.unidadVenta }} lleva {{ porUnidad(m.id) | number: '1.0-4' }} {{ unidad(m) }}
+                } @else if (m.lecheAcopio) {
+                  Entra sola al recibir la leche en planta
+                } @else if (usosDe(m.id)) {
+                  Se usa en {{ usosDe(m.id) }}
+                } @else {
+                  No está en ninguna receta
+                }
+              </small>
+            </div>
+            <div class="inv-cantidad">
+              <strong>{{ m.stock | number: '1.0-2' }} {{ unidad(m) }}</strong>
+              @if (!m.lecheAcopio && m.stock <= 0) {
+                <small>Agotado</small>
+              }
+            </div>
+            <div class="inv-acciones">
+              @if (puedeComprar() && !m.lecheAcopio && usosDe(m.id)) {
+                <a class="btn btn-primary btn-sm" routerLink="/compras" [queryParams]="{ materiaPrimaId: m.id }">Comprar</a>
+              }
+              @if (puedeEscribir()) {
+                <button type="button" class="btn btn-soft btn-sm" (click)="abrirAjuste(m)">Ajustar</button>
+              }
+              <div class="inv-menu">
+                <button
+                  type="button"
+                  class="inv-mas"
+                  [attr.aria-expanded]="menuAbiertoId() === m.id"
+                  [attr.aria-label]="'Más opciones de ' + m.nombre"
+                  (click)="menuAbiertoId.set(menuAbiertoId() === m.id ? null : m.id)"
+                >
+                  ⋯
+                </button>
+                @if (menuAbiertoId() === m.id) {
+                  <div class="inv-menu-lista" role="menu">
+                    <button type="button" role="menuitem" (click)="verMovimientosDe(m.id)">Ver movimientos</button>
+                    @if (puedeEscribir() && !m.lecheAcopio) {
+                      <button type="button" role="menuitem" (click)="editarMateriaPrima(m)">Editar</button>
+                      <button type="button" role="menuitem" class="peligro" (click)="eliminarMateriaPrima(m)">Eliminar</button>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+          </li>
+        } @empty {
+          <li class="inv-vacio">{{ busqueda() ? 'Ningún insumo coincide con la búsqueda.' : 'Todavía no hay insumos.' }}</li>
+        }
+      </ul>
+    }
+
+    <!-- ===== En cámara: producto terminado ===== -->
+    @if (vista() === 'camara') {
+      @if (vencimientos().length) {
+        <div class="inv-subtitulo">Vencen pronto</div>
+        <ul class="inv-lista">
+          @for (a of vencimientos(); track a.loteCodigo) {
+            <li class="inv-fila">
+              <div class="inv-nombre">
+                <strong>{{ a.productoNombre }}</strong>
+                <small>Lote {{ a.loteCodigo }} · vence {{ fechaCorta(a.fechaVencimiento) }}</small>
+              </div>
+              <div class="inv-cantidad">
+                <strong>{{ a.stock }} u</strong>
+                @if (a.dias < 0) {
+                  <small>Vencido hace {{ -a.dias }} día(s)</small>
+                } @else if (a.dias === 0) {
+                  <small>Vence hoy</small>
+                } @else {
+                  <small class="pronto">En {{ a.dias }} día(s)</small>
+                }
+              </div>
+            </li>
+          }
+        </ul>
+        <div class="inv-subtitulo">Todo lo que hay</div>
+      }
+      <ul class="inv-lista">
+        @for (p of terminado(); track p.productoId) {
+          <li class="inv-fila">
+            <span class="inv-icono"><app-icono nombre="produccion" [tamano]="18" /></span>
+            <div class="inv-nombre">
+              <strong>{{ p.productoNombre }}</strong>
+              <small>{{ p.lotes }} {{ p.lotes === 1 ? 'lote' : 'lotes' }}</small>
+            </div>
+            <div class="inv-cantidad">
+              <strong>{{ p.stock }} {{ p.unidadVenta === 'unidad' ? (p.stock === 1 ? 'unidad' : 'unidades') : p.unidadVenta }}</strong>
+            </div>
+          </li>
+        } @empty {
+          <li class="inv-vacio">No hay producto terminado en cámara.</li>
+        }
+      </ul>
+    }
+
+    <!-- ===== Movimientos ===== -->
+    @if (vista() === 'movimientos') {
+      <ul class="inv-lista" [class.cargando]="cargando()">
+        @for (m of kardex()?.content; track m.id) {
+          <li class="inv-fila">
+            <span class="inv-fecha">{{ fechaCorta(m.fecha) }}</span>
+            <div class="inv-nombre">
+              <strong>{{ textoMovimiento(m) }} · {{ queMovio(m) }}</strong>
+              <small>{{ m.observaciones || m.usuario }}</small>
+            </div>
+            <div class="inv-cantidad">
+              <strong [class.entra]="entra(m)" [class.sale]="!entra(m)">
+                {{ entra(m) ? '+' : '−' }}{{ m.cantidad | number: '1.0-3' }} {{ unidadMovimiento(m) }}
+              </strong>
+            </div>
+          </li>
+        } @empty {
+          @if (!cargando()) {
+            <li class="inv-vacio">Sin movimientos.</li>
+          }
+        }
+      </ul>
+      @if (kardex(); as k) {
+        <app-paginador
+          [page]="k.page"
+          [size]="size"
+          [total]="k.totalElements"
+          (pageChange)="cambiarPagina($event)"
+          (sizeChange)="cambiarTamano($event)"
+        />
+      }
+    }
+  </div>
+
+  <!-- ===== Ajustar stock ===== -->
+  @if (ajustando(); as m) {
+    <div class="prototype-modal" role="dialog" aria-modal="true" aria-labelledby="ajuste-titulo">
+      <div class="prototype-modal-box">
+        <form class="card ventana" (ngSubmit)="guardarAjuste()">
+          <h3 id="ajuste-titulo">Ajustar {{ m.nombre }}</h3>
+          <p class="muted ventana-ayuda">Hay {{ m.stock | number: '1.0-3' }} {{ unidad(m) }}.</p>
+
+          <div class="ventana-tipo" role="group" aria-label="Tipo de ajuste">
+            <button type="button" [class.activo]="ajusteTipo === 'SALIDA'" (click)="ajusteTipo = 'SALIDA'">Sale</button>
+            <button type="button" [class.activo]="ajusteTipo === 'ENTRADA'" (click)="ajusteTipo = 'ENTRADA'">Entra</button>
+          </div>
+
+          <div class="field">
+            <label for="aj-cantidad">Cantidad ({{ unidad(m) }})</label>
+            <input id="aj-cantidad" name="cantidad" type="number" min="0" step="any" inputmode="decimal" [(ngModel)]="ajusteCantidad" required />
+          </div>
+
+          <div class="field">
+            <label for="aj-motivo">Motivo</label>
+            <div class="ventana-motivos">
+              @for (mo of motivosAjuste; track mo) {
+                <button type="button" [class.activo]="ajusteMotivo === mo" (click)="ajusteMotivo = mo">{{ mo }}</button>
+              }
+            </div>
+            <input id="aj-motivo" name="motivo" maxlength="300" [(ngModel)]="ajusteMotivo" placeholder="Escribe o elige un motivo" required />
+          </div>
+
+          @if (stockResultante() !== null) {
+            <p class="ventana-resultado" [class.negativo]="(stockResultante() ?? 0) < 0">
+              Quedarán {{ stockResultante() | number: '1.0-3' }} {{ unidad(m) }}.
+            </p>
+          }
+          @if (errorAjuste()) {
+            <p class="error-text">{{ errorAjuste() }}</p>
+          }
+
+          <div class="actions">
+            <button type="submit" class="btn btn-primary" [disabled]="guardando()">{{ guardando() ? 'Guardando…' : 'Guardar ajuste' }}</button>
+            <button type="button" class="btn btn-soft" (click)="cerrarAjuste()">Cancelar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- ===== Editar insumo ===== -->
+  @if (editando(); as m) {
+    <div class="prototype-modal" role="dialog" aria-modal="true" aria-labelledby="editar-titulo">
+      <div class="prototype-modal-box">
+        <form class="card ventana" (ngSubmit)="guardarEdicion()">
+          <h3 id="editar-titulo">Editar insumo</h3>
+          <div class="field">
+            <label for="ed-nombre">Nombre</label>
+            <input id="ed-nombre" name="nombre" maxlength="120" [(ngModel)]="nombreEdicion" required />
+          </div>
+          <div class="field">
+            <label for="ed-unidad">Se mide en</label>
+            <select id="ed-unidad" name="unidad" [(ngModel)]="unidadEdicion">
+              @for (u of unidades; track u.valor) {
+                <option [ngValue]="u.valor">{{ u.texto }}</option>
+              }
+            </select>
+          </div>
+          <div class="field">
+            <label for="ed-costo">Precio de referencia por {{ unidad({ unidadMedida: unidadEdicion }) }} (S/)</label>
+            <input id="ed-costo" name="costo" type="number" min="0" step="0.01" [(ngModel)]="costoEdicion" />
+            <small class="muted">Se usa para calcular el costo de cada producción. Se actualiza solo con cada compra.</small>
+          </div>
+          @if (errorEdicion()) {
+            <p class="error-text">{{ errorEdicion() }}</p>
+          }
+          <div class="actions">
+            <button type="submit" class="btn btn-primary" [disabled]="guardando()">{{ guardando() ? 'Guardando…' : 'Guardar' }}</button>
+            <button type="button" class="btn btn-soft" (click)="cancelarEdicion()">Cancelar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+</section>

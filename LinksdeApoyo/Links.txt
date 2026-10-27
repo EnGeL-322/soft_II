@@ -1,7 +1,0 @@
-* Para ver en mapas la cobertura
-
-	https://checatusenal.osiptel.gob.pe/
-
-* Para ver el el internet que llega
-
-	https://checatuinternetmovil.osiptel.gob.pe/

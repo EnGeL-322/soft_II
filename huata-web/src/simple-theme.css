@@ -1,0 +1,935 @@
+/* =====================================================================================
+   SISTEMA DE DISEÑO COMPACTO — interfaz de trabajo (todo lo que va dentro del shell).
+   Es la última hoja que se carga: aquí se fijan tamaños, espacios y colores definitivos
+   de botones, campos, tablas, tarjetas y mensajes. Las pantallas no deben redefinirlos.
+
+   Escala: botones 32 px · campos 34 px · filas de tabla ~36 px · títulos 22/15 px.
+   En celular (≤ 760 px) los controles suben a 42 px para pulsarlos con comodidad.
+   ===================================================================================== */
+.operation-content {
+  --panel: #fff;
+  --panel2: #f3f6f3;
+  --bg: #f5f7f5;
+  --line: #dce5dd;
+  --text: #25392d;
+  --muted: #65766a;
+  --green-soft: #eef5ef;
+  --shadow: none;
+  --ctl-h: 32px;
+  --input-h: 34px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  font-size: 13.5px;
+}
+
+/* ---------- Títulos y cabecera de página ---------- */
+.operation-content h1,
+.operation-content h2,
+.operation-content h3 {
+  font-family: 'Instrument Sans', 'Segoe UI', sans-serif !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.2px !important;
+}
+.operation-content h2 {
+  font-size: 16px !important;
+}
+.operation-content h3 {
+  font-size: 15px !important;
+}
+.operation-content .page-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  margin: 0 0 16px !important;
+}
+.operation-content .page-head h1 {
+  font-size: 22px !important;
+  line-height: 1.25;
+  margin: 0 !important;
+}
+.operation-content .page-head p {
+  font-size: 13px !important;
+  line-height: 1.5;
+  max-width: 75ch;
+  margin: 4px 0 0 !important;
+  color: var(--muted);
+}
+.operation-content .kicker {
+  display: none;
+}
+/* Acciones de la cabecera alineadas por abajo: un campo con etiqueta y un botón quedan parejos. */
+.operation-content .page-head > .actions {
+  align-items: flex-end;
+}
+
+/* ---------- Tarjetas y bloques ---------- */
+.operation-content .card {
+  border: 1px solid var(--line) !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: none !important;
+  background: var(--panel) !important;
+}
+.operation-content .table-title {
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 12px 14px !important;
+  margin: 0 !important;
+}
+.operation-content .table-title h3 {
+  font-size: 15px !important;
+  margin: 0;
+}
+.operation-content .table-title p {
+  font-size: 12.5px !important;
+  line-height: 1.45;
+  margin: 2px 0 0 !important;
+}
+.operation-content .stat,
+.operation-content .kpi {
+  padding: 12px 14px !important;
+  border-radius: var(--radius-md) !important;
+}
+.operation-content .kpi strong,
+.operation-content .stat > strong {
+  font-size: 24px !important;
+  margin: 4px 0 !important;
+}
+
+/* ---------- Botones ---------- */
+.operation-content .actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.operation-content .btn,
+.operation-content .btn-sm {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: var(--ctl-h) !important;
+  height: auto;
+  padding: 0 12px !important;
+  border-radius: var(--radius-sm) !important;
+  border: 1px solid transparent;
+  font-size: 13px !important;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+}
+.operation-content .btn-sm,
+.operation-content table td .btn {
+  min-height: 28px !important;
+  padding: 0 10px !important;
+  font-size: 12.5px !important;
+}
+.operation-content .btn-primary {
+  background: #376d50 !important;
+  border-color: #376d50 !important;
+  color: white !important;
+}
+.operation-content .btn-soft,
+.operation-content .btn-sm {
+  background: white !important;
+  border: 1px solid #cfdad1 !important;
+  color: #2f5748 !important;
+}
+.operation-content .btn-danger {
+  background: white !important;
+  border: 1px solid #e3b9ae !important;
+  color: #9d3f2d !important;
+}
+.operation-content .btn-blue,
+.operation-content .btn-amber,
+.operation-content .btn-purple {
+  border: 1px solid transparent !important;
+}
+.operation-content .btn:hover:not(:disabled),
+.operation-content .btn-sm:hover:not(:disabled) {
+  filter: brightness(0.96);
+}
+.operation-content .btn:disabled,
+.operation-content .btn-sm:disabled {
+  opacity: 0.5;
+}
+.operation-content .btn:focus-visible,
+.operation-content button:focus-visible,
+.operation-content summary:focus-visible,
+.operation-content a:focus-visible {
+  outline: 2px solid #72a685;
+  outline-offset: 2px;
+}
+.operation-content button:disabled {
+  cursor: not-allowed;
+}
+
+/* Variante "amigable" (Recetas, Producción, Precios, Calidad): mismos tamaños que el resto. */
+.operation-content .boton-grande,
+.operation-content .boton-secundario,
+.operation-content .boton-texto {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: var(--ctl-h) !important;
+  padding: 0 14px !important;
+  border-radius: var(--radius-sm) !important;
+  font-size: 13px !important;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.operation-content .boton-grande {
+  background: #376d50;
+  border: 1px solid #376d50;
+  color: #fff;
+}
+.operation-content .boton-grande:hover:not(:disabled) {
+  background: #2f5f45;
+}
+.operation-content .boton-secundario {
+  background: #fff;
+  border: 1px solid #cfdad1;
+  color: #2f5748;
+}
+.operation-content .boton-texto {
+  padding: 0 6px !important;
+  color: #2f5748;
+  text-decoration: none;
+}
+.operation-content .boton-texto:hover {
+  text-decoration: underline;
+}
+.operation-content .botonera {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 14px !important;
+}
+
+/* ---------- Campos de formulario ---------- */
+.operation-content input:not([type]),
+.operation-content input[type='text'],
+.operation-content input[type='search'],
+.operation-content input[type='date'],
+.operation-content input[type='time'],
+.operation-content input[type='datetime-local'],
+.operation-content input[type='number'],
+.operation-content input[type='email'],
+.operation-content input[type='password'],
+.operation-content input[type='tel'],
+.operation-content select {
+  min-height: var(--input-h) !important;
+  height: var(--input-h);
+  padding: 0 10px !important;
+  font-size: 13px !important;
+  border-radius: var(--radius-sm) !important;
+  border: 1px solid #cfd9d1 !important;
+  background: #fff !important;
+  color: var(--text) !important;
+}
+.operation-content textarea {
+  padding: 8px 10px !important;
+  font-size: 13px !important;
+  border-radius: var(--radius-sm) !important;
+  border: 1px solid #cfd9d1 !important;
+  background: #fff !important;
+}
+.operation-content input:focus,
+.operation-content select:focus,
+.operation-content textarea:focus {
+  outline: none;
+  border-color: #437862 !important;
+  box-shadow: 0 0 0 3px rgba(67, 120, 98, 0.15) !important;
+}
+.operation-content .form-grid,
+.operation-content .campos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px 12px !important;
+}
+.operation-content .field,
+.operation-content .campo {
+  display: grid;
+  gap: 4px !important;
+  align-content: start;
+  min-width: 0;
+}
+.operation-content .field label,
+.operation-content .field > span,
+.operation-content .campo label,
+.operation-content .campo .campo-etiqueta,
+.operation-content .campo-etiqueta {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  color: #3c5245 !important;
+  margin: 0 !important;
+}
+.operation-content .campo small,
+.operation-content .help {
+  font-size: 12px !important;
+  color: var(--muted);
+}
+.operation-content .amigable .campo input,
+.operation-content .amigable .campo select,
+.operation-content .campo-destacado input {
+  min-height: var(--input-h) !important;
+  font-size: 13px !important;
+  font-weight: 400 !important;
+}
+.operation-content .toolbar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+.operation-content .toolbar input[type='search'],
+.operation-content .toolbar input[type='text'] {
+  flex: 1;
+  min-width: min(240px, 100%);
+}
+.operation-content .fila-agregar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: flex-end;
+  margin-bottom: 10px !important;
+}
+.operation-content .opcion-radio {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--ctl-h);
+  padding: 0 10px !important;
+  border: 1px solid #cfd9d1 !important;
+  border-radius: var(--radius-sm) !important;
+  background: #fff;
+  font-size: 13px !important;
+  cursor: pointer;
+}
+.operation-content .opcion-radio:has(input:checked) {
+  border-color: #437862 !important;
+  background: #eef5ef;
+}
+.operation-content .opcion-radio input {
+  width: 15px !important;
+  height: 15px !important;
+  min-height: 0 !important;
+  margin: 0;
+}
+
+/* ---------- Tablas compactas ---------- */
+.operation-content .tablebox {
+  overflow-x: auto;
+  border-radius: var(--radius-md);
+}
+.operation-content table {
+  min-width: 0;
+  width: 100%;
+}
+.operation-content table th {
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  background: #f4f7f4 !important;
+  padding: 8px 12px !important;
+  white-space: nowrap;
+  color: #546c59;
+}
+.operation-content table td {
+  font-size: 13px !important;
+  padding: 7px 12px !important;
+  line-height: 1.4;
+  border-color: #e6ece7;
+}
+.operation-content table tbody tr:hover {
+  background: #f8fbf8 !important;
+}
+.operation-content .badge {
+  padding: 2px 8px !important;
+  font-size: 11.5px !important;
+  font-weight: 600 !important;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* ---------- Pestañas ---------- */
+.operation-content .sec-tabs,
+.operation-content nav[role='tablist'] {
+  display: inline-flex;
+  gap: 2px;
+  flex-wrap: wrap;
+  padding: 3px !important;
+  margin-bottom: 14px !important;
+  background: #edf2ee !important;
+  border: 0 !important;
+  border-radius: var(--radius-md) !important;
+}
+.operation-content .sec-tab {
+  min-height: 30px !important;
+  padding: 0 14px !important;
+  font-size: 13px !important;
+  font-weight: 600;
+  line-height: 1.2;
+  border: 0 !important;
+  border-radius: var(--radius-sm) !important;
+  background: transparent !important;
+  color: #3c5245 !important;
+}
+.operation-content .sec-tab.active {
+  background: #fff !important;
+  color: #23402f !important;
+  box-shadow: 0 1px 2px rgba(20, 40, 30, 0.12) !important;
+}
+/* prototype-theme.css les daba 48 px de alto y una raya inferior: aquí son un control segmentado. */
+.operation-content .sec-tabs {
+  min-height: 0 !important;
+  align-items: center;
+  overflow: visible !important;
+}
+.operation-content .sec-tab::after {
+  display: none !important;
+}
+
+/* ---------- Avisos en línea (mismos colores que las notificaciones) ----------
+   Verde = éxito, rojo = error, ámbar = advertencia, azul = información. El tipo sale de la clase
+   o del rol: role="alert" siempre es error. Las notificaciones rápidas y las confirmaciones viven
+   en shared/notificaciones; estos avisos quedan para lo que es parte del formulario o la pantalla. */
+.operation-content {
+  --alerta-exito: #2f7a52;
+  --alerta-error: #b3412e;
+  --alerta-aviso: #a86f12;
+  --alerta-info: #2f6496;
+}
+.operation-content .note,
+.operation-content .error,
+.operation-content .mensaje {
+  --alerta: var(--alerta-info);
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  margin: 0 0 12px !important;
+  padding: 8px 12px !important;
+  background: color-mix(in srgb, var(--alerta) 8%, #fff) !important;
+  border: 1px solid color-mix(in srgb, var(--alerta) 25%, #fff) !important;
+  border-left: 3px solid var(--alerta) !important;
+  border-radius: var(--radius-sm) !important;
+  color: color-mix(in srgb, var(--alerta) 70%, #1d2a24) !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  line-height: 1.45;
+}
+.operation-content .note::before,
+.operation-content .error::before,
+.operation-content .mensaje::before {
+  content: 'i';
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  margin-top: 1px;
+  border-radius: 50%;
+  background: var(--alerta);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 700;
+}
+.operation-content .note > .btn,
+.operation-content .mensaje > .btn {
+  margin-left: auto;
+}
+.operation-content .note.green,
+.operation-content .mensaje-ok {
+  --alerta: var(--alerta-exito);
+}
+.operation-content .note.green::before,
+.operation-content .mensaje-ok::before {
+  content: '✓';
+}
+.operation-content .note[role='alert'],
+.operation-content .note.red,
+.operation-content .mensaje-error,
+.operation-content .error {
+  --alerta: var(--alerta-error);
+}
+.operation-content .mensaje-aviso,
+.operation-content .note.amber {
+  --alerta: var(--alerta-aviso);
+}
+.operation-content .note[role='alert']::before,
+.operation-content .note.red::before,
+.operation-content .mensaje-error::before,
+.operation-content .error::before,
+.operation-content .mensaje-aviso::before,
+.operation-content .note.amber::before {
+  content: '!';
+}
+
+/* ---------- Validación de campos ----------
+   Error junto al campo: borde rojo cuando la persona ya pasó por él (touched) o cuando el backend
+   lo marcó (aria-invalid), y el texto del error justo debajo. Lo escrito no se borra. */
+.operation-content input.ng-invalid.ng-touched,
+.operation-content select.ng-invalid.ng-touched,
+.operation-content textarea.ng-invalid.ng-touched,
+.operation-content [aria-invalid='true'],
+.operation-content .campo-con-error input,
+.operation-content .campo-con-error select {
+  border-color: var(--alerta-error) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--alerta-error) 12%, transparent) !important;
+}
+.operation-content .error-campo,
+.operation-content .error-text {
+  display: block;
+  margin-top: 2px;
+  color: var(--alerta-error) !important;
+  font-size: 12px !important;
+  font-weight: 500;
+}
+.operation-content .ayuda-nota {
+  margin: 0 0 12px !important;
+  padding: 8px 12px !important;
+  font-size: 12.5px !important;
+  border-left-width: 3px !important;
+  border-radius: var(--radius-sm) !important;
+}
+.operation-content .vacio,
+.operation-content .empty {
+  font-size: 13px !important;
+  color: var(--muted);
+}
+.operation-content .empty {
+  padding: 18px !important;
+}
+
+/* ---------- Pantallas "amigables": misma densidad que el resto ---------- */
+.operation-content .amigable {
+  font-size: 13.5px !important;
+}
+.operation-content .amigable .page-head p {
+  font-size: 13px !important;
+}
+.operation-content .bloque {
+  margin-bottom: 14px !important;
+  padding: 14px 16px !important;
+  background: #fff !important;
+  border: 1px solid var(--line) !important;
+  border-radius: var(--radius-md) !important;
+}
+.operation-content .bloque-cabecera {
+  margin-bottom: 10px !important;
+  gap: 8px !important;
+}
+.operation-content .bloque-cabecera h2 {
+  font-size: 15px !important;
+  margin: 0 0 2px !important;
+}
+.operation-content .bloque-cabecera p {
+  font-size: 12.5px !important;
+}
+.operation-content .guia-num {
+  width: 22px !important;
+  height: 22px !important;
+  font-size: 12px !important;
+}
+.operation-content .guia-pasos li {
+  padding: 8px 12px !important;
+  border-width: 1px !important;
+  border-radius: var(--radius-md) !important;
+}
+.operation-content .guia-pasos b {
+  font-size: 13.5px !important;
+}
+.operation-content .guia-pasos small {
+  font-size: 12px !important;
+}
+.operation-content .panel-formulario {
+  padding: 14px !important;
+  border-width: 1px !important;
+  border-radius: var(--radius-md) !important;
+}
+.operation-content .panel-formulario h3 {
+  font-size: 15px !important;
+  margin: 0 0 10px !important;
+}
+.operation-content .opcionales {
+  margin-top: 12px !important;
+  padding: 8px 12px !important;
+  border: 1px solid var(--line) !important;
+  border-radius: var(--radius-sm) !important;
+}
+.operation-content .opcionales summary,
+.operation-content .historial summary {
+  font-size: 13px !important;
+}
+.operation-content .resumen-final {
+  gap: 8px !important;
+}
+.operation-content .resumen-final > div {
+  padding: 8px 12px !important;
+  border-width: 1px !important;
+  border-radius: var(--radius-sm) !important;
+}
+.operation-content .resumen-final span {
+  font-size: 12px !important;
+}
+.operation-content .resumen-final strong {
+  font-size: 17px !important;
+}
+.operation-content .receta-resumen {
+  padding: 8px 12px !important;
+  border-radius: var(--radius-sm) !important;
+}
+.operation-content .receta-resumen ul {
+  font-size: 13px !important;
+  line-height: 1.5 !important;
+}
+.operation-content .lista-personas li:not(.vacio) {
+  padding: 4px 10px !important;
+  font-size: 13px !important;
+  border-width: 1px !important;
+}
+
+/* ---------- Secciones plegables y acciones por fila ---------- */
+.operation-content .module-extra {
+  margin: 12px 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 0 14px;
+  background: white;
+}
+.operation-content .module-extra > summary {
+  cursor: pointer;
+  min-height: 38px;
+  align-content: center;
+  padding: 8px 0;
+  color: #365c43;
+  font-size: 13px;
+  font-weight: 600;
+}
+.operation-content .module-extra[open] {
+  padding-bottom: 14px;
+}
+.operation-content .module-extra > .card {
+  margin: 4px 0 0 !important;
+  border: 0 !important;
+  padding: 0;
+  box-shadow: none;
+}
+.operation-content .workflow-summary {
+  font-size: 12.5px;
+  color: var(--muted);
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: white;
+  margin: 0 0 12px;
+}
+.operation-content .workflow-summary strong {
+  color: var(--text);
+}
+.operation-content .row-actions {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 6px;
+}
+.operation-content .row-actions summary {
+  cursor: pointer;
+  list-style: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid #cfdad1;
+  border-radius: var(--radius-sm);
+  font-size: 12.5px;
+  color: #365c43;
+}
+.operation-content .row-actions summary::-webkit-details-marker {
+  display: none;
+}
+.operation-content .row-actions .actions {
+  display: grid;
+  padding: 6px 0;
+  max-width: 220px;
+}
+.operation-content .provider-view-card {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+}
+.operation-content .provider-view-tabs {
+  justify-content: flex-start !important;
+  border-bottom: 1px solid var(--line);
+  gap: 4px;
+}
+.operation-content .provider-view-tab {
+  min-height: 34px;
+  font-size: 13px !important;
+  padding: 0 14px !important;
+}
+.operation-content .provider-tab-icon {
+  display: none;
+}
+.operation-content .provider-panel-head {
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.operation-content .provider-panel-head p {
+  font-size: 12.5px !important;
+}
+.operation-content .provider-table-search input {
+  min-width: 0 !important;
+  width: 100%;
+}
+.operation-content .sale-detail {
+  margin-top: 4px;
+}
+.operation-content .sale-detail summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: #365c43;
+}
+.operation-content .sale-detail dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  padding: 8px 0;
+  font-size: 12px;
+  min-width: 200px;
+}
+.operation-content .sale-detail dt {
+  color: var(--muted);
+}
+.operation-content .sale-detail dd {
+  margin: 0;
+}
+.operation-content .sale-condition {
+  display: block;
+  font-size: 11.5px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+/* ---------- Modales ---------- */
+.operation-content .prototype-modal-box,
+.operation-content .modalbox {
+  padding: 18px !important;
+  border-radius: var(--radius-md) !important;
+}
+.operation-content .modal-actions {
+  gap: 6px !important;
+  margin-top: 14px !important;
+}
+
+/* ---------- Indicadores (KPI): una sola tipografía ----------
+   admin-theme.css los dibujaba en serif de 34 px; aquí se igualan al resto de la interfaz:
+   cifra en sans de 22 px con dígitos tabulares y etiqueta corta sin mayúsculas forzadas. */
+.operation-content .kpi strong,
+.operation-content .stat > strong {
+  font-family: 'Instrument Sans', 'Segoe UI', sans-serif !important;
+  font-weight: 600 !important;
+  font-size: 22px !important;
+  line-height: 1.2 !important;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.3px;
+}
+.operation-content .kpi span,
+.operation-content .stat > span {
+  font-size: 12px !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  color: var(--muted);
+}
+.operation-content .num,
+.operation-content td.num,
+.operation-content th.num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Pestañas: un solo estilo en todo el sistema ----------
+   Calidad usa .sec-tabs; Proveedores tenía .provider-view-tabs a todo el ancho y gris. Ambas se ven
+   ahora como el mismo control segmentado. */
+.operation-content .provider-view-tabs {
+  display: inline-flex !important;
+  grid-template-columns: none !important;
+  min-height: 0 !important;
+  gap: 2px !important;
+  margin: 12px 14px 4px;
+  padding: 3px !important;
+  background: #edf2ee !important;
+  border: 0 !important;
+  border-radius: var(--radius-md);
+}
+.operation-content .provider-view-tab {
+  min-height: 30px !important;
+  padding: 0 14px !important;
+  border-radius: var(--radius-sm) !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #3c5245 !important;
+  background: transparent !important;
+}
+.operation-content .provider-view-tab::after {
+  display: none;
+}
+.operation-content .provider-view-tab.active {
+  background: #fff !important;
+  color: #23402f !important;
+  box-shadow: 0 1px 2px rgba(20, 40, 30, 0.12);
+}
+
+/* ---------- Estados (badges) ----------
+   Verde = correcto, ámbar = requiere atención, rojo = error/retirado, gris = pendiente. */
+.operation-content .badge,
+.badge.badge-verde,
+.badge.badge-ambar,
+.badge.badge-rojo,
+.badge.badge-gris {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 999px !important;
+  white-space: nowrap;
+}
+.badge.badge-verde,
+.badge.badge-ambar,
+.badge.badge-rojo,
+.badge.badge-gris {
+  padding: 2px 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.badge.badge-verde::before,
+.badge.badge-ambar::before,
+.badge.badge-rojo::before,
+.badge.badge-gris::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.badge.badge-verde {
+  background: #e8f3ec !important;
+  color: #2f7a52 !important;
+}
+.badge.badge-ambar {
+  background: #fbf1df !important;
+  color: #94600c !important;
+}
+.badge.badge-rojo {
+  background: #fbe9e5 !important;
+  color: #a63a28 !important;
+}
+.badge.badge-gris {
+  background: #eef1ef !important;
+  color: #5d6b62 !important;
+}
+
+/* Marcas cortas junto a un dato (GPS lejano, corregido...): no son el estado del registro, son
+   avisos para revisar. */
+.operation-content .flag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  vertical-align: 1px;
+  cursor: help;
+}
+.operation-content .flag-error {
+  background: #fbe9e5;
+  color: #a63a28;
+}
+.operation-content .flag-aviso {
+  background: #fbf1df;
+  color: #94600c;
+}
+
+/* ---------- Tablas: acciones agrupadas y celdas largas ---------- */
+.operation-content table td:last-child:has(> .btn, > .btn-sm, > button) {
+  white-space: nowrap;
+}
+.operation-content table td > .btn + .btn,
+.operation-content table td > .btn-sm + .btn-sm {
+  margin-left: 4px;
+}
+
+/* ---------- Celular: controles cómodos de pulsar ---------- */
+@media (max-width: 760px) {
+  .operation-content {
+    --ctl-h: 42px;
+    --input-h: 42px;
+  }
+  .operation-content .page-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .operation-content .page-head h1 {
+    font-size: 20px !important;
+  }
+  .operation-content .page-head > .actions {
+    width: 100%;
+  }
+  .operation-content .module-extra {
+    padding: 0 10px;
+  }
+  .operation-content table td,
+  .operation-content table th {
+    padding: 8px 10px !important;
+  }
+  .operation-content .btn-sm,
+  .operation-content table td .btn {
+    min-height: 36px !important;
+  }
+  .operation-content .sec-tab {
+    min-height: 38px !important;
+  }
+  .operation-content .bloque {
+    padding: 12px !important;
+  }
+  .operation-content .provider-panel-head {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .operation-content .provider-table-search {
+    max-width: none !important;
+  }
+  .operation-content .row-actions {
+    margin: 4px 0;
+  }
+  /* Filtros de una tabla: búsqueda a todo el ancho y el resto en dos columnas parejas. */
+  .operation-content .toolbar > select,
+  .operation-content .toolbar > app-buscador {
+    flex: 1 1 calc(50% - 4px);
+    min-width: 0;
+  }
+  .operation-content .toolbar > input[type='search'],
+  .operation-content .toolbar > input[type='text'] {
+    flex-basis: 100%;
+  }
+}
+@media print {
+  .operation-content .module-extra {
+    border: 0;
+    padding: 0;
+  }
+  .operation-content details > summary {
+    display: none;
+  }
+  .operation-content details > *:not(summary) {
+    display: block !important;
+  }
+}

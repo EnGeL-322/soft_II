@@ -1,6 +1,12 @@
-import { Routes } from '@angular/router';
-import { authGuard, roleGuard } from './core/guards/auth.guard';
+import { inject } from '@angular/core';
+import { Params, Router, Routes } from '@angular/router';
+import { authGuard, permisoGuard } from './core/guards/auth.guard';
+import { PERMISO } from './core/config/navegacion';
 import { ShellComponent } from './shared/layout/shell.component';
+
+function irAUsuarios(tipo: string, queryParams: Params) {
+  return inject(Router).createUrlTree(['/usuarios'], { queryParams: { ...queryParams, tipo } });
+}
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'portal' },
@@ -10,7 +16,8 @@ export const routes: Routes = [
   },
   {
     path: 'portal',
-    loadComponent: () => import('./features/portal/portal.component').then((m) => m.PortalComponent),
+    loadComponent: () =>
+      import('./features/portal/portal.component').then((m) => m.PortalComponent),
   },
   {
     path: '',
@@ -18,70 +25,134 @@ export const routes: Routes = [
     canActivate: [authGuard],
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
+      // El permiso de cada ruta es el mismo que declara NAVEGACION para su item de menu: el sidebar
+      // y el guard leen la misma constante, de modo que no puede existir un item visible que la
+      // ruta rechace, ni una ruta accesible que no aparezca en el menu.
       {
         path: 'dashboard',
-        loadComponent: () => import('./features/dashboard/dashboard.component').then((m) => m.DashboardComponent),
-      },
-      {
-        path: 'recojo',
-        loadComponent: () => import('./features/recojo/recojo.component').then((m) => m.RecojoComponent),
+        canActivate: [permisoGuard(PERMISO.panelRead)],
+        loadComponent: () =>
+          import('./features/dashboard/dashboard.component').then((m) => m.DashboardComponent),
       },
       {
         path: 'calidad',
-        loadComponent: () => import('./features/calidad/calidad.component').then((m) => m.CalidadComponent),
+        canActivate: [permisoGuard(PERMISO.calidadRead)],
+        loadComponent: () =>
+          import('./features/calidad/calidad-resumen.component').then(
+            (m) => m.CalidadResumenComponent,
+          ),
+      },
+      // Un solo componente, dos vistas: lo recogido en ruta (solo consulta) y lo entregado
+      // directamente en planta (aquí sí se registra). Ver RecojoComponent.modo.
+      {
+        path: 'recojo',
+        canActivate: [permisoGuard(PERMISO.acopioRead)],
+        data: { modo: 'ruta' },
+        loadComponent: () =>
+          import('./features/recojo/recojo.component').then((m) => m.RecojoComponent),
+      },
+      {
+        path: 'entregas-planta',
+        canActivate: [permisoGuard(PERMISO.acopioRead)],
+        data: { modo: 'planta' },
+        loadComponent: () =>
+          import('./features/recojo/recojo.component').then((m) => m.RecojoComponent),
+      },
+      {
+        path: 'conciliacion',
+        canActivate: [permisoGuard(PERMISO.acopioRead)],
+        loadComponent: () =>
+          import('./features/conciliacion/conciliacion.component').then(
+            (m) => m.ConciliacionComponent,
+          ),
       },
       {
         path: 'rutas',
-        loadComponent: () => import('./features/rutas/rutas.component').then((m) => m.RutasComponent),
-      },
-      {
-        path: 'productores',
+        canActivate: [permisoGuard(PERMISO.rutasRead)],
         loadComponent: () =>
-          import('./features/productores/productores.component').then((m) => m.ProductoresComponent),
-      },
-      {
-        path: 'acopiadores',
-        loadComponent: () =>
-          import('./features/acopiadores/acopiadores.component').then((m) => m.AcopiadoresComponent),
-      },
-      {
-        path: 'liquidaciones',
-        loadComponent: () =>
-          import('./features/liquidaciones/liquidaciones.component').then((m) => m.LiquidacionesComponent),
-      },
-      {
-        path: 'quesos',
-        loadComponent: () => import('./features/quesos/quesos.component').then((m) => m.QuesosComponent),
+          import('./features/rutas/rutas.component').then((m) => m.RutasComponent),
       },
       {
         path: 'zonas',
-        loadComponent: () => import('./features/zonas/zonas.component').then((m) => m.ZonasComponent),
-      },
-      {
-        path: 'trazabilidad',
+        canActivate: [permisoGuard(PERMISO.zonasRead)],
         loadComponent: () =>
-          import('./features/trazabilidad/trazabilidad.component').then((m) => m.TrazabilidadComponent),
+          import('./features/zonas/zonas.component').then((m) => m.ZonasComponent),
+      },
+      // Desde V55 es una pestaña de Usuarios; la ruta vieja sigue funcionando para enlaces guardados.
+      { path: 'productores', redirectTo: ({ queryParams }) => irAUsuarios('proveedores', queryParams) },
+      {
+        path: 'solicitudes-zona',
+        canActivate: [permisoGuard(PERMISO.proveedoresRead)],
+        loadComponent: () =>
+          import('./features/solicitudes-zona/solicitudes-zona.component').then(
+            (m) => m.SolicitudesZonaComponent,
+          ),
+      },
+      // Desde V55 es una pestaña de Usuarios; la ruta vieja sigue funcionando para enlaces guardados.
+      { path: 'acopiadores', redirectTo: ({ queryParams }) => irAUsuarios('acopiadores', queryParams) },
+      {
+        path: 'reglas-leche',
+        canActivate: [permisoGuard(PERMISO.parametrosRead)],
+        loadComponent: () =>
+          import('./features/reglas-leche/reglas-leche.component').then((m) => m.ReglasLecheComponent),
       },
       {
-        path: 'reportes',
-        loadComponent: () => import('./features/reportes/reportes.component').then((m) => m.ReportesComponent),
+        path: 'recetas',
+        canActivate: [permisoGuard(PERMISO.recetasRead)],
+        loadComponent: () =>
+          import('./features/recetas/recetas.component').then((m) => m.RecetasComponent),
       },
       {
+        path: 'produccion-queso',
+        canActivate: [permisoGuard(PERMISO.produccionRead, PERMISO.quesosRead)],
+        loadComponent: () =>
+          import('./features/produccion/produccion-queso.component').then(
+            (m) => m.ProduccionQuesoComponent,
+          ),
+      },
+      {
+        path: 'compras',
+        canActivate: [permisoGuard(PERMISO.comprasRead)],
+        loadComponent: () =>
+          import('./features/compras/compras.component').then((m) => m.ComprasComponent),
+      },
+      {
+        path: 'inventario',
+        canActivate: [permisoGuard(PERMISO.inventarioRead)],
+        loadComponent: () =>
+          import('./features/inventario/inventario.component').then((m) => m.InventarioComponent),
+      },
+      {
+        path: 'venta-queso',
+        canActivate: [permisoGuard(PERMISO.quesosRead)],
+        loadComponent: () =>
+          import('./features/ventas/venta-queso.component').then((m) => m.VentaQuesoComponent),
+      },
+      {
+        path: 'pagos',
+        canActivate: [permisoGuard(PERMISO.pagosRead)],
+        loadComponent: () => import('./features/pagos/pagos.component').then((m) => m.PagosComponent),
+      },
+      {
+        path: 'contabilidad',
+        canActivate: [permisoGuard(PERMISO.contabilidadRead)],
+        loadComponent: () =>
+          import('./features/contabilidad/contabilidad.component').then(
+            (m) => m.ContabilidadComponent,
+          ),
+      },
+      {
+        // La propia cuenta: basta con haber iniciado sesión (el backend usa siempre la del token).
+        path: 'mi-cuenta',
+        loadComponent: () =>
+          import('./features/cuenta/mi-cuenta.component').then((m) => m.MiCuentaComponent),
+      },
+      {
+        // Cada pestaña se ve con su permiso: basta con uno de los tres para entrar.
         path: 'usuarios',
-        canActivate: [roleGuard('ADMINISTRADOR')],
-        loadComponent: () => import('./features/usuarios/usuarios.component').then((m) => m.UsuariosComponent),
-      },
-      {
-        path: 'parametros',
-        canActivate: [roleGuard('ADMINISTRADOR')],
+        canActivate: [permisoGuard(PERMISO.usuariosRead, PERMISO.acopiadoresRead, PERMISO.proveedoresRead)],
         loadComponent: () =>
-          import('./features/parametros/parametros.component').then((m) => m.ParametrosComponent),
-      },
-      {
-        path: 'datos-respaldo',
-        canActivate: [roleGuard('ADMINISTRADOR')],
-        loadComponent: () =>
-          import('./features/datos-respaldo/datos-respaldo.component').then((m) => m.DatosRespaldoComponent),
+          import('./features/usuarios/usuarios.component').then((m) => m.UsuariosComponent),
       },
     ],
   },

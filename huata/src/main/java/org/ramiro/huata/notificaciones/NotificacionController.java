@@ -24,7 +24,7 @@ public class NotificacionController {
     }
 
     @PatchMapping("/{id}/leer")
-    public NotificacionResponse marcarLeida(@PathVariable Long id) {
-        return NotificacionResponse.from(notificacionService.marcarLeida(id));
+    public NotificacionResponse marcarLeida(@PathVariable Long id, Authentication authentication) {
+        return NotificacionResponse.from(notificacionService.marcarLeida(id, authentication.getName()));
     }
 }

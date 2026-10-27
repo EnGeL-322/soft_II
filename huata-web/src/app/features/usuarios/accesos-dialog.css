@@ -1,0 +1,132 @@
+/* Ventana de las fichas de Usuarios (VentanaFichaComponent) y de la de rol (RolesPanelComponent). */
+.acc-dialog {
+  width: min(980px, calc(100vw - 32px));
+  max-height: calc(100dvh - 40px);
+  padding: 0;
+  margin: auto;
+  border: 1px solid #dfe2d9;
+  border-radius: 18px;
+  background: #fffdf8;
+  color: #23302b;
+  box-shadow: 0 24px 90px #102b2555;
+  overflow: auto;
+}
+.acc-dialog.angosta {
+  width: min(760px, calc(100vw - 32px));
+}
+.acc-dialog::backdrop {
+  background: #102b2599;
+  backdrop-filter: blur(3px);
+}
+.acc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+  padding: 22px 28px 14px;
+}
+.acc-header h2 {
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-size: 30px;
+  font-weight: 400;
+  margin: 6px 0 0;
+}
+.acc-close {
+  border: 1px solid #dfe2d9;
+  border-radius: 9px;
+  background: #f5f3ed;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  font-size: 22px;
+  color: #2f5748;
+  cursor: pointer;
+}
+.acc-body {
+  padding: 18px 28px 22px;
+}
+.acc-footer {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 28px;
+  background: #fffdf8;
+  border-top: 1px solid #e7e4dc;
+}
+.acc-footer > span {
+  font-size: 11px;
+  color: #66756d;
+}
+.sin-borde {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.grid-2 .field > span:first-child {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.grid-2 small {
+  font-size: 10.5px;
+  color: #66756d;
+}
+.tab-count {
+  display: inline-block;
+  min-width: 18px;
+  padding: 1px 6px;
+  margin-left: 4px;
+  border-radius: 999px;
+  background: #0000001a;
+  font-size: 10px;
+  text-align: center;
+}
+.tab-count.ambar {
+  background: var(--amber-soft);
+  color: var(--amber);
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.acc-dialog input:focus-visible,
+.acc-dialog button:focus-visible,
+.acc-dialog textarea:focus-visible {
+  outline: 2px solid #437862;
+  outline-offset: 2px;
+}
+.acc-dialog input[readonly] {
+  opacity: 0.7;
+}
+@media (max-width: 640px) {
+  .acc-dialog {
+    width: calc(100vw - 16px);
+    max-height: calc(100dvh - 16px);
+  }
+  .acc-header,
+  .acc-body {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .acc-footer {
+    padding: 12px 16px;
+  }
+  .acc-footer > span {
+    display: none;
+  }
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+}

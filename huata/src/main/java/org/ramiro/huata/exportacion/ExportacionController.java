@@ -2,6 +2,7 @@ package org.ramiro.huata.exportacion;
 
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.ramiro.huata.usuarios.Permiso;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -14,24 +15,13 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/exportaciones")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMINISTRADOR')")
+@PreAuthorize("hasAuthority('" + Permiso.RESPALDO_READ + "')")
 public class ExportacionController {
 
     private static final MediaType XLSX =
             MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 
     private final ExportacionService exportacionService;
-
-    @GetMapping("/libro")
-    public ResponseEntity<byte[]> libro() {
-        return ResponseEntity.ok().header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=Huata_Completo.xlsx")
-                .contentType(XLSX).body(exportacionService.exportarLibro());
-    }
-
-    @GetMapping("/datos-json")
-    public java.util.Map<String, java.util.List<java.util.LinkedHashMap<String, Object>>> datos() {
-        return exportacionService.exportarDatos();
-    }
 
     @GetMapping
     public List<String> hojasDisponibles() {

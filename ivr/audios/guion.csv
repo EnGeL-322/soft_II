@@ -1,0 +1,122 @@
+archivo,texto,uso
+espere.wav,"Un momento, por favor.",Mientras se identifica al proveedor
+hola.wav,"Hola,","Antes del nombre (el nombre lo dice la voz sintética)"
+bienvenida.wav,"Bienvenido a la línea de Huata Lácteos.",Después del nombre
+no_registrado.wav,"Su número no está registrado en Huata Lácteos. Para registrarse, acérquese a la planta o hable con su acopiador. Hasta luego.",Caller ID no encontrado; luego se cuelga
+menu_principal.wav,"Para saber cuántos litros entregó hoy, marque 1. Para saber cuánto va a cobrar, marque 2. Para escuchar los avisos de la planta, marque 3. Para pedir cambio de zona, marque 4. Para que lo llamen de la planta, marque 0. Para escuchar otra vez, marque 9.",Menú principal
+opcion_invalida.wav,"Esa tecla no es válida.",Tecla fuera del menú
+no_escuche.wav,"No escuché ninguna tecla.",Silencio de 6 segundos
+demasiados_intentos.wav,"No pudimos entender su respuesta. Llame de nuevo cuando quiera. Hasta luego.",Tercer intento fallido; luego se cuelga
+error_sistema.wav,"Disculpe, en este momento no podemos atenderle. Por favor, llame más tarde. Hasta luego.",Backend caído o sin internet; luego se cuelga
+volver_o_terminar.wav,"Para volver al menú, marque 1. Para terminar, marque 2.",Al final de cada opción
+despedida.wav,"Gracias por llamar a Huata Lácteos. Hasta luego.",Fin normal
+hoy_entrego.wav,"Hoy entregó",Opción 1 + número + litros
+lo_recogio.wav,"Lo recogió",Opción 1 + nombre del acopiador (voz sintética)
+sin_entregas_hoy.wav,"Hoy todavía no tiene entregas registradas.",Opción 1 sin entregas
+cobro_lleva.wav,"Por esta semana lleva",Opción 2 + monto
+se_paga_el.wav,"Se paga el",Opción 2 + fecha
+monto_estimado.wav,"Este monto puede cambiar hasta el cierre de la semana.",Opción 2 con estado ESTIMADO
+sin_cobro.wav,"Esta semana todavía no tiene monto por cobrar.",Opción 2 sin entregas
+cobro_semana_pasada.wav,"La semana pasada fueron",Opción 2: último ciclo + monto
+ya_pagado.wav,"y ya está pagado.",Opción 2: último ciclo pagado
+por_pagar.wav,"y está por pagar.",Opción 2: último ciclo sin pagar
+sin_comunicados.wav,"No tiene avisos nuevos.",Opción 3 vacía
+tiene.wav,"Tiene",Opción 3 + número + aviso(s)
+aviso.wav,"aviso.",Singular
+avisos.wav,"avisos.",Plural
+siguiente_aviso.wav,"Siguiente aviso.",Entre avisos (el aviso lo lee la voz sintética)
+fin_avisos.wav,"Esos fueron todos los avisos.",Al terminar los avisos
+zona_intro.wav,"Elija la zona a la que quiere pasar.",Opción 4
+para.wav,"Para",Opción 4: Para + zona + marque + número
+marque.wav,"marque",Opción 4
+zona_usted_eligio.wav,"Usted eligió",Opción 4: confirmación + zona
+zona_confirmar.wav,"Para confirmar, marque 1. Para elegir otra zona, marque 2.",Opción 4
+zona_registrada.wav,"Listo. Su pedido de cambio de zona quedó registrado. La planta le avisará.",Opción 4 confirmada (201)
+zona_ya_pendiente.wav,"Ya tiene un pedido de cambio de zona esperando respuesta.",Opción 4 (409 YA_PENDIENTE)
+zona_misma.wav,"Usted ya está en esa zona.",Opción 4 (409 MISMA_ZONA)
+zona_no_disponible.wav,"Ahora no puede pedir cambio de zona. Consulte en la planta.",Opción 4 no permitida
+zona_collana_i.wav,"Collana uno",Nombre de zona: el archivo es el campo "audio" de GET /ivr/zonas
+zona_collana_ii.wav,"Collana dos",Nombre de zona
+zona_faon.wav,"Faon",Nombre de zona
+zona_yasin.wav,"Yasin",Nombre de zona
+operador_registrado.wav,"Listo. Pedimos a la planta que lo llame. Hasta luego.",Tecla 0
+devolucion_intro.wav,"Hola, le llama Huata Lácteos, devolviendo su llamada.",Al contestar una devolución
+litros.wav,"litros",Unidad
+litro.wav,"litro",Unidad singular
+y_medio.wav,"y medio","42 litros y medio"
+medio_litro.wav,"medio litro",Cantidad 0.5
+soles.wav,"soles",Moneda
+sol.wav,"sol",Moneda singular
+con.wav,"con","502 soles con 35 céntimos"
+centimos.wav,"céntimos",Moneda
+de.wav,"de","9 de octubre"
+y.wav,"y","treinta y dos"
+num_0.wav,"cero",Número
+num_1.wav,"uno",Número (forma sola)
+num_un.wav,"un",Apócope ante sustantivo masculino: un litro / un sol
+num_2.wav,"dos",Número
+num_3.wav,"tres",Número
+num_4.wav,"cuatro",Número
+num_5.wav,"cinco",Número
+num_6.wav,"seis",Número
+num_7.wav,"siete",Número
+num_8.wav,"ocho",Número
+num_9.wav,"nueve",Número
+num_10.wav,"diez",Número
+num_11.wav,"once",Número
+num_12.wav,"doce",Número
+num_13.wav,"trece",Número
+num_14.wav,"catorce",Número
+num_15.wav,"quince",Número
+num_16.wav,"dieciséis",Número
+num_17.wav,"diecisiete",Número
+num_18.wav,"dieciocho",Número
+num_19.wav,"diecinueve",Número
+num_20.wav,"veinte",Número
+num_21.wav,"veintiuno",Número (forma sola)
+num_21_un.wav,"veintiún",Apócope: veintiún litros
+num_22.wav,"veintidós",Número
+num_23.wav,"veintitrés",Número
+num_24.wav,"veinticuatro",Número
+num_25.wav,"veinticinco",Número
+num_26.wav,"veintiséis",Número
+num_27.wav,"veintisiete",Número
+num_28.wav,"veintiocho",Número
+num_29.wav,"veintinueve",Número
+num_30.wav,"treinta",Número (31 = treinta + y + uno/un)
+num_40.wav,"cuarenta",Número
+num_50.wav,"cincuenta",Número
+num_60.wav,"sesenta",Número
+num_70.wav,"setenta",Número
+num_80.wav,"ochenta",Número
+num_90.wav,"noventa",Número
+num_100.wav,"cien",Exactamente 100
+num_ciento.wav,"ciento",101 a 199
+num_200.wav,"doscientos",Número
+num_300.wav,"trescientos",Número
+num_400.wav,"cuatrocientos",Número
+num_500.wav,"quinientos",Número
+num_600.wav,"seiscientos",Número
+num_700.wav,"setecientos",Número
+num_800.wav,"ochocientos",Número
+num_900.wav,"novecientos",Número
+num_mil.wav,"mil",Miles: mil / dos mil
+dia_lunes.wav,"el lunes",Fecha de pago
+dia_martes.wav,"el martes",Fecha de pago
+dia_miercoles.wav,"el miércoles",Fecha de pago
+dia_jueves.wav,"el jueves",Fecha de pago
+dia_viernes.wav,"el viernes",Fecha de pago
+dia_sabado.wav,"el sábado",Fecha de pago
+dia_domingo.wav,"el domingo",Fecha de pago
+mes_enero.wav,"enero",Fecha
+mes_febrero.wav,"febrero",Fecha
+mes_marzo.wav,"marzo",Fecha
+mes_abril.wav,"abril",Fecha
+mes_mayo.wav,"mayo",Fecha
+mes_junio.wav,"junio",Fecha
+mes_julio.wav,"julio",Fecha
+mes_agosto.wav,"agosto",Fecha
+mes_septiembre.wav,"septiembre",Fecha
+mes_octubre.wav,"octubre",Fecha
+mes_noviembre.wav,"noviembre",Fecha
+mes_diciembre.wav,"diciembre",Fecha

@@ -1,0 +1,23 @@
+# Variables de entorno reales: NUNCA se versionan. La plantilla es .env.example.
+.env
+.env.*
+!.env.example
+
+# Salidas de build
+huata/target/
+huata-web/dist/
+huata-web/.angular/
+huata-web/node_modules/
+huata_app/build/
+*.apk
+
+# Reportes de herramientas
+huata/dependency-check-report.*
+
+# Sistema operativo / editores
+Thumbs.db
+.DS_Store
+*.log
+
+# Respaldos locales (scripts/respaldo.sh): datos reales, nunca al repositorio.
+respaldos/

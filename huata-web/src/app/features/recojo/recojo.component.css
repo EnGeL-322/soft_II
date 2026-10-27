@@ -1,0 +1,409 @@
+/* Entregas directas: una sola tarjeta, sobria. Usa las variables del tema activo. */
+
+.ed {
+  padding: 0;
+  overflow: hidden;
+}
+
+/* ---- Barra: periodo, fecha y búsqueda ---- */
+
+.ed-barra {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.ed-presets {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--gray-soft);
+}
+
+.ed-presets button {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.ed-presets button.activo {
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.1);
+}
+
+.ed-nav {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ed-nav-btn,
+.ed-fecha,
+.ed-hoy,
+.ed-anular {
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  border-radius: 8px;
+}
+
+.ed-nav-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  color: var(--muted);
+}
+
+.ed-nav-btn:hover:not(:disabled),
+.ed-fecha:hover {
+  background: var(--gray-soft);
+  color: var(--text);
+}
+
+.ed-nav-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.ed-fecha {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.ed-fecha app-icono {
+  color: var(--muted);
+}
+
+.ed-fecha span::first-letter {
+  text-transform: uppercase;
+}
+
+/* El calendario nativo se abre desde el botón de la fecha. */
+.ed-selector-oculto {
+  position: absolute;
+  left: 40px;
+  bottom: 0;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ed-hoy {
+  padding: 6px 10px;
+  color: var(--green);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ed-hoy:hover {
+  background: var(--green-soft);
+}
+
+.ed-filtros {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.ed-buscar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  color: var(--muted);
+}
+
+.ed-buscar:focus-within {
+  border-color: var(--green);
+}
+
+.ed-buscar input {
+  width: 180px;
+  border: 0;
+  outline: 0;
+  padding: 8px 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.ed-filtros select {
+  width: auto;
+  min-width: 130px;
+}
+
+/* ---- Resumen en una línea ---- */
+
+.ed-resumen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 32px;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.ed-dato {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.ed-dato strong {
+  font-size: 20px;
+  letter-spacing: -0.3px;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.ed-dato span {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.ed-dato.principal strong {
+  color: var(--green);
+}
+
+.ed-dato.aviso strong {
+  color: var(--amber);
+}
+
+/* ---- Lista por día ---- */
+
+.ed-dias {
+  transition: opacity 0.15s ease;
+}
+
+.ed-dias.cargando {
+  opacity: 0.5;
+}
+
+.ed-dia + .ed-dia {
+  border-top: 1px solid var(--line);
+}
+
+.ed-dia-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 18px;
+  border: 0;
+  background: var(--panel2);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ed-dia-head:hover {
+  background: var(--gray-soft);
+}
+
+.ed-dia-chevron {
+  display: inline-grid;
+  color: var(--muted);
+  transform: rotate(-90deg);
+  transition: transform 0.15s ease;
+}
+
+.ed-dia-chevron.abierto {
+  transform: none;
+}
+
+.ed-dia-titulo {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+}
+
+.ed-dia-titulo.hoy {
+  color: var(--green);
+}
+
+.ed-dia-meta {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.ed-dia-total {
+  min-width: 80px;
+  text-align: right;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.ed-tabla {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.ed-tabla th {
+  padding: 8px 18px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-align: left;
+  background: transparent;
+  border-bottom: 1px solid var(--line);
+}
+
+.ed-tabla td {
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+
+.ed-tabla tr:last-child td {
+  border-bottom: 0;
+}
+
+.ed-tabla .num {
+  text-align: right;
+}
+
+.ed-hora {
+  width: 70px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.ed-proveedor {
+  font-weight: 500;
+}
+
+.ed-marca {
+  margin-left: 6px;
+  font-size: 11.5px;
+  color: var(--amber);
+}
+
+.ed-motivo {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.ed-litros {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.ed-acciones {
+  width: 44px;
+  text-align: right;
+}
+
+.ed-anular {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  color: var(--muted);
+  opacity: 0;
+}
+
+tr:hover .ed-anular,
+.ed-anular:focus-visible {
+  opacity: 1;
+}
+
+.ed-anular:hover {
+  background: var(--red-soft);
+  color: var(--red);
+}
+
+.ed-cancelada td {
+  color: var(--muted);
+}
+
+.ed-cancelada .ed-litros,
+.ed-cancelada .ed-proveedor {
+  text-decoration: line-through;
+}
+
+.ed-nota {
+  margin: 12px 18px;
+}
+
+.ed-vacio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 48px 16px;
+  color: var(--muted);
+  text-align: center;
+  font-size: 13px;
+}
+
+.ed-vacio strong {
+  color: var(--text);
+  font-size: 14px;
+}
+
+@media (hover: none) {
+  .ed-anular {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 720px) {
+  .ed-filtros {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .ed-buscar {
+    flex: 1;
+  }
+
+  .ed-buscar input {
+    width: 100%;
+  }
+
+  .ed-tabla th,
+  .ed-tabla td,
+  .ed-dia-head {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .ed-dia-meta {
+    display: none;
+  }
+}
+
+@media print {
+  .ed-barra,
+  .ed-dia-chevron,
+  .ed-acciones {
+    display: none;
+  }
+}

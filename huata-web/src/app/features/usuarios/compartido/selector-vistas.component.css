@@ -1,0 +1,187 @@
+.sv-resumen {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--text);
+}
+.sv-leyenda {
+  font-size: 12px;
+  color: var(--muted);
+}
+.sv-leyenda b {
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* Módulos en columnas: se lee de un vistazo qué ve el rol. */
+.sv-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.sv-grupo {
+  padding: 12px 14px;
+  border: 1px solid #e7e4dc;
+  border-radius: 10px;
+  background: #fff;
+}
+.sv-grupo h4 {
+  margin: 0 0 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.sv-vista + .sv-vista {
+  border-top: 1px solid #f0eee8;
+}
+.sv-fila {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 0;
+}
+.sv-nombre {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+/* Lo que no ve queda en gris: a simple vista se distingue lo que sí tiene. */
+.sv-vista.apagada .sv-nombre {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+/* No · Ver · Todo */
+.sv-niveles {
+  display: inline-flex;
+  flex-shrink: 0;
+  padding: 2px;
+  border-radius: 8px;
+  background: #f1efe9;
+}
+.sv-niveles button {
+  min-width: 42px;
+  padding: 4px 9px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.sv-niveles button:not(:disabled):hover {
+  color: var(--text);
+}
+.sv-niveles button.on {
+  background: #fff;
+  color: var(--green);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+}
+.sv-niveles button.on:first-child {
+  color: var(--muted);
+}
+/* A medida: algunas acciones sí, otras no. */
+.sv-niveles button.medio {
+  color: var(--green);
+  font-style: italic;
+}
+.sv-niveles button:disabled {
+  cursor: default;
+}
+
+.sv-acciones {
+  display: grid;
+  gap: 2px;
+  margin: -2px 0 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #f7f6f2;
+}
+.sv-accion {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.sv-accion input {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  flex-shrink: 0;
+  accent-color: #2f5748;
+}
+.sv-ajustar {
+  margin: -4px 0 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 11.5px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.sv-ajustar:hover {
+  color: var(--green);
+}
+.sv-marca {
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 600;
+}
+.sv-marca.quitada {
+  color: var(--red);
+}
+.sv-marca.extra {
+  color: #2f5fac;
+}
+.sv-otras {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--green);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.sv-otras:focus-visible,
+.sv-niveles button:focus-visible,
+.sv-ajustar:focus-visible,
+.sv-accion input:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+.sv-cuenta {
+  min-width: 18px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #eaf0fb;
+  color: #2f5fac;
+  font-size: 10.5px;
+  text-align: center;
+}
+.sv-vacio {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: var(--muted);
+}

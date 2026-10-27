@@ -1,0 +1,114 @@
+<app-ventana-ficha
+  [kicker]="soloPermisos() ? 'Permisos de la cuenta' : 'Usuario interno'"
+  [titulo]="titulo()"
+  [resumen]="'Verá ' + accesos.pantallas(efectivos()) + ' pantallas'"
+  [error]="error()"
+  [ocupado]="guardando()"
+  (cerrada)="alCerrar()"
+>
+  @if (soloPermisos()) {
+    <p pasos class="note ficha-nota">
+      Cuenta de acopiador: sus datos y su ruta se editan en su ficha (pestaña Acopiadores). Aquí solo das o
+      quitas acciones a esta persona.
+    </p>
+  } @else {
+    <nav pasos class="pasos" aria-label="Pasos">
+      <button type="button" [class.activo]="paso() === 'datos'" (click)="irA('datos')"><b>1</b> Datos</button>
+      <button type="button" [class.activo]="paso() === 'accesos'" (click)="irA('accesos')">
+        <b>2</b> Rol y vistas
+        @if (rolesSel().length) {
+          <span class="tab-count">{{ rolesSel().length }}</span>
+        }
+        @if (personalizado()) {
+          <span class="tab-count ambar">±</span>
+        }
+      </button>
+    </nav>
+  }
+
+  <form id="form-interno" (ngSubmit)="guardar()" novalidate>
+    <fieldset [disabled]="guardando()" [hidden]="paso() !== 'datos'" class="sin-borde">
+      <legend class="sr-only">Datos del usuario</legend>
+      <div class="grid-2">
+        <label class="field">
+          <span>Nombre completo *</span>
+          <input type="text" [(ngModel)]="form.nombreCompleto" name="nombreCompleto" autocomplete="name"
+            maxlength="150" required />
+        </label>
+        <label class="field">
+          <span>Usuario (email) *</span>
+          <input type="email" [(ngModel)]="form.username" name="username" autocomplete="username" required
+            [readonly]="!!editando()" />
+        </label>
+        <label class="field">
+          <span>Teléfono</span>
+          <input type="tel" [(ngModel)]="form.telefono" name="telefono" autocomplete="tel" />
+        </label>
+        <label class="field">
+          <span>{{ editando() ? 'Nueva contraseña (opcional)' : 'Contraseña inicial *' }}</span>
+          <span class="clave">
+            <input [type]="verClave() ? 'text' : 'password'" [(ngModel)]="form.password" name="password"
+              autocomplete="new-password" [required]="!editando()" />
+            <button type="button" class="btn btn-soft" (click)="verClave.set(!verClave())">
+              {{ verClave() ? 'Ocultar' : 'Ver' }}
+            </button>
+            <button type="button" class="btn btn-soft" (click)="generarClave()">Generar</button>
+          </span>
+          <small>
+            {{ editando() ? 'Déjala vacía para conservar la actual.'
+              : 'Compártela por un canal seguro; la persona podrá cambiarla después.' }}
+          </small>
+        </label>
+      </div>
+    </fieldset>
+
+    @if (paso() === 'accesos') {
+      @if (!soloPermisos()) {
+        <h3 class="seccion-ficha">Rol</h3>
+        <p class="muted ayuda">Elige uno o más roles. Debajo puedes ajustar las vistas solo para esta persona.</p>
+        <div class="role-options">
+          @for (r of accesos.rolesAsignables(); track r.nombre) {
+            <label class="role-option" [class.chosen]="rolesSel().includes(r.nombre)" [title]="r.descripcion ?? ''">
+              <input type="checkbox" [checked]="rolesSel().includes(r.nombre)" (change)="alternarRol(r.nombre)"
+                [disabled]="guardando()" />
+              <span>
+                <strong>{{ r.etiqueta }}</strong>
+                <em>{{ pantallasDeRol(r) }} pantallas</em>
+              </span>
+              @if (!r.sistema) {
+                <span class="badge badge-gris">Propio</span>
+              }
+            </label>
+          }
+        </div>
+        <p class="muted ayuda">Acopiadores y proveedores se crean en sus propias pestañas.</p>
+        <h3 class="seccion-ficha">Vistas que verá</h3>
+      } @else {
+        <p class="muted ayuda">Parte de lo que da su rol: <strong>{{ rolesDescritos() }}</strong>.</p>
+      }
+      @if (personalizado()) {
+        <div class="resumen-accesos">
+          <span class="badge badge-ambar">Ajustado: {{ concedidos().size }} extra · {{ revocados().size }} quitados</span>
+          <button type="button" class="btn btn-soft" (click)="restablecerARoles()">Volver a lo que da el rol</button>
+        </div>
+      }
+      <app-selector-vistas
+        [catalogo]="accesos.catalogo()"
+        [base]="base()"
+        [seleccion]="efectivos()"
+        [soloLectura]="guardando()"
+        (cambios)="aplicarCambios($event)"
+      />
+    }
+  </form>
+
+  <ng-container pie>
+    <button type="button" class="btn btn-soft" [disabled]="guardando()" (click)="cerrar()">Cancelar</button>
+    @if (paso() === 'datos') {
+      <button type="button" class="btn btn-blue" (click)="irA('accesos')">Siguiente: rol y vistas</button>
+    }
+    <button type="submit" form="form-interno" class="btn btn-primary" [disabled]="guardando()">
+      {{ guardando() ? 'Guardando…' : editando() ? 'Guardar cambios' : 'Crear usuario' }}
+    </button>
+  </ng-container>
+</app-ventana-ficha>

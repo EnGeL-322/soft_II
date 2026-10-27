@@ -29,7 +29,7 @@ const MARGEN_Y = 18;
       >
         @for (linea of lineasGuia(); track linea.y) {
           <line [attr.x1]="margenX" [attr.x2]="ancho - 8" [attr.y1]="linea.y" [attr.y2]="linea.y" stroke="#e6dcc4" stroke-width="1" />
-          <text [attr.x]="4" [attr.y]="linea.y + 4" font-size="10" fill="#7a6f57">{{ linea.texto }}</text>
+          <text [attr.x]="4" [attr.y]="linea.y + 4" font-size="10" fill="#64748b">{{ linea.texto }}</text>
         }
 
         @if (areaPath()) {
@@ -48,11 +48,11 @@ const MARGEN_Y = 18;
         }
 
         @for (p of coordenadas(); track p.x) {
-          <circle [attr.cx]="p.x" [attr.cy]="p.y" r="3" fill="#fbf7ec" stroke="#336751" stroke-width="2" />
+          <circle [attr.cx]="p.x" [attr.cy]="p.y" r="3" fill="#f1f4f8" stroke="#336751" stroke-width="2" />
         }
 
         @for (e of etiquetasX(); track e.x) {
-          <text [attr.x]="e.x" [attr.y]="alto - 2" font-size="10" fill="#7a6f57" text-anchor="middle">{{ e.texto }}</text>
+          <text [attr.x]="e.x" [attr.y]="alto - 2" font-size="10" fill="#64748b" text-anchor="middle">{{ e.texto }}</text>
         }
       </svg>
     } @else {

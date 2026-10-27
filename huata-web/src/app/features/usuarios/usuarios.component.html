@@ -1,0 +1,50 @@
+<div class="page-head">
+  <div>
+    <div class="kicker">Personas y rutas</div>
+    <h1>Usuarios</h1>
+    <p>{{ def().descripcion }}</p>
+  </div>
+  @if (puedeCrear()) {
+    <button type="button" class="btn btn-primary" (click)="nuevo()">+ {{ def().nuevo }}</button>
+  }
+</div>
+
+@if (activa() !== 'roles') {
+  <app-buscador-general (elegido)="buscarEn($event)" />
+}
+
+<nav class="pestanas" role="tablist" aria-label="Tipo de usuario">
+  @for (p of pestanas(); track p.id) {
+    <button type="button" role="tab" class="pestana" [class.activa]="activa() === p.id"
+      [attr.aria-selected]="activa() === p.id" (click)="elegir(p.id)">
+      <app-icono [nombre]="p.icono" [tamano]="16" />
+      {{ p.etiqueta }}
+    </button>
+  }
+</nav>
+
+@if (accesos.error()) {
+  <p class="note red" role="alert">{{ accesos.error() }}</p>
+}
+
+@for (m of [montaje()]; track m) {
+  @switch (activa()) {
+    @case ('internos') {
+      <app-lista-internos [abrirNuevo]="nuevoAlEntrar()" [busquedaInicial]="busqueda()" />
+    }
+    @case ('acopiadores') {
+      <app-lista-acopiadores [abrirNuevo]="nuevoAlEntrar()" [busquedaInicial]="busqueda()" />
+    }
+    @case ('proveedores') {
+      <app-lista-proveedores [abrirNuevo]="nuevoAlEntrar()" [busquedaInicial]="busqueda()" />
+    }
+    @case ('roles') {
+      <app-roles-panel
+        [roles]="accesos.roles()"
+        [catalogo]="accesos.catalogo()"
+        [puedeEditar]="puedeEditarRoles()"
+        (cambiado)="alCambiarRoles($event)"
+      />
+    }
+  }
+}

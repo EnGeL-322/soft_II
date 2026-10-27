@@ -1,0 +1,82 @@
+<app-ventana-ficha
+  kicker="Acopiador"
+  [titulo]="editando() ? editando()!.nombres + ' ' + editando()!.apellidos : 'Nuevo acopiador'"
+  resumen="Se crea con el rol Acopiador: entra a la web y a la app con la misma cuenta."
+  [error]="errores.general()"
+  [ocupado]="guardando()"
+  [angosta]="true"
+>
+  <form #f="ngForm" id="form-acopiador" (ngSubmit)="guardar()" novalidate>
+    <fieldset class="sin-borde" [disabled]="guardando()">
+      <h3 class="seccion-ficha">Datos personales</h3>
+      <div class="grid-2">
+        <label class="field" [class.campo-con-error]="errores.de('nombres')">
+          <span>Nombres *</span>
+          <input type="text" [(ngModel)]="form.nombres" name="nombres" required [pattern]="reglas.nombre" maxlength="150" />
+          <small>{{ errores.de('nombres') ?? reglas.nombreMensaje }}</small>
+        </label>
+        <label class="field" [class.campo-con-error]="errores.de('apellidos')">
+          <span>Apellidos *</span>
+          <input type="text" [(ngModel)]="form.apellidos" name="apellidos" required [pattern]="reglas.nombre" maxlength="150" />
+          @if (errores.de('apellidos'); as m) {
+            <small class="error-campo">{{ m }}</small>
+          }
+        </label>
+        <label class="field" [class.campo-con-error]="errores.de('documentoIdentidad')">
+          <span>DNI</span>
+          <input type="text" inputmode="numeric" maxlength="8" placeholder="8 dígitos" [(ngModel)]="form.documentoIdentidad"
+            name="documentoIdentidad" [pattern]="reglas.dni" />
+          <small>{{ errores.de('documentoIdentidad') ?? 'Opcional.' }}</small>
+        </label>
+        <label class="field" [class.campo-con-error]="errores.de('telefono')">
+          <span>Teléfono</span>
+          <input type="text" [(ngModel)]="form.telefono" name="telefono" [pattern]="reglas.telefono" />
+          <small>{{ errores.de('telefono') ?? 'Opcional.' }}</small>
+        </label>
+      </div>
+
+      <h3 class="seccion-ficha">Zona y ruta</h3>
+      <div class="field">
+        <span>Zona y ruta donde acopiará *</span>
+        <app-buscador [opciones]="territorio.opcionesRuta()" [(ngModel)]="form.rutaId" name="rutaId" required
+          etiqueta="Zona y ruta donde acopiará" placeholder="Buscar zona o ruta…" />
+        <small>
+          Los proveedores de esta ruta forman su recorrido. Si la zona o la ruta no existen, créalas primero en
+          Rutas y mapa.
+        </small>
+      </div>
+
+      <h3 class="seccion-ficha">Cuenta de acceso</h3>
+      <p class="muted ayuda">Una sola cuenta: con este usuario y contraseña entra a la web y a la app móvil.</p>
+      <div class="grid-2">
+        <label class="field" [class.campo-con-error]="errores.de('username')">
+          <span>Usuario (email) *</span>
+          <input type="email" [(ngModel)]="form.username" name="username" required autocomplete="username"
+            placeholder="acopiador@huata.pe" />
+          @if (errores.de('username'); as m) {
+            <small class="error-campo">{{ m }}</small>
+          }
+        </label>
+        <label class="field">
+          <span>{{ exigeClave ? 'Contraseña *' : 'Cambiar contraseña (opcional)' }}</span>
+          <span class="clave">
+            <input [type]="verClave() ? 'text' : 'password'" [(ngModel)]="form.password" name="password"
+              [required]="exigeClave" autocomplete="new-password" />
+            <button type="button" class="btn btn-soft" (click)="verClave.set(!verClave())">
+              {{ verClave() ? 'Ocultar' : 'Ver' }}
+            </button>
+            <button type="button" class="btn btn-soft" (click)="generarClave()">Generar</button>
+          </span>
+          <small>{{ exigeClave ? 'Compártela por un canal seguro; podrá cambiarla después.' : 'Déjala vacía para conservar la actual.' }}</small>
+        </label>
+      </div>
+    </fieldset>
+  </form>
+
+  <ng-container pie>
+    <button type="button" class="btn btn-soft" [disabled]="guardando()" (click)="cerrar()">Cancelar</button>
+    <button type="submit" form="form-acopiador" class="btn btn-primary" [disabled]="guardando()">
+      {{ guardando() ? 'Guardando…' : editando() ? 'Guardar cambios' : 'Crear acopiador' }}
+    </button>
+  </ng-container>
+</app-ventana-ficha>

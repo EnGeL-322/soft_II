@@ -1,0 +1,92 @@
+<app-ventana-ficha
+  kicker="Proveedor"
+  [titulo]="editando() ? editando()!.nombres + ' ' + editando()!.apellidos : 'Nuevo proveedor'"
+  [resumen]="editando() ? 'Código ' + editando()!.codigo : 'Queda activo al guardar: puede entregar leche desde hoy.'"
+  [error]="errores.general()"
+  [aviso]="aviso()"
+  [ocupado]="guardando()"
+  [angosta]="true"
+>
+  <form #f="ngForm" id="form-proveedor" (ngSubmit)="guardar()" novalidate>
+    <fieldset class="sin-borde" [disabled]="guardando()">
+      <h3 class="seccion-ficha">Datos personales</h3>
+      <div class="grid-2">
+        <label class="field" [class.campo-con-error]="errores.de('documentoIdentidad')">
+          <span>DNI</span>
+          <input type="text" inputmode="numeric" maxlength="8" placeholder="8 dígitos" [(ngModel)]="form.documentoIdentidad"
+            name="documentoIdentidad" [pattern]="reglas.dni" />
+          <!-- El DNI es a la vez el código del proveedor: se avisa para que nadie busque un campo "Código". -->
+          <small>{{ errores.de('documentoIdentidad') ?? 'Opcional. Si lo tiene, será su código; si no, se genera uno.' }}</small>
+        </label>
+        <label class="field" [class.campo-con-error]="errores.de('telefono')">
+          <span>Teléfono</span>
+          <input type="text" [(ngModel)]="form.telefono" name="telefono" [pattern]="reglas.telefono" />
+          <small>{{ errores.de('telefono') ?? 'Opcional.' }}</small>
+        </label>
+        <label class="field" [class.campo-con-error]="errores.de('nombres')">
+          <span>Nombres *</span>
+          <input type="text" [(ngModel)]="form.nombres" name="nombres" required [pattern]="reglas.nombre" maxlength="150" />
+          <small>{{ errores.de('nombres') ?? reglas.nombreMensaje }}</small>
+        </label>
+        <label class="field" [class.campo-con-error]="errores.de('apellidos')">
+          <span>Apellidos *</span>
+          <input type="text" [(ngModel)]="form.apellidos" name="apellidos" required [pattern]="reglas.nombre" maxlength="150" />
+          @if (errores.de('apellidos'); as m) {
+            <small class="error-campo">{{ m }}</small>
+          }
+        </label>
+      </div>
+
+      <h3 class="seccion-ficha">Zona y ruta</h3>
+      <div class="field">
+        <span>Zona y ruta de acopio *</span>
+        <app-buscador [opciones]="territorio.opcionesRuta()" [(ngModel)]="form.rutaId" name="rutaId" required
+          (ngModelChange)="rutaElegida.set($event)" etiqueta="Zona y ruta" placeholder="Buscar zona o ruta…" />
+        @if (rutaElegida()) {
+          <small>
+            Lo recoge {{ acopiadoresDeLaRuta() || 'el acopiador que se asigne a esta ruta' }}. El orden de visita se
+            define en Rutas y mapa.
+          </small>
+        } @else {
+          <small>De la ruta salen su zona, su acopiador y su orden de visita (en Rutas y mapa).</small>
+        }
+      </div>
+
+      <h3 class="seccion-ficha">Cuenta de acceso</h3>
+      <p class="muted ayuda">Una sola cuenta: con este usuario y contraseña entra a la web y a la app móvil.</p>
+      <div class="grid-2">
+        <label class="field" [class.campo-con-error]="errores.de('username')">
+          <span>Usuario (email) *</span>
+          <input type="email" [(ngModel)]="form.username" name="username" required autocomplete="username"
+            placeholder="proveedor@huata.pe" />
+          @if (errores.de('username'); as m) {
+            <small class="error-campo">{{ m }}</small>
+          }
+        </label>
+        <label class="field">
+          <span>{{ exigeClave ? 'Contraseña *' : 'Cambiar contraseña (opcional)' }}</span>
+          <span class="clave">
+            <input [type]="verClave() ? 'text' : 'password'" [(ngModel)]="form.password" name="password"
+              [required]="exigeClave" autocomplete="new-password" />
+            <button type="button" class="btn btn-soft" (click)="verClave.set(!verClave())">
+              {{ verClave() ? 'Ocultar' : 'Ver' }}
+            </button>
+            <button type="button" class="btn btn-soft" (click)="generarClave()">Generar</button>
+          </span>
+          <small>{{ exigeClave ? 'Compártela por un canal seguro; podrá cambiarla después.' : 'Déjala vacía para conservar la actual.' }}</small>
+        </label>
+        <label class="field campo-ancho">
+          <span>Notas</span>
+          <textarea [(ngModel)]="form.notas" name="notas"></textarea>
+        </label>
+      </div>
+    </fieldset>
+  </form>
+
+  <ng-container pie>
+    <button type="button" class="btn btn-soft" [disabled]="guardando()" (click)="cerrar()">Cancelar</button>
+    <button type="submit" form="form-proveedor" class="btn btn-primary" [disabled]="guardando()">
+      {{ guardando() ? 'Guardando…' : editando() ? 'Guardar cambios' : 'Registrar proveedor' }}
+    </button>
+  </ng-container>
+</app-ventana-ficha>

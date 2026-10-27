@@ -39,4 +39,34 @@ public class EvidenciaCalidad extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private EstadoEvidencia estado = EstadoEvidencia.UPLOADED;
+
+    // ---- Archivo en el almacen de objetos (V40). Nulos en evidencias que solo guardan una URL. ----
+
+    @Column(length = 300)
+    private String claveArchivo;
+
+    @Column(length = 50)
+    private String tipoContenido;
+
+    private Long tamanoBytes;
+
+    @Column(length = 64)
+    private String sha256;
+
+    /** Texto crudo que devolvio el OCR, tal cual (RNF-20). */
+    @Column(columnDefinition = "TEXT")
+    private String textoOcr;
+
+    /** Valores que propuso el OCR (JSON), para compararlos con los confirmados en el control. */
+    @Column(columnDefinition = "TEXT")
+    private String valoresOcr;
+
+    private Double confianzaOcr;
+
+    /** Quien confirmo los valores del voucher (RN-14): el usuario que guardo el control. */
+    @Column(length = 120)
+    private String verificadoPor;
+
+    @Column(length = 64)
+    private String clientUuid;
 }

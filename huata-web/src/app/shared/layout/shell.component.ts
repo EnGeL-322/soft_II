@@ -1,128 +1,146 @@
-import { Component, OnInit, computed, signal } from '@angular/core';
+import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { TrazabilidadService } from '../../core/services/trazabilidad.service';
-import { TrazabilidadItem } from '../../core/models/models';
-import { RouterLink, RouterLinkActive, RouterOutlet, Router } from '@angular/router';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { filter } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
-import { NotificacionesService } from '../../core/services/notificaciones.service';
-import { Notificacion } from '../../core/models/models';
+import { CambiosTiempoRealService } from '../../core/services/cambios-tiempo-real.service';
+import {
+  GRUPOS_NAV,
+  ItemNav,
+  NAVEGACION,
+  SubitemNav,
+  coincideBusquedaNav,
+  permisosDeItem,
+} from '../../core/config/navegacion';
+import { nombreRol } from '../../core/config/roles';
+import { MensajeriaFlotanteComponent } from '../mensajeria/mensajeria-flotante.component';
+import { IconoComponent } from '../ui/icono.component';
 
-interface ItemNav {
-  ruta: string;
-  icono: string;
-  etiqueta: string;
-  soloAdmin?: boolean;
+/** Preferencia del menú contraído, por navegador. Solo comodidad: si falla, el menú se ve expandido. */
+const CLAVE_MENU_CONTRAIDO = 'huata.menuContraido';
+
+function leerContraido(): boolean {
+  try {
+    return localStorage.getItem(CLAVE_MENU_CONTRAIDO) === '1';
+  } catch {
+    return false;
+  }
 }
 
-const NAV: ItemNav[] = [
-  { ruta: 'dashboard', icono: '◆', etiqueta: 'Centro de operación' },
-  { ruta: 'recojo', icono: '◫', etiqueta: 'Recepción / Acopio' },
-  { ruta: 'calidad', icono: '✓', etiqueta: 'Calidad y evidencia' },
-  { ruta: 'rutas', icono: '↝', etiqueta: 'Rutas y movilidad' },
-  { ruta: 'productores', icono: '♙', etiqueta: 'Proveedores' },
-  { ruta: 'acopiadores', icono: '☺', etiqueta: 'Acopiadores' },
-  { ruta: 'liquidaciones', icono: 'S/', etiqueta: 'Pagos y liquidación' },
-  { ruta: 'quesos', icono: '▣', etiqueta: 'Producción · Quesos' },
-  { ruta: 'zonas', icono: '◎', etiqueta: 'Zonas y rendimiento' },
-  { ruta: 'trazabilidad', icono: '⤢', etiqueta: 'Seguimiento de producción' },
-  { ruta: 'reportes', icono: '▤', etiqueta: 'Reportes' },
-  { ruta: 'usuarios', icono: '⚇', etiqueta: 'Usuarios y roles', soloAdmin: true },
-  { ruta: 'parametros', icono: '⚙', etiqueta: 'Configuración', soloAdmin: true },
-  { ruta: 'datos-respaldo', icono: '⇅', etiqueta: 'Datos y respaldo', soloAdmin: true },
-];
-
-/** Layout comun a toda la web autenticada: sidebar (mismo orden que el prototipo HTML) + topbar. */
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, FormsModule],
+  imports: [
+    FormsModule,
+    RouterOutlet,
+    RouterLink,
+    RouterLinkActive,
+    MensajeriaFlotanteComponent,
+    IconoComponent,
+  ],
   templateUrl: './shell.component.html',
-  styleUrls: ['./shell.component.css', './shell-responsive.css'],
+  styleUrls: [
+    './shell.component.css',
+    './shell-subnav.css',
+    './shell-contraido.css',
+    './shell-responsive.css',
+  ],
 })
-export class ShellComponent implements OnInit {
-  consulta = '';
-  buscando = false;
-  errorBusqueda = '';
-  resultadosBusqueda: TrazabilidadItem[] | null = null;
-  protected readonly grupos = [
-    { nombre: 'Operación', rutas: ['dashboard', 'recojo', 'calidad', 'rutas'] },
-    { nombre: 'Gestión', rutas: ['productores', 'acopiadores', 'liquidaciones', 'quesos'] },
-    { nombre: 'Análisis', rutas: ['zonas', 'trazabilidad', 'reportes'] },
-    { nombre: 'Administración', rutas: ['usuarios', 'parametros', 'datos-respaldo'] },
-  ];
-  items(rutas: string[]) {
-    return this.navVisible().filter((n) => rutas.includes(n.ruta));
+export class ShellComponent {
+  readonly menuAbierto = signal(false);
+  /** Menú lateral reducido a iconos (solo escritorio) para dejar más espacio de trabajo. */
+  readonly contraido = signal(leerContraido());
+  readonly busquedaMenu = signal('');
+  protected readonly urlActual = signal('');
+  private readonly destroyRef = inject(DestroyRef);
+  /** El shell mantiene abierto el canal de cambios toda la sesión; las pantallas lo comparten. */
+  private readonly cambiosEnVivo = inject(CambiosTiempoRealService);
+  protected readonly estadoEnVivo = this.cambiosEnVivo.estado;
+  protected readonly grupos = GRUPOS_NAV;
+  protected readonly navVisible = computed(() =>
+    NAVEGACION.filter((item) => permisosDeItem(item).some((p) => this.auth.puede(p))),
+  );
+  readonly seccionActual = computed(() =>
+    this.navVisible().find((item) => this.urlActual().split(/[?#]/)[0] === '/' + item.ruta),
+  );
+  /** `?vista=` de la URL: decide qué subitem del menú queda marcado. */
+  private readonly vistaUrl = computed(
+    () => new URLSearchParams(this.urlActual().split('?')[1]?.split('#')[0] ?? '').get('vista') ?? '',
+  );
+  /** Subitem abierto de la sección actual: el de la URL o, sin `vista`, el primero permitido. */
+  readonly subitemActual = computed(() => {
+    const item = this.seccionActual();
+    if (!item) return undefined;
+    const subs = this.subitemsDe(item);
+    return subs.find((s) => s.vista === this.vistaUrl()) ?? subs[0];
+  });
+  readonly inicio = computed(() => this.navVisible().find((item) => item.ruta === 'dashboard'));
+  readonly resultados = computed(() =>
+    this.navVisible().filter(
+      (item) => item.ruta !== 'dashboard' && coincideBusquedaNav(item, this.busquedaMenu()),
+    ),
+  );
+
+  get iniciales() {
+    return this.auth
+      .nombreCompleto()
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((n) => n[0])
+      .join('');
   }
   get rol() {
     return this.auth
       .roles()
-      .map((r) =>
-        r === 'ADMINISTRADOR'
-          ? 'Administrador'
-          : r === 'CALIDAD'
-            ? 'Calidad'
-            : r === 'ACOPIADOR'
-              ? 'Acopiador'
-              : r,
-      )
+      .map((r) => nombreRol(r))
       .join(' · ');
   }
-  buscar() {
-    if (!this.consulta.trim() || this.buscando) return;
-    this.buscando = true;
-    this.errorBusqueda = '';
-    this.resultadosBusqueda = null;
-    this.trazabilidad.buscar(this.consulta.trim()).subscribe({
-      next: (rows) => {
-        this.resultadosBusqueda = rows;
-        this.buscando = false;
-      },
-      error: () => {
-        this.errorBusqueda = 'No se pudo realizar la búsqueda.';
-        this.buscando = false;
-      },
-    });
+  items(grupo: string) {
+    return this.resultados().filter((item) => item.grupo === grupo);
   }
-  protected readonly notificaciones = signal<Notificacion[]>([]);
-  protected readonly mostrarNotificaciones = signal(false);
-
-  // computed (no signal con valor fijo): se evalua recien cuando el template lo lee, por lo que
-  // "auth" ya esta asignado por el constructor (un inicializador de campo corre antes que el
-  // cuerpo del constructor y "this.auth" aun seria undefined en ese momento).
-  protected readonly navVisible = computed(() =>
-    NAV.filter((item) => !item.soloAdmin || this.auth.tieneRol('ADMINISTRADOR')),
-  );
+  subitemsDe(item: ItemNav): SubitemNav[] {
+    return (item.subitems ?? []).filter((s) => !s.permisos || s.permisos.some((p) => this.auth.puede(p)));
+  }
+  /** Los subitems se despliegan en la sección abierta o cuando la búsqueda los nombra. */
+  muestraSubitems(item: ItemNav): boolean {
+    return this.seccionActual()?.ruta === item.ruta || !!this.busquedaMenu().trim();
+  }
+  alternarContraido(): void {
+    const valor = !this.contraido();
+    this.contraido.set(valor);
+    try {
+      localStorage.setItem(CLAVE_MENU_CONTRAIDO, valor ? '1' : '0');
+    } catch {
+      // Sin almacenamiento (modo privado): la preferencia dura solo esta sesión.
+    }
+  }
+  navegar(): void {
+    this.menuAbierto.set(false);
+    this.busquedaMenu.set('');
+  }
+  etiquetaDe(item: ItemNav): string {
+    return item.etiquetaEscritura && item.permisoEscritura && this.auth.puede(item.permisoEscritura)
+      ? item.etiquetaEscritura
+      : item.etiqueta;
+  }
 
   constructor(
     protected readonly auth: AuthService,
-    private readonly notificacionesService: NotificacionesService,
     private readonly router: Router,
-    private readonly trazabilidad: TrazabilidadService,
-  ) {}
-
-  ngOnInit(): void {
-    this.notificacionesService
-      .listar()
-      .subscribe({ next: (lista) => this.notificaciones.set(lista), error: () => {} });
-  }
-
-  noLeidas(): number {
-    return this.notificaciones().filter((n) => !n.leida).length;
-  }
-
-  alternarNotificaciones(): void {
-    this.mostrarNotificaciones.update((v) => !v);
-  }
-
-  abrirNotificacion(n: Notificacion): void {
-    this.notificacionesService.marcarLeida(n.id).subscribe(() => {
-      this.notificaciones.update((lista) =>
-        lista.map((x) => (x.id === n.id ? { ...x, leida: true } : x)),
-      );
-    });
-    this.mostrarNotificaciones.set(false);
-    if (n.entidadTipo === 'INCIDENCIA_CALIDAD') {
-      this.router.navigate(['/calidad'], { queryParams: { tab: 'seguimiento' } });
-    }
+  ) {
+    const actualizar = (url: string) => {
+      this.urlActual.set(url);
+      this.menuAbierto.set(false);
+    };
+    actualizar(router.url);
+    router.events
+      .pipe(
+        filter((evento) => evento instanceof NavigationEnd),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((evento) => actualizar(evento.urlAfterRedirects));
+    this.cambiosEnVivo.cambios$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
   }
 }

@@ -1,0 +1,281 @@
+/* Comprobantes de Pagos: una boleta de 160 x 110 mm por página.
+   Se carga después de los temas para aislar el formato de los estilos del prototipo. */
+.payment-receipt {
+  display: none;
+}
+
+@media print {
+  body.print-worker,
+  body.print-worker-lote {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  html:has(body.print-worker),
+  html:has(body.print-worker-lote) {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  body:is(.print-worker, .print-worker-lote) :is(
+    app-root, app-shell, .operation-layout, .operation-main, .operation-content, app-pagos,
+    app-pagos > .page
+  ) {
+    display: block !important;
+    width: auto !important;
+    max-width: none !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+    transform: none !important;
+  }
+
+  body:is(.print-worker, .print-worker-lote) :is(
+    .operation-header, .operation-sidebar, .menu-backdrop, .menu-toggle, .skip-link,
+    app-mensajeria-flotante, app-notificaciones, app-dialogo, .contenido-normal, .no-print
+  ) {
+    display: none !important;
+  }
+
+  body:is(.print-worker, .print-worker-lote) .payment-receipt:is(#workerReceipt, .worker-print-sheet--lote) {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0 !important;
+    width: 160mm !important;
+    height: 110mm !important;
+    min-height: 0 !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    padding: 3mm !important;
+    overflow: visible !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    break-after: page !important;
+    page-break-after: always !important;
+    color: #111 !important;
+    background: #fff !important;
+    font-family: Arial, sans-serif !important;
+    line-height: 1.2 !important;
+  }
+
+  body:is(.print-worker, .print-worker-lote) .payment-receipt:is(#workerReceipt, .worker-print-sheet--lote):last-child {
+    break-after: auto !important;
+    page-break-after: auto !important;
+  }
+
+  body:is(.print-worker, .print-worker-lote) .payment-receipt:is(#workerReceipt, .worker-print-sheet--lote) * {
+    box-sizing: border-box !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    color: #111 !important;
+    background: #fff !important;
+  }
+
+  body:is(.print-worker, .print-worker-lote) .payment-receipt:is(#workerReceipt, .worker-print-sheet--lote) .worker-print-topline {
+    flex: 0 0 auto !important;
+    min-height: 3mm !important;
+    gap: 2mm !important;
+    margin: 0 0 1.5mm !important;
+    padding: 0 !important;
+    font-size: 2mm !important;
+    line-height: 1.2 !important;
+  }
+
+  body:is(.print-worker, .print-worker-lote) .payment-receipt:is(#workerReceipt, .worker-print-sheet--lote) .worker-print-topline strong {
+    font-size: 2mm !important;
+    white-space: normal !important;
+    text-align: right !important;
+  }
+
+  body:is(.print-worker, .print-worker-lote) .payment-receipt:is(#workerReceipt, .worker-print-sheet--lote) .worker-ticket-card {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 1 auto !important;
+    gap: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 2.5mm 3mm !important;
+    border: .3mm solid #333 !important;
+    border-radius: 1mm !important;
+    overflow: visible !important;
+    position: static !important;
+  }
+
+  body:is(.print-worker, .print-worker-lote) .payment-receipt:is(#workerReceipt, .worker-print-sheet--lote) .worker-header-clean {
+    grid-template-columns: 43mm minmax(0, 1fr) !important;
+    flex: 0 0 auto !important;
+    gap: 3mm !important;
+    min-height: 19mm !important;
+    padding: 0 0 1.5mm !important;
+    border-bottom: .25mm solid #333 !important;
+  }
+
+  body:is(.print-worker, .print-worker-lote) .payment-receipt:is(#workerReceipt, .worker-print-sheet--lote) .worker-logo-panel {
+    height: 18mm !important;
+    overflow: visible !important;
+  }
+
+  body:is(.print-worker, .print-worker-lote) .payment-receipt:is(#workerReceipt, .worker-print-sheet--lote) .worker-logo-img {
+    width: 43mm !important;
+    height: 18mm !important;
+    object-fit: contain !important;
+    filter: none !important;
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+
+  body:is(.print-worker, .print-worker-lote) .payment-receipt:is(#workerReceipt, .worker-print-sheet--lote) .worker-cycle-clean {
+    column-gap: 3mm !important;
+    row-gap: 1.3mm !important;
+  }
+
+  body:is(.print-worker, .print-worker-lote) .payment-receipt:is(#workerReceipt, .worker-print-sheet--lote) .worker-meta-item {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: .5mm !important;
+    min-height: 7mm !important;
+    padding: 0 0 .7mm !important;
+    align-items: start !important;
+    align-content: start !important;
+  }
+
+  body:is(.print-worker, .print-worker-lote) .payment-receipt:is(#workerReceipt, .worker-print-sheet--lote) .worker-meta-item span {
+    font-size: 1.8mm !important;
+    white-space: normal !important;
+  }
+
+  body:is(.print-worker, .print-worker-lote) .payment-receipt:is(#workerReceipt, .worker-print-sheet--lote) .worker-meta-item b {
+    font-family: Arial, sans-serif !important;
+    font-size: 2.5mm !important;
+    line-height: 1.15 !important;
+    text-align: left !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  body:is(.print-worker, .print-worker-lote) .payment-receipt:is(#workerReceipt, .worker-print-sheet--lote) .worker-main-clean {
+    grid-template-columns: minmax(0, 1fr) 43mm !important;
+    flex: 0 0 auto !important;
+    gap: 3mm !important;
+    margin-top: 2mm !important;
+  }
+
+  body:is(.print-worker, .print-worker-lote) .payment-receipt:is(#workerReceipt, .worker-print-sheet--lote) .worker-info-table {
+    min-width: 0 !important;
+    overflow: visible !important;
+  }
+
+  body:is(.print-worker, .print-worker-lote) .payment-receipt:is(#workerReceipt, .worker-print-sheet--lote) .worker-info-row {
+    grid-template-columns: 29mm minmax(0, 1fr) !important;
+    gap: 2mm !important;
+    min-height: 5.1mm !important;
+    padding: .6mm 2mm !important;
+  }
+
+  body:is(.print-worker, .print-worker-lote) .payment-receipt:is(#workerReceipt, .worker-print-sheet--lote) .worker-info-row:first-child {
+    grid-template-columns: 17mm minmax(0, 1fr) !important;
+    min-height: 7.5mm !important;
+  }
+
+  body:is(.print-worker, .print-worker-lote) .payment-receipt:is(#workerReceipt, .worker-print-sheet--lote) .worker-info-row span {
+    font-size: 2mm !important;
+    letter-spacing: 0 !important;
+    white-space: normal !important;
+  }
+
+  body:is(.print-worker, .print-worker-lote) .payment-receipt:is(#workerReceipt, .worker-print-sheet--lote) .worker-info-row strong {
+    min-width: 0 !important;
+    font-family: Arial, sans-serif !important;
+    font-size: 2.8mm !important;
+    line-height: 1.2 !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    overflow-wrap: anywhere !important;
+    text-overflow: clip !important;
+  }
+
+  body:is(.print-worker, .print-worker-lote) .payment-receipt:is(#workerReceipt, .worker-print-sheet--lote) .worker-info-row:first-child strong {
+    text-align: left !important;
+  }
+
+  body:is(.print-worker, .print-worker-lote) .payment-receipt:is(#workerReceipt, .worker-print-sheet--lote) .worker-amount-card {
+    min-width: 0 !important;
+    padding: 2mm !important;
+    border-color: #333 !important;
+  }
+
+  body:is(.print-worker, .print-worker-lote) .payment-receipt:is(#workerReceipt, .worker-print-sheet--lote) .worker-amount-card span {
+    font-size: 2.2mm !important;
+    letter-spacing: 0 !important;
+  }
+
+  body:is(.print-worker, .print-worker-lote) .payment-receipt:is(#workerReceipt, .worker-print-sheet--lote) .worker-amount-card strong {
+    max-width: 100% !important;
+    margin-top: 2mm !important;
+    font-family: Arial, sans-serif !important;
+    font-size: 5mm !important;
+    line-height: 1.15 !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  body:is(.print-worker, .print-worker-lote) .payment-receipt:is(#workerReceipt, .worker-print-sheet--lote) .worker-amount-card small {
+    margin-top: 1.5mm !important;
+    font-size: 1.9mm !important;
+    letter-spacing: 0 !important;
+    white-space: normal !important;
+  }
+
+  body:is(.print-worker, .print-worker-lote) .payment-receipt:is(#workerReceipt, .worker-print-sheet--lote) .worker-days-clean {
+    flex: 0 0 auto !important;
+    margin-top: 1mm !important;
+    padding: 1mm !important;
+  }
+
+  body:is(.print-worker, .print-worker-lote) .payment-receipt:is(#workerReceipt, .worker-print-sheet--lote) .worker-days {
+    margin-top: 0.8mm !important;
+    gap: .5mm !important;
+  }
+
+  body:is(.print-worker, .print-worker-lote) .payment-receipt:is(#workerReceipt, .worker-print-sheet--lote) .worker-days-clean-title {
+    font-size: 1.9mm !important;
+    margin-bottom: .5mm !important;
+    padding-bottom: .5mm !important;
+  }
+
+  body:is(.print-worker, .print-worker-lote) .payment-receipt:is(#workerReceipt, .worker-print-sheet--lote) .worker-day {
+    min-height: 9mm !important;
+    padding: .4mm .3mm !important;
+    border: .2mm solid #737b78 !important;
+    border-radius: .6mm !important;
+    gap: .35mm !important;
+  }
+
+  body:is(.print-worker, .print-worker-lote) .payment-receipt:is(#workerReceipt, .worker-print-sheet--lote) .worker-day strong {
+    font-family: Arial, sans-serif !important;
+    font-size: 2.6mm !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  body:is(.print-worker, .print-worker-lote) .payment-receipt:is(#workerReceipt, .worker-print-sheet--lote) .worker-day small {
+    font-size: 1.8mm !important;
+  }
+
+  body:is(.print-worker, .print-worker-lote) .payment-receipt:is(#workerReceipt, .worker-print-sheet--lote) .worker-footer-clean {
+    position: static !important;
+    flex: 0 0 auto !important;
+    margin-top: auto !important;
+    padding-top: 1.5mm !important;
+    font-size: 1.8mm !important;
+    line-height: 1.2 !important;
+    text-align: left !important;
+    white-space: normal !important;
+  }
+}

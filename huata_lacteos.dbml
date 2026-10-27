@@ -1,0 +1,1190 @@
+// Huata Lácteos — esquema actual (Flyway V1..V46) leído de PostgreSQL 17
+// Pegar en https://dbdiagram.io/d
+
+Project huata_lacteos {
+  database_type: 'PostgreSQL'
+}
+
+Table acopiadores {
+  activo boolean [not null]
+  created_at timestamptz
+  id bigint [pk, increment]
+  updated_at timestamptz
+  usuario_id bigint
+  documento_identidad varchar(20)
+  telefono varchar(30)
+  created_by varchar(120)
+  updated_by varchar(120)
+  apellidos varchar(150) [not null]
+  nombres varchar(150) [not null]
+  ruta_id bigint
+
+  indexes {
+    (ruta_id) [name: 'acopiadores_ruta_idx']
+  }
+}
+
+Table ajustes_liquidacion {
+  activo boolean [not null]
+  monto float8 [not null]
+  created_at timestamptz
+  id bigint [pk, increment]
+  liquidacion_id bigint [not null]
+  updated_at timestamptz
+  created_by varchar(120)
+  updated_by varchar(120)
+  tipo varchar(30) [not null, note: 'DESCUENTO_QUESO | PENALIDAD | ADELANTO | BONIFICACION']
+  motivo varchar(200)
+
+  indexes {
+    (liquidacion_id) [name: 'ajustes_liquidacion_liquidacion_idx']
+  }
+  Note: 'CHECK: ajustes_liquidacion_monto_positivo: CHECK ((monto >= (0)::double precision))'
+}
+
+Table asiento_lineas {
+  id bigint [pk, increment]
+  activo boolean [not null, default: true]
+  created_at timestamptz
+  updated_at timestamptz
+  created_by varchar(120)
+  updated_by varchar(120)
+  asiento_id bigint [not null]
+  cuenta_id bigint [not null]
+  debe numeric(12,2) [not null, default: 0]
+  haber numeric(12,2) [not null, default: 0]
+
+  indexes {
+    (asiento_id) [name: 'asiento_lineas_asiento_idx']
+    (cuenta_id) [name: 'asiento_lineas_cuenta_idx']
+  }
+  Note: 'CHECK: asiento_lineas_no_negativo: CHECK (((debe >= (0)::numeric) AND (haber >= (0)::numeric)))'
+}
+
+Table asientos_contables {
+  id bigint [pk, increment]
+  activo boolean [not null, default: true]
+  created_at timestamptz
+  updated_at timestamptz
+  created_by varchar(120)
+  updated_by varchar(120)
+  fecha date [not null]
+  glosa varchar(200) [not null]
+  comentario varchar(500)
+  origen_tipo varchar(30) [not null, note: 'COMPRA | PRODUCCION_CONSUMO | PRODUCCION_MANO_OBRA | PRODUCCION_TERMINADO | VENTA | VENTA_COSTO | ANULACION_VENTA | LIQUIDACION_PAGO | LIQUIDACION_REAPERTURA | RECEPCION_LECHE']
+  origen_id bigint
+
+  indexes {
+    (fecha) [name: 'asientos_contables_fecha_idx']
+    (origen_tipo, origen_id) [name: 'asientos_contables_origen_idx']
+  }
+}
+
+Table asignaciones_ruta {
+  activo boolean [not null]
+  fecha date [not null]
+  acopiador_id bigint [not null]
+  created_at timestamptz
+  id bigint [pk, increment]
+  ruta_id bigint [not null]
+  updated_at timestamptz
+  created_by varchar(120)
+  movilidad varchar(120)
+  updated_by varchar(120)
+  observacion varchar(500)
+}
+
+Table cierres_acopio {
+  activo boolean [not null]
+  cerrado boolean [not null]
+  fecha date [not null, unique]
+  litros_planta float8 [not null]
+  litros_sistema float8 [not null]
+  created_at timestamptz
+  id bigint [pk, increment]
+  updated_at timestamptz
+  version bigint [not null]
+  created_by varchar(120)
+  updated_by varchar(120)
+  observacion varchar(1000)
+}
+
+Table codigos_verificacion {
+  activo boolean [not null]
+  usado boolean [not null, default: false]
+  intentos integer [not null, default: 0]
+  created_at timestamptz
+  expira_en timestamptz [not null]
+  id bigint [pk, increment]
+  updated_at timestamptz
+  proposito varchar(40) [not null, note: 'PRECIOS | REAPERTURA_PAGO']
+  created_by varchar(120)
+  updated_by varchar(120)
+  solicitante varchar(120) [not null]
+  destinatario varchar(150) [not null]
+  codigo_hash varchar(120) [not null]
+
+  indexes {
+    (solicitante, proposito, expira_en) [name: 'codigos_verificacion_busqueda_idx']
+  }
+  Note: 'CHECK: codigos_verificacion_intentos_no_negativos: CHECK ((intentos >= 0))'
+}
+
+Table compra_items {
+  id bigint [pk, increment]
+  activo boolean [not null, default: true]
+  created_at timestamptz
+  updated_at timestamptz
+  created_by varchar(120)
+  updated_by varchar(120)
+  compra_id bigint [not null]
+  materia_prima_id bigint [not null]
+  cantidad numeric(12,4) [not null]
+  costo_unitario numeric(12,4) [not null]
+
+  indexes {
+    (compra_id) [name: 'compra_items_compra_idx']
+  }
+  Note: 'CHECK: compra_items_cantidad_positiva: CHECK ((cantidad > (0)::numeric)) ; compra_items_costo_no_negativo: CHECK ((costo_unitario >= (0)::numeric))'
+}
+
+Table compras {
+  id bigint [pk, increment]
+  activo boolean [not null, default: true]
+  created_at timestamptz
+  updated_at timestamptz
+  created_by varchar(120)
+  updated_by varchar(120)
+  proveedor_compra_id bigint [not null]
+  fecha date [not null]
+  documento varchar(60)
+  observaciones varchar(500)
+
+  indexes {
+    (fecha) [name: 'compras_fecha_idx']
+    (proveedor_compra_id) [name: 'compras_proveedor_idx']
+  }
+}
+
+Table conciliaciones_ruta {
+  id bigint [pk, increment]
+  activo boolean [not null, default: true]
+  created_at timestamptz
+  updated_at timestamptz
+  created_by varchar(120)
+  updated_by varchar(120)
+  fecha date [not null]
+  ruta_id bigint [not null]
+  acopiador_id bigint
+  litros_recibidos_planta float8 [not null]
+  responsable varchar(150)
+  observacion varchar(500)
+
+  indexes {
+    (fecha, ruta_id) [unique, name: 'conciliaciones_ruta_unica']
+  }
+  Note: 'CHECK: conciliaciones_ruta_litros_no_negativos: CHECK ((litros_recibidos_planta >= (0)::double precision))'
+}
+
+Table controles_calidad {
+  acidez float8
+  activo boolean [not null]
+  densidad float8
+  grasa float8
+  punto_congelacion float8
+  solidos_no_grasos float8
+  solidos_totales float8
+  temperatura float8
+  created_at timestamptz
+  id bigint [pk, increment]
+  recojo_id bigint [not null, unique]
+  updated_at timestamptz
+  agua_anadida varchar(20) [note: 'NO_EVIDENCIADA | SOSPECHA | CONFIRMADA']
+  aspecto varchar(20) [note: 'NORMAL | GRUMOS | SEDIMENTO']
+  lugol varchar(20) [note: 'NEGATIVA | NO_REALIZADA | POSITIVA']
+  olor varchar(20) [note: 'NORMAL | AGRIO | RANCIO']
+  resultado varchar(20) [not null, note: 'ACEPTADA | OBSERVADA | RECHAZADA']
+  created_by varchar(120)
+  equipo_utilizado varchar(120)
+  updated_by varchar(120)
+  responsable varchar(150)
+  motivo_rechazo varchar(300)
+  revision_visual varchar(500)
+}
+
+Table conversaciones_proveedor {
+  id bigint [pk, increment]
+  productor_id bigint [not null, unique]
+  activo boolean [not null, default: true]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  created_by varchar(120)
+  updated_by varchar(120)
+}
+
+Table evidencias_calidad {
+  activo boolean [not null]
+  control_calidad_id bigint
+  created_at timestamptz
+  id bigint [pk, increment]
+  incidencia_id bigint
+  updated_at timestamptz
+  estado varchar(20) [not null, note: 'PENDING_UPLOAD | UPLOADED | FAILED']
+  tipo varchar(20) [not null, note: 'FOTO | FIRMA | VOUCHER | OTRO']
+  created_by varchar(120)
+  updated_by varchar(120)
+  url_archivo varchar(500) [not null]
+  clave_archivo varchar(300)
+  tipo_contenido varchar(50)
+  tamano_bytes bigint
+  sha256 varchar(64)
+  texto_ocr text
+  valores_ocr text
+  confianza_ocr float8
+  verificado_por varchar(120)
+  client_uuid varchar(64)
+
+  indexes {
+    (client_uuid) [unique, name: 'evidencias_calidad_client_uuid_unico', note: 'WHERE (client_uuid IS NOT NULL)']
+  }
+}
+
+Table incidencias_calidad {
+  activo boolean [not null]
+  created_at timestamptz
+  fecha timestamptz [not null]
+  id bigint [pk, increment]
+  productor_id bigint [not null]
+  recojo_id bigint
+  updated_at timestamptz
+  estado varchar(20) [not null, note: 'ABIERTA | EN_SEGUIMIENTO | CERRADA']
+  tipo varchar(80) [not null]
+  created_by varchar(120)
+  updated_by varchar(120)
+  descripcion varchar(500)
+}
+
+Table liquidacion_detalles {
+  activo boolean [not null]
+  litros float8 [not null]
+  precio_aplicado float8 [not null]
+  subtotal float8 [not null]
+  created_at timestamptz
+  id bigint [pk, increment]
+  liquidacion_id bigint [not null]
+  recojo_id bigint [not null]
+  updated_at timestamptz
+  created_by varchar(120)
+  updated_by varchar(120)
+}
+
+Table liquidaciones {
+  activo boolean [not null]
+  litros_totales float8 [not null]
+  monto_total float8 [not null]
+  periodo_fin date [not null]
+  periodo_inicio date [not null]
+  created_at timestamptz
+  id bigint [pk, increment]
+  productor_id bigint [not null]
+  updated_at timestamptz
+  estado varchar(20) [not null, note: 'DRAFT | CALCULATED | REVIEWED | CLOSED']
+  created_by varchar(120)
+  updated_by varchar(120)
+  ajustes_total float8 [not null]
+  monto_neto float8 [not null]
+
+  indexes {
+    (productor_id, periodo_inicio, periodo_fin) [unique, name: 'liquidaciones_periodo_unico', note: 'WHERE (activo = true)']
+  }
+}
+
+Table lote_consumo {
+  id bigint [pk, increment]
+  activo boolean [not null, default: true]
+  created_at timestamptz
+  updated_at timestamptz
+  created_by varchar(120)
+  updated_by varchar(120)
+  lote_id bigint [not null]
+  materia_prima_id bigint [not null]
+  cantidad_consumida numeric(12,4) [not null]
+  costo_unitario_momento numeric(12,4) [not null]
+
+  indexes {
+    (lote_id) [name: 'lote_consumo_lote_idx']
+  }
+  Note: 'CHECK: lote_consumo_cantidad_positiva: CHECK ((cantidad_consumida > (0)::numeric)) ; lote_consumo_costo_no_negativo: CHECK ((costo_unitario_momento >= (0)::numeric))'
+}
+
+Table lote_mano_obra {
+  id bigint [pk, increment]
+  activo boolean [not null, default: true]
+  created_at timestamptz
+  updated_at timestamptz
+  created_by varchar(120)
+  updated_by varchar(120)
+  lote_id bigint [not null]
+  trabajador_produccion_id bigint [not null]
+  monto numeric(12,2) [not null]
+
+  indexes {
+    (lote_id) [name: 'lote_mano_obra_lote_idx']
+  }
+  Note: 'CHECK: lote_mano_obra_monto_no_negativo: CHECK ((monto >= (0)::numeric))'
+}
+
+Table lotes_queso {
+  activo boolean [not null]
+  fecha date [not null]
+  litros_destinados float8 [not null]
+  unidades_producidas integer [not null]
+  created_at timestamptz
+  id bigint [pk, increment]
+  updated_at timestamptz
+  codigo varchar(20) [not null, unique]
+  origen_leche varchar(30) [not null, note: 'ACOPIO_DEL_DIA | STOCK_CAMARA']
+  created_by varchar(120)
+  updated_by varchar(120)
+  responsable varchar(120) [not null]
+  observaciones varchar(500)
+  receta_id bigint
+  cantidad_objetivo integer
+  costo_materia_prima numeric(12,2)
+  costo_mano_obra numeric(12,2)
+  costo_total numeric(12,2)
+  costo_unitario numeric(12,2)
+  quesos_reparados integer
+  quesos_recorte integer
+  recorte_kg float8
+  producto_id bigint [not null]
+  fecha_vencimiento date
+
+  indexes {
+    (producto_id) [name: 'lotes_queso_producto_idx']
+    (fecha_vencimiento) [name: 'lotes_queso_vencimiento_idx']
+  }
+  Note: 'CHECK: lotes_queso_litros_positivos: CHECK ((litros_destinados > (0)::double precision)) ; lotes_queso_recorte_kg_no_negativo: CHECK (((recorte_kg IS NULL) OR (recorte_kg >= ((0)::numeric)::double precision))) ; lotes_queso_recorte_no_negativo: CHECK (((quesos_recorte IS NULL) OR (quesos_recorte >= 0))) ; lotes_queso_reparados_no_negativo: CHECK (((quesos_reparados IS NULL) OR (quesos_reparados >= 0))) ; lotes_queso_unidades_positivas: CHECK ((unidades_producidas > 0)) ; lotes_queso_vence_despues: CHECK (((fecha_vencimiento IS NULL) OR (fecha_vencimiento >= fecha)))'
+}
+
+Table materias_primas {
+  id bigint [pk, increment]
+  activo boolean [not null, default: true]
+  created_at timestamptz
+  updated_at timestamptz
+  created_by varchar(120)
+  updated_by varchar(120)
+  nombre varchar(120) [not null, unique]
+  unidad_medida varchar(20) [not null, note: 'KG | LITRO | UNIDAD | GRAMO | ML']
+  costo_unitario_referencial numeric(12,4)
+  leche_acopio boolean [not null, default: false]
+
+  indexes {
+    (leche_acopio) [unique, name: 'materias_primas_una_sola_leche_acopio', note: 'WHERE leche_acopio']
+  }
+  Note: 'CHECK: materias_primas_costo_no_negativo: CHECK (((costo_unitario_referencial IS NULL) OR (costo_unitario_referencial >= (0)::numeric)))'
+}
+
+Table medicion_instrumento {
+  activo boolean [not null]
+  created_at timestamptz
+  id bigint [pk, increment]
+  recojo_id bigint [not null, unique]
+  updated_at timestamptz
+  created_by varchar(120)
+  updated_by varchar(120)
+  analizador_sn varchar(40)
+  modo varchar(20)
+  medido_en timestamptz
+  temperatura float8
+  grasa_pct float8
+  solidos_no_grasos_pct float8
+  densidad_lactometrica float8
+  proteina_pct float8
+  lactosa_pct float8
+  sales_pct float8
+  solidos_totales_pct float8
+  agua_anadida_pct float8
+  punto_congelacion float8
+  ph float8
+}
+
+Table mensajes_proveedor {
+  id bigint [pk, increment]
+  conversacion_id bigint [not null]
+  autor_usuario_id bigint [not null]
+  cuerpo varchar(1000) [not null]
+  leido_por_proveedor_at timestamptz
+  leido_por_planta_at timestamptz
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  activo boolean [not null, default: true]
+  created_by varchar(120)
+  updated_by varchar(120)
+  client_uuid varchar(64)
+  entregado_a_proveedor_at timestamptz
+  entregado_a_planta_at timestamptz
+
+  indexes {
+    (client_uuid) [unique, name: 'mensajes_proveedor_client_uuid_unico', note: 'WHERE (client_uuid IS NOT NULL)']
+    (conversacion_id, created_at) [name: 'mensajes_proveedor_conversacion_fecha_idx']
+    (conversacion_id, id) [name: 'mensajes_proveedor_conversacion_id_idx']
+  }
+  Note: 'CHECK: mensajes_proveedor_cuerpo_no_vacio: CHECK ((length(TRIM(BOTH FROM cuerpo)) > 0))'
+}
+
+Table modulos {
+  id bigint [pk, increment]
+  codigo varchar(40) [not null, unique]
+  nombre varchar(80) [not null]
+  orden integer [not null, default: 0]
+  activo boolean [not null, default: true]
+  created_at timestamptz
+  updated_at timestamptz
+  created_by varchar(120)
+  updated_by varchar(120)
+}
+
+Table movimientos_inventario {
+  id bigint [pk, increment]
+  activo boolean [not null, default: true]
+  created_at timestamptz
+  updated_at timestamptz
+  created_by varchar(120)
+  updated_by varchar(120)
+  tipo varchar(30) [not null, note: 'ENTRADA_COMPRA | SALIDA_PRODUCCION_CONSUMO | ENTRADA_PRODUCCION_TERMINADO | SALIDA_VENTA | ENTRADA_ANULACION_VENTA | AJUSTE_ENTRADA | AJUSTE_SALIDA | ENTRADA_ACOPIO']
+  materia_prima_id bigint
+  lote_queso_id bigint
+  cantidad numeric(12,4) [not null]
+  fecha date [not null]
+  documento_origen_tipo varchar(20) [not null, note: 'COMPRA | PRODUCCION | VENTA | AJUSTE | CONCILIACION | RECOJO']
+  documento_origen_id bigint [not null]
+  usuario varchar(120) [not null]
+  observaciones varchar(300)
+
+  indexes {
+    (lote_queso_id, fecha) [name: 'movimientos_inventario_lote_idx']
+    (materia_prima_id, fecha) [name: 'movimientos_inventario_materia_prima_idx']
+  }
+  Note: 'CHECK: movimientos_inventario_cantidad_positiva: CHECK ((cantidad > (0)::numeric)) ; movimientos_inventario_item_unico: CHECK ((((materia_prima_id IS NOT NULL) AND (lote_queso_id IS NULL)) OR ((materia_prima_id IS NULL) AND (lote_queso_id IS NOT NULL))))'
+}
+
+Table notificaciones {
+  activo boolean [not null]
+  leida boolean [not null]
+  created_at timestamptz
+  entidad_id bigint
+  id bigint [pk, increment]
+  updated_at timestamptz
+  usuario_id bigint
+  entidad_tipo varchar(60)
+  created_by varchar(120)
+  titulo varchar(120) [not null]
+  updated_by varchar(120)
+  mensaje varchar(500) [not null]
+}
+
+Table parametros_calidad {
+  activo boolean [not null]
+  valor_max float8
+  valor_min float8
+  created_at timestamptz
+  id bigint [pk, increment]
+  updated_at timestamptz
+  unidad varchar(40)
+  nombre varchar(80) [not null]
+  created_by varchar(120)
+  updated_by varchar(120)
+  descripcion varchar(300)
+}
+
+Table parametros_negocio {
+  activo boolean [not null]
+  created_at timestamptz
+  id bigint [pk, increment]
+  updated_at timestamptz
+  clave varchar(80) [not null, unique]
+  created_by varchar(120)
+  updated_by varchar(120)
+  descripcion varchar(300)
+  valor varchar(300) [not null]
+}
+
+Table permisos {
+  id bigint [pk, increment]
+  codigo varchar(60) [not null, unique]
+  recurso varchar(40) [not null]
+  accion varchar(30) [not null]
+  descripcion varchar(200)
+}
+
+Table plan_cuentas {
+  id bigint [pk, increment]
+  activo boolean [not null, default: true]
+  created_at timestamptz
+  updated_at timestamptz
+  created_by varchar(120)
+  updated_by varchar(120)
+  codigo varchar(10) [not null, unique]
+  nombre varchar(150) [not null]
+  tipo varchar(20) [not null, note: 'ACTIVO | PASIVO | PATRIMONIO | GASTO | INGRESO']
+}
+
+Table productor_ubicaciones {
+  id bigint [pk, increment]
+  activo boolean [not null, default: true]
+  created_at timestamptz
+  updated_at timestamptz
+  created_by varchar(120)
+  updated_by varchar(120)
+  productor_id bigint [not null]
+  latitud float8 [not null]
+  longitud float8 [not null]
+  precision_metros float8
+  tipo varchar(20) [not null, note: 'CASA | ACTUAL']
+  fecha date [not null]
+
+  indexes {
+    (productor_id, fecha) [name: 'productor_ubicaciones_productor_idx']
+  }
+  Note: 'CHECK: productor_ubicaciones_lat_rango: CHECK (((latitud >= (\'-90\'::integer)::double precision) AND (latitud <= (90)::double precision))) ; productor_ubicaciones_lon_rango: CHECK (((longitud >= (\'-180\'::integer)::double precision) AND (longitud <= (180)::double precision)))'
+}
+
+Table productores {
+  activo boolean [not null]
+  created_at timestamptz
+  id bigint [pk, increment]
+  ruta_id bigint
+  updated_at timestamptz
+  codigo varchar(20) [not null, unique]
+  documento_identidad varchar(20)
+  estado varchar(30) [not null, note: 'PENDIENTE_APROBACION | ACTIVO | EN_REVISION | INACTIVO | RETIRADO']
+  telefono varchar(30)
+  created_by varchar(120)
+  updated_by varchar(120)
+  apellidos varchar(150) [not null]
+  nombres varchar(150) [not null]
+  notas varchar(500)
+  excelencia boolean [not null, default: false]
+  usuario_id bigint
+  acopiador_responsable_id bigint
+  zona_principal varchar(120)
+  orden_en_ruta integer
+}
+
+Table productos {
+  id bigint [pk, increment]
+  activo boolean [not null, default: true]
+  created_at timestamptz
+  updated_at timestamptz
+  created_by varchar(120)
+  updated_by varchar(120)
+  nombre varchar(120) [not null, unique]
+  unidad_venta varchar(40) [not null]
+  descripcion varchar(500)
+  vida_util_dias integer
+
+  indexes {
+    (`lower((nombre)::text)`) [unique, name: 'productos_nombre_sin_mayusculas_unico']
+  }
+  Note: 'CHECK: productos_vida_util_positiva: CHECK (((vida_util_dias IS NULL) OR (vida_util_dias > 0)))'
+}
+
+Table proveedores_compra {
+  id bigint [pk, increment]
+  activo boolean [not null, default: true]
+  created_at timestamptz
+  updated_at timestamptz
+  created_by varchar(120)
+  updated_by varchar(120)
+  codigo varchar(20) [not null, unique]
+  nombre varchar(150) [not null]
+  contacto varchar(150)
+  documento varchar(30)
+  observaciones varchar(500)
+}
+
+Table puntos_establecidos {
+  id bigint [pk, increment]
+  activo boolean [not null, default: true]
+  created_at timestamptz
+  updated_at timestamptz
+  created_by varchar(120)
+  updated_by varchar(120)
+  nombre varchar(150) [not null]
+  latitud float8 [not null]
+  longitud float8 [not null]
+  ruta_id bigint [not null]
+  acopiador_id bigint
+  proveedor_id bigint
+  observacion varchar(300)
+  version bigint [not null, default: 0]
+  eliminado boolean [not null, default: false]
+
+  indexes {
+    (acopiador_id) [name: 'puntos_establecidos_acopiador_idx', note: 'WHERE activo']
+    (proveedor_id) [name: 'puntos_establecidos_proveedor_idx', note: 'WHERE activo']
+    (ruta_id) [name: 'puntos_establecidos_ruta_idx', note: 'WHERE activo']
+  }
+  Note: 'CHECK: puntos_establecidos_lat_rango: CHECK (((latitud >= (\'-90\'::integer)::double precision) AND (latitud <= (90)::double precision))) ; puntos_establecidos_lon_rango: CHECK (((longitud >= (\'-180\'::integer)::double precision) AND (longitud <= (180)::double precision)))'
+}
+
+Table quesos {
+  activo boolean [not null]
+  fecha date [not null]
+  producidos_kg float8 [not null]
+  total_venta float8
+  vendidos_kg float8 [not null]
+  created_at timestamptz
+  id bigint [pk, increment]
+  updated_at timestamptz
+  numero_boleta varchar(80)
+  created_by varchar(120)
+  fuente varchar(120) [not null]
+  updated_by varchar(120)
+  comprador varchar(150)
+  observaciones varchar(500)
+}
+
+Table receta_items {
+  id bigint [pk, increment]
+  activo boolean [not null, default: true]
+  created_at timestamptz
+  updated_at timestamptz
+  created_by varchar(120)
+  updated_by varchar(120)
+  receta_id bigint [not null]
+  materia_prima_id bigint [not null]
+  cantidad_por_unidad numeric(12,4) [not null]
+
+  indexes {
+    (receta_id) [name: 'receta_items_receta_idx']
+  }
+  Note: 'CHECK: receta_items_cantidad_positiva: CHECK ((cantidad_por_unidad > (0)::numeric))'
+}
+
+Table recetas_queso {
+  id bigint [pk, increment]
+  activo boolean [not null, default: true]
+  created_at timestamptz
+  updated_at timestamptz
+  created_by varchar(120)
+  updated_by varchar(120)
+  vigente_desde date [not null]
+  vigente_hasta date
+  rendimiento_litros_por_unidad numeric(10,4)
+  observaciones varchar(500)
+  producto_id bigint [not null]
+
+  indexes {
+    (producto_id, vigente_desde) [name: 'recetas_queso_producto_vigencia_idx']
+  }
+}
+
+Table recojos {
+  activo boolean [not null]
+  capacidad_referencial float8
+  litros float8 [not null]
+  litros_app_movil float8
+  numero_envases integer
+  temperatura float8
+  acopiador_id bigint
+  created_at timestamptz
+  fecha_hora timestamptz [not null]
+  id bigint [pk, increment]
+  productor_id bigint [not null]
+  ruta_id bigint
+  updated_at timestamptz
+  fuente varchar(20) [note: 'PLANTA | RUTA']
+  estado varchar(30) [not null, note: 'DRAFT | SAVED_OFFLINE | PENDING_SYNC | SYNCED | CANCELLED']
+  client_uuid varchar(64) [not null, unique]
+  created_by varchar(120)
+  updated_by varchar(120)
+  responsable_recepcion varchar(150)
+  motivo_cancelacion varchar(300)
+  estado_visita varchar(20)
+  motivo_no_entrega varchar(300)
+  latitud float8
+  longitud float8
+  distancia_proveedor_m float8
+  gps_fuera_de_rango boolean [not null, default: false]
+  observado boolean [not null, default: false]
+  motivo_observacion varchar(300)
+  distancia_punto_establecido_m float8
+  Note: 'CHECK: recojos_estado_visita_check: CHECK (((estado_visita IS NULL) OR ((estado_visita)::text = ANY ((ARRAY[\'ACOPIADO\'::character varying, \'NO_ENTREGADO\'::character varying])::text[]))))'
+}
+
+Table registros_auditoria {
+  fecha timestamptz [not null]
+  id bigint [pk, increment]
+  accion varchar(80) [not null]
+  entidad varchar(80)
+  actor varchar(100)
+  detalle varchar(500)
+}
+
+Table rol_permisos {
+  rol_id bigint [not null]
+  permiso_id bigint [not null]
+
+  indexes {
+    (rol_id, permiso_id) [pk]
+    (permiso_id) [name: 'rol_permisos_permiso_idx']
+  }
+}
+
+Table roles {
+  id bigint [pk, increment]
+  nombre varchar(40) [not null, unique]
+  accesos varchar(200)
+  descripcion varchar(200)
+  etiqueta varchar(80) [not null]
+  sistema boolean [not null, default: false]
+  activo boolean [not null, default: true]
+  orden integer
+  created_at timestamptz
+  updated_at timestamptz
+  created_by varchar(120)
+  updated_by varchar(120)
+}
+
+Table ruta_puntos {
+  id bigint [pk, increment]
+  activo boolean [not null, default: true]
+  created_at timestamptz
+  updated_at timestamptz
+  created_by varchar(120)
+  updated_by varchar(120)
+  ruta_id bigint [not null]
+  secuencia integer [not null]
+  latitud float8 [not null]
+  longitud float8 [not null]
+
+  indexes {
+    (ruta_id, secuencia) [name: 'ruta_puntos_ruta_idx']
+  }
+  Note: 'CHECK: ruta_puntos_lat_rango: CHECK (((latitud >= (\'-90\'::integer)::double precision) AND (latitud <= (90)::double precision))) ; ruta_puntos_lon_rango: CHECK (((longitud >= (\'-180\'::integer)::double precision) AND (longitud <= (180)::double precision))) ; ruta_puntos_secuencia_positiva: CHECK ((secuencia >= 0))'
+}
+
+Table rutas {
+  activo boolean [not null]
+  created_at timestamptz
+  id bigint [pk, increment]
+  updated_at timestamptz
+  created_by varchar(120)
+  nombre varchar(120) [not null]
+  updated_by varchar(120)
+  zona varchar(120)
+  descripcion varchar(300)
+}
+
+Table solicitudes_cambio_zona {
+  id bigint [pk, increment]
+  activo boolean [not null, default: true]
+  created_at timestamptz
+  updated_at timestamptz
+  created_by varchar(120)
+  updated_by varchar(120)
+  productor_id bigint [not null]
+  zona_actual varchar(120)
+  zona_solicitada varchar(120) [not null]
+  motivo varchar(500)
+  estado varchar(20) [not null, default: 'PENDIENTE', note: 'PENDIENTE | APROBADA | RECHAZADA']
+  fecha_solicitud date [not null]
+  fecha_decision date
+  aprobador varchar(120)
+  observacion_decision varchar(500)
+
+  indexes {
+    (estado) [name: 'solicitudes_zona_estado_idx']
+    (productor_id) [name: 'solicitudes_zona_productor_idx']
+  }
+}
+
+Table tarifas_leche {
+  activo boolean [not null]
+  precio_normal float8 [not null]
+  precio_observada float8 [not null]
+  vigente_desde date [not null]
+  vigente_hasta date
+  created_at timestamptz
+  id bigint [pk, increment]
+  updated_at timestamptz
+  created_by varchar(120)
+  updated_by varchar(120)
+  precio_excelencia float8
+}
+
+Table tarifas_queso {
+  activo boolean [not null]
+  precio_publico_general float8 [not null]
+  precio_mayorista float8 [not null]
+  precio_proveedor float8 [not null]
+  vigente_desde date [not null]
+  vigente_hasta date
+  created_at timestamptz
+  id bigint [pk, increment]
+  updated_at timestamptz
+  created_by varchar(120)
+  updated_by varchar(120)
+  producto_id bigint [not null]
+  descripcion varchar(120)
+
+  indexes {
+    (producto_id, vigente_desde) [name: 'tarifas_queso_producto_vigencia_idx']
+  }
+  Note: 'CHECK: tarifas_queso_fechas_ordenadas: CHECK (((vigente_hasta IS NULL) OR (vigente_hasta >= vigente_desde))) ; tarifas_queso_precios_no_negativos: CHECK (((precio_publico_general >= (0)::double precision) AND (precio_mayorista >= (0)::double precision) AND (precio_proveedor >= (0)::double precision)))'
+}
+
+Table trabajadores_produccion {
+  id bigint [pk, increment]
+  activo boolean [not null, default: true]
+  created_at timestamptz
+  updated_at timestamptz
+  created_by varchar(120)
+  updated_by varchar(120)
+  nombre varchar(150) [not null]
+}
+
+Table trazado_acopiador_puntos {
+  id bigint [pk, increment]
+  activo boolean [not null, default: true]
+  created_at timestamptz
+  updated_at timestamptz
+  created_by varchar(120)
+  updated_by varchar(120)
+  trazado_id bigint [not null]
+  secuencia integer [not null]
+  latitud float8 [not null]
+  longitud float8 [not null]
+
+  indexes {
+    (trazado_id, secuencia) [name: 'trazado_acopiador_puntos_trazado_idx']
+  }
+  Note: 'CHECK: trazado_acopiador_puntos_lat_rango: CHECK (((latitud >= (\'-90\'::integer)::double precision) AND (latitud <= (90)::double precision))) ; trazado_acopiador_puntos_lon_rango: CHECK (((longitud >= (\'-180\'::integer)::double precision) AND (longitud <= (180)::double precision))) ; trazado_acopiador_puntos_secuencia_positiva: CHECK ((secuencia >= 0))'
+}
+
+Table trazados_acopiador {
+  id bigint [pk, increment]
+  activo boolean [not null, default: true]
+  created_at timestamptz
+  updated_at timestamptz
+  created_by varchar(120)
+  updated_by varchar(120)
+  acopiador_id bigint [not null]
+  ruta_id bigint [not null]
+  tipo varchar(20) [not null, note: 'DIA | PREDETERMINADO']
+  fecha date
+  sigue_ruta_designada boolean [not null, default: true]
+  observacion varchar(500)
+  origen_trazado_id bigint
+  predeterminado_en timestamptz
+  predeterminado_por varchar(120)
+
+  indexes {
+    (acopiador_id, fecha) [unique, name: 'trazados_acopiador_dia_unico', note: 'WHERE ((tipo)::text = \'DIA\'::text)']
+    (fecha, acopiador_id) [name: 'trazados_acopiador_fecha_idx']
+    (acopiador_id) [unique, name: 'trazados_acopiador_predeterminado_unico', note: 'WHERE ((tipo)::text = \'PREDETERMINADO\'::text)']
+  }
+  Note: 'CHECK: trazados_acopiador_fecha_segun_tipo: CHECK (((((tipo)::text = \'DIA\'::text) AND (fecha IS NOT NULL)) OR (((tipo)::text = \'PREDETERMINADO\'::text) AND (fecha IS NULL))))'
+}
+
+Table ubicaciones_gps {
+  latitud float8 [not null]
+  longitud float8 [not null]
+  precision_metros float8
+  velocidad_ms float8
+  acopiador_id bigint [not null]
+  fecha timestamptz [not null]
+  id bigint [pk, increment]
+
+  indexes {
+    (acopiador_id, fecha) [name: 'ubicaciones_gps_acopiador_fecha_idx']
+  }
+}
+
+Table usuario_permisos {
+  id bigint [pk, increment]
+  usuario_id bigint [not null]
+  permiso_id bigint [not null]
+  tipo varchar(10) [not null, note: 'CONCEDER | REVOCAR']
+  activo boolean [not null, default: true]
+  created_at timestamptz
+  updated_at timestamptz
+  created_by varchar(120)
+  updated_by varchar(120)
+
+  indexes {
+    (usuario_id, permiso_id) [unique, name: 'usuario_permisos_unico']
+    (permiso_id) [name: 'usuario_permisos_permiso_idx']
+  }
+}
+
+Table usuario_roles {
+  rol_id bigint [not null]
+  usuario_id bigint [not null]
+
+  indexes {
+    (rol_id, usuario_id) [pk]
+    (usuario_id) [name: 'usuario_roles_usuario_idx']
+  }
+}
+
+Table usuarios {
+  activo boolean [not null]
+  created_at timestamptz
+  id bigint [pk, increment]
+  updated_at timestamptz
+  telefono varchar(30)
+  username varchar(100) [not null, unique]
+  created_by varchar(120)
+  updated_by varchar(120)
+  email varchar(150)
+  nombre_completo varchar(150) [not null]
+  password varchar(255) [not null]
+  ultimo_acceso timestamptz
+}
+
+Table ventas_queso {
+  activo boolean [not null]
+  fecha date [not null]
+  unidades integer [not null]
+  precio_unitario float8 [not null]
+  created_at timestamptz
+  id bigint [pk, increment]
+  lote_id bigint [not null]
+  updated_at timestamptz
+  tipo_comprador varchar(20) [not null, note: 'PUBLICO_GENERAL | MAYORISTA | PROVEEDOR']
+  condicion varchar(20) [not null, note: 'CONTADO | CREDITO_7D']
+  medio_cobro varchar(20) [not null, note: 'EFECTIVO | TRANSFERENCIA | YAPE_PLIN']
+  estado varchar(20) [not null, note: 'COBRADO | POR_COBRAR']
+  created_by varchar(120)
+  updated_by varchar(120)
+  cliente varchar(150) [not null]
+  motivo_anulacion varchar(200)
+  monto_igv float8
+
+  indexes {
+    (fecha) [name: 'ventas_queso_fecha_idx']
+    (lote_id) [name: 'ventas_queso_lote_idx']
+  }
+  Note: 'CHECK: ventas_queso_precio_no_negativo: CHECK ((precio_unitario >= (0)::double precision)) ; ventas_queso_unidades_positivas: CHECK ((unidades > 0))'
+}
+
+Table vista_acciones {
+  id bigint [pk, increment]
+  vista_id bigint [not null]
+  permiso_id bigint [not null]
+  etiqueta varchar(80) [not null]
+  orden integer [not null, default: 0]
+
+  indexes {
+    (vista_id, permiso_id) [unique, name: 'vista_acciones_unica']
+    (permiso_id) [name: 'vista_acciones_permiso_idx']
+  }
+}
+
+Table vistas {
+  id bigint [pk, increment]
+  codigo varchar(60) [not null, unique]
+  nombre varchar(80) [not null]
+  descripcion varchar(300)
+  modulo_id bigint [not null]
+  ruta varchar(120)
+  icono varchar(10)
+  orden integer [not null, default: 0]
+  permiso_acceso_id bigint [not null]
+  activo boolean [not null, default: true]
+  created_at timestamptz
+  updated_at timestamptz
+  created_by varchar(120)
+  updated_by varchar(120)
+
+  indexes {
+    (modulo_id) [name: 'vistas_modulo_idx']
+    (permiso_acceso_id) [name: 'vistas_permiso_acceso_idx']
+  }
+}
+
+Table zona_poligono_puntos {
+  id bigint [pk, increment]
+  activo boolean [not null, default: true]
+  created_at timestamptz
+  updated_at timestamptz
+  created_by varchar(120)
+  updated_by varchar(120)
+  zona_poligono_id bigint [not null]
+  secuencia integer [not null]
+  latitud float8 [not null]
+  longitud float8 [not null]
+
+  indexes {
+    (zona_poligono_id, secuencia) [name: 'zona_poligono_puntos_zona_idx']
+  }
+  Note: 'CHECK: zona_poligono_puntos_lat_rango: CHECK (((latitud >= (\'-90\'::integer)::double precision) AND (latitud <= (90)::double precision))) ; zona_poligono_puntos_lon_rango: CHECK (((longitud >= (\'-180\'::integer)::double precision) AND (longitud <= (180)::double precision))) ; zona_poligono_puntos_secuencia_positiva: CHECK ((secuencia >= 0))'
+}
+
+Table zona_poligonos {
+  id bigint [pk, increment]
+  activo boolean [not null, default: true]
+  created_at timestamptz
+  updated_at timestamptz
+  created_by varchar(120)
+  updated_by varchar(120)
+  zona varchar(120) [not null, unique]
+  color varchar(20)
+}
+
+Ref: acopiadores.ruta_id > rutas.id
+Ref: acopiadores.usuario_id > usuarios.id
+Ref: asignaciones_ruta.ruta_id > rutas.id
+Ref: asignaciones_ruta.acopiador_id > acopiadores.id
+Ref: controles_calidad.recojo_id - recojos.id
+Ref: evidencias_calidad.control_calidad_id > controles_calidad.id
+Ref: evidencias_calidad.incidencia_id > incidencias_calidad.id
+Ref: incidencias_calidad.recojo_id > recojos.id
+Ref: incidencias_calidad.productor_id > productores.id
+Ref: liquidacion_detalles.liquidacion_id > liquidaciones.id
+Ref: liquidacion_detalles.recojo_id > recojos.id
+Ref: liquidaciones.productor_id > productores.id
+Ref: notificaciones.usuario_id > usuarios.id
+Ref: productores.ruta_id > rutas.id
+Ref: productores.acopiador_responsable_id > acopiadores.id
+Ref: productores.usuario_id > usuarios.id
+Ref: recojos.ruta_id > rutas.id
+Ref: recojos.acopiador_id > acopiadores.id
+Ref: recojos.productor_id > productores.id
+Ref: ubicaciones_gps.acopiador_id > acopiadores.id
+Ref: usuario_roles.rol_id > roles.id
+Ref: usuario_roles.usuario_id > usuarios.id
+Ref: ajustes_liquidacion.liquidacion_id > liquidaciones.id
+Ref: medicion_instrumento.recojo_id - recojos.id
+Ref: rol_permisos.permiso_id > permisos.id [delete: cascade]
+Ref: rol_permisos.rol_id > roles.id [delete: cascade]
+Ref: lotes_queso.producto_id > productos.id
+Ref: lotes_queso.receta_id > recetas_queso.id
+Ref: tarifas_queso.producto_id > productos.id
+Ref: ventas_queso.lote_id > lotes_queso.id
+Ref: recetas_queso.producto_id > productos.id
+Ref: receta_items.materia_prima_id > materias_primas.id
+Ref: receta_items.receta_id > recetas_queso.id
+Ref: compras.proveedor_compra_id > proveedores_compra.id
+Ref: compra_items.compra_id > compras.id
+Ref: compra_items.materia_prima_id > materias_primas.id
+Ref: movimientos_inventario.lote_queso_id > lotes_queso.id
+Ref: movimientos_inventario.materia_prima_id > materias_primas.id
+Ref: lote_consumo.lote_id > lotes_queso.id
+Ref: lote_consumo.materia_prima_id > materias_primas.id
+Ref: lote_mano_obra.lote_id > lotes_queso.id
+Ref: lote_mano_obra.trabajador_produccion_id > trabajadores_produccion.id
+Ref: ruta_puntos.ruta_id > rutas.id
+Ref: productor_ubicaciones.productor_id > productores.id
+Ref: solicitudes_cambio_zona.productor_id > productores.id
+Ref: conciliaciones_ruta.acopiador_id > acopiadores.id
+Ref: conciliaciones_ruta.ruta_id > rutas.id
+Ref: zona_poligono_puntos.zona_poligono_id > zona_poligonos.id
+Ref: asiento_lineas.asiento_id > asientos_contables.id
+Ref: asiento_lineas.cuenta_id > plan_cuentas.id
+Ref: trazados_acopiador.acopiador_id > acopiadores.id
+Ref: trazados_acopiador.ruta_id > rutas.id
+Ref: trazado_acopiador_puntos.trazado_id > trazados_acopiador.id
+Ref: conversaciones_proveedor.productor_id - productores.id
+Ref: mensajes_proveedor.autor_usuario_id > usuarios.id
+Ref: mensajes_proveedor.conversacion_id > conversaciones_proveedor.id
+Ref: puntos_establecidos.acopiador_id > acopiadores.id
+Ref: puntos_establecidos.proveedor_id > productores.id
+Ref: puntos_establecidos.ruta_id > rutas.id
+Ref: vistas.modulo_id > modulos.id
+Ref: vistas.permiso_acceso_id > permisos.id
+Ref: vista_acciones.permiso_id > permisos.id
+Ref: vista_acciones.vista_id > vistas.id [delete: cascade]
+Ref: usuario_permisos.permiso_id > permisos.id
+Ref: usuario_permisos.usuario_id > usuarios.id [delete: cascade]
+
+TableGroup Seguridad_y_accesos {
+  usuarios
+  roles
+  usuario_roles
+  permisos
+  rol_permisos
+  usuario_permisos
+  modulos
+  vistas
+  vista_acciones
+  codigos_verificacion
+  registros_auditoria
+  notificaciones
+}
+
+TableGroup Acopio_y_rutas {
+  rutas
+  ruta_puntos
+  acopiadores
+  asignaciones_ruta
+  productores
+  productor_ubicaciones
+  zona_poligonos
+  zona_poligono_puntos
+  solicitudes_cambio_zona
+  puntos_establecidos
+  recojos
+  cierres_acopio
+  conciliaciones_ruta
+}
+
+TableGroup GPS {
+  ubicaciones_gps
+  trazados_acopiador
+  trazado_acopiador_puntos
+}
+
+TableGroup Calidad {
+  controles_calidad
+  medicion_instrumento
+  evidencias_calidad
+  incidencias_calidad
+  parametros_calidad
+}
+
+TableGroup Liquidaciones {
+  tarifas_leche
+  liquidaciones
+  liquidacion_detalles
+  ajustes_liquidacion
+  parametros_negocio
+}
+
+TableGroup Mensajeria {
+  conversaciones_proveedor
+  mensajes_proveedor
+}
+
+TableGroup Produccion {
+  productos
+  quesos
+  recetas_queso
+  receta_items
+  lotes_queso
+  lote_consumo
+  lote_mano_obra
+  trabajadores_produccion
+}
+
+TableGroup Compras_e_inventario {
+  proveedores_compra
+  materias_primas
+  compras
+  compra_items
+  movimientos_inventario
+}
+
+TableGroup Ventas {
+  tarifas_queso
+  ventas_queso
+}
+
+TableGroup Contabilidad {
+  plan_cuentas
+  asientos_contables
+  asiento_lineas
+}

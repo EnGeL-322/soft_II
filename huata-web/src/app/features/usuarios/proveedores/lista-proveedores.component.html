@@ -1,0 +1,147 @@
+<div class="filtros">
+  <input type="search" class="buscar" aria-label="Buscar proveedores" placeholder="Nombre, código, DNI, teléfono, cuenta o ruta…"
+    [(ngModel)]="q" (ngModelChange)="lista.buscarAlEscribir()" />
+  <select aria-label="Estado" [(ngModel)]="estado" (ngModelChange)="lista.buscar()">
+    <option [ngValue]="undefined">Todos los estados</option>
+    @for (e of estados; track e.valor) {
+      <option [ngValue]="e.valor">{{ e.etiqueta }}</option>
+    }
+  </select>
+  <select aria-label="Zona" [(ngModel)]="zona" (ngModelChange)="cambiarZona()">
+    <option value="">Todas las zonas</option>
+    @for (z of territorio.zonas(); track z) {
+      <option [value]="z">{{ z }}</option>
+    }
+  </select>
+  <select aria-label="Ruta" [(ngModel)]="rutaId" (ngModelChange)="cambiarRuta()">
+    <option [ngValue]="undefined">Todas las rutas</option>
+    @for (r of rutasDeLaZona; track r.id) {
+      <option [ngValue]="r.id">{{ zona ? r.nombre : r.zona + ' · ' + r.nombre }}</option>
+    }
+  </select>
+  @if (territorio.acopiadores().length) {
+    <select aria-label="Acopiador responsable" [(ngModel)]="acopiadorId" (ngModelChange)="lista.buscar()">
+      <option [ngValue]="undefined">Todos los acopiadores</option>
+      @for (a of acopiadoresFiltro; track a.id) {
+        <option [ngValue]="a.id">{{ a.nombres }} {{ a.apellidos }}</option>
+      }
+    </select>
+  }
+  @if (hayFiltros) {
+    <button type="button" class="btn btn-soft limpiar" (click)="limpiarFiltros()">Limpiar filtros</button>
+  }
+  <div class="acciones-extra no-print">
+    <button type="button" class="btn btn-soft" [class.btn-blue]="vista() === 'reportes'"
+      (click)="vista.set(vista() === 'reportes' ? 'padron' : 'reportes')">
+      {{ vista() === 'reportes' ? 'Ver padrón' : 'Reportes' }}
+    </button>
+    <button type="button" class="btn btn-soft" (click)="exportar()">Exportar Excel</button>
+    @if (puedeImportar()) {
+      <button type="button" class="btn btn-soft" (click)="importando.set(!importando())">Importar Excel</button>
+    }
+  </div>
+</div>
+
+@if (importando()) {
+  <app-importar-proveedores (cerrar)="importando.set(false)" (importado)="alImportar($event)" />
+}
+
+@if (vista() === 'reportes') {
+  <!-- Gráficos en su propio paquete: solo se descargan si alguien abre los reportes. -->
+  @defer {
+    <app-reporte-proveedores />
+  } @loading {
+    <p class="note" role="status">Cargando reportes…</p>
+  }
+} @else {
+  @if (pendientes() > 0 && estado !== 'PENDIENTE_APROBACION') {
+    <p class="note" role="status">
+      <strong>{{ pendientes() }} proveedor(es) esperan aprobación</strong> y todavía no pueden entregar leche.
+      <button type="button" class="btn btn-soft" (click)="verPendientes()">Ver pendientes</button>
+    </p>
+  }
+  @if (lista.error()) {
+    <p class="note red" role="alert">{{ lista.error() }}</p>
+  }
+
+  <div class="tablebox">
+    <table>
+      <thead>
+        <tr>
+          <th>Proveedor</th>
+          <th>Zona · Ruta</th>
+          <th>Acopiador</th>
+          <th>Cuenta</th>
+          <th>Estado</th>
+          <th class="no-print col-acciones"><span class="sr-only">Acciones</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (p of lista.pagina()?.content ?? []; track p.id) {
+          <tr>
+            <td>
+              <div class="persona">
+                <span><strong>{{ p.apellidos }} {{ p.nombres }}</strong><small>Código {{ p.codigo }}</small></span>
+              </div>
+            </td>
+            <td>
+              @if (p.rutaNombre) {
+                <strong>{{ p.zonaPrincipal || territorio.zonaDeRuta(p.rutaId) || '—' }}</strong><span class="secundario">&nbsp;· {{ p.rutaNombre }}</span>
+              } @else {
+                <span class="badge badge-ambar">Sin ruta</span>
+              }
+            </td>
+            <td>{{ territorio.quienRecoge(p.acopiadorResponsableNombre, p.rutaId) || '—' }}</td>
+            <td>
+              @if (p.username) {
+                {{ p.username }}
+              } @else {
+                <span class="badge badge-gris">Sin cuenta</span>
+              }
+            </td>
+            <td>
+              <div class="etiquetas">
+                <app-badge-estado [estado]="p.estado" />
+                @if (p.excelencia) {
+                  <span class="badge badge-verde" title="Cobra tarifa de Excelencia">★ Excelencia</span>
+                }
+              </div>
+            </td>
+            <td class="no-print">
+              @if (puedeEditar()) {
+                <div class="acciones-fila">
+                  <button type="button" class="icon-btn" data-tip="Editar datos" [attr.aria-label]="'Editar a ' + p.codigo"
+                    (click)="editar(p)">
+                    <app-icono nombre="editar" [tamano]="17" />
+                  </button>
+                  <button type="button" class="icon-btn" [class.activa]="p.excelencia"
+                    [attr.data-tip]="p.excelencia ? 'Quitar Excelencia' : 'Marcar Excelencia'"
+                    [attr.aria-label]="(p.excelencia ? 'Quitar Excelencia a ' : 'Marcar Excelencia a ') + p.codigo"
+                    [attr.aria-pressed]="p.excelencia" (click)="alternarExcelencia(p)">
+                    <app-icono nombre="estrella" [tamano]="17" />
+                  </button>
+                  @for (d of destinosDe(p.estado); track d) {
+                    <button type="button" class="icon-btn" [class.peligro]="d === 'RETIRADO'" [attr.data-tip]="verboDe(d)"
+                      [attr.aria-label]="verboDe(d) + ' a ' + p.codigo" (click)="cambiarEstado(p, d)">
+                      <app-icono [nombre]="iconoDe(d)" [tamano]="17" />
+                    </button>
+                  }
+                </div>
+              }
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="6" class="vacio">{{ lista.cargando() ? 'Cargando proveedores…' : 'Sin proveedores que coincidan.' }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+    @if (lista.pagina(); as pg) {
+      <app-paginador [page]="pg.page" [size]="lista.tamano()" [total]="pg.totalElements"
+        (pageChange)="lista.irA($event)" (sizeChange)="lista.cambiarTamano($event)" />
+    }
+  </div>
+}
+
+<app-ficha-proveedor (guardado)="alGuardar($event)" />

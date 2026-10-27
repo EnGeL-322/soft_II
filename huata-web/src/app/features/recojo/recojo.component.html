@@ -1,305 +1,526 @@
 <section id="recepcion" class="view active printable">
-    <div class="page-head">
-      <div>
-        <div class="kicker">Recepción diaria</div>
-        <h1>Recepción y acopio</h1>
-        <p>Registro compacto por proveedor, con precio, resultado y control de calidad.</p>
+  <div class="page-head">
+    <div>
+      @if (esPlanta) {
+        <h1>Entregas directas</h1>
+        <p>Leche que el proveedor trae directamente a planta.</p>
+      } @else {
+        <h1>Recojos en ruta</h1>
+        <p>Lo que recogen los acopiadores con la app móvil. Se consulta aquí; no se registra.</p>
+      }
+    </div>
+    <div class="actions">
+      @if (esPlanta && puedeRegistrarEntrega()) {
+        <button type="button" class="btn btn-primary" (click)="abrirFormulario()">
+          + Nueva entrega
+        </button>
+      }
+      <button type="button" class="btn btn-soft" (click)="exportar()">Exportar</button>
+    </div>
+  </div>
+
+  @if (mostrarForm()) {
+    <div class="prototype-modal" role="dialog" aria-modal="true" aria-label="Nueva entrega directa">
+      <div class="prototype-modal-box">
+        <form class="card" (ngSubmit)="registrar()">
+          <div class="table-title" style="margin: 0 0 12px">
+            <div>
+              <h3>Nueva entrega directa</h3>
+              <p>
+                El proveedor trajo la leche a planta. Aquí solo se registran proveedor y litros; el
+                análisis de calidad lo registra y aprueba el tester con la app.
+              </p>
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div class="field">
+              <label>Proveedor</label>
+              <app-buscador
+                [opciones]="opcProductores()"
+                [(ngModel)]="form.productorId"
+                name="productorId"
+                required
+                etiqueta="Proveedor"
+                placeholder="Buscar por código, nombre o zona…"
+              />
+            </div>
+            <div class="field">
+              <label for="ed-litros">Litros</label>
+              <input
+                id="ed-litros"
+                type="number"
+                step="0.1"
+                min="0.01"
+                [(ngModel)]="form.litros"
+                name="litros"
+                required
+              />
+            </div>
+          </div>
+
+          <!-- Opcional: ticket del analizador de planta. Se guarda con la entrega; no decide la calidad. -->
+          <div class="instrumento" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 12px">
+            <button
+              type="button"
+              class="btn btn-soft"
+              [disabled]="leyendoInstrumento() || instrumentoConfigurado() === false"
+              (click)="llamarDatos()"
+            >
+              {{ leyendoInstrumento() ? 'Leyendo…' : 'Llamar datos' }}
+            </button>
+            <small class="muted">
+              @if (instrumentoConfigurado() === false) {
+                Equipo de medición no configurado: falta definir HUATA_INSTRUMENTO_URL en el servidor.
+              } @else {
+                Opcional: trae el ticket del analizador de planta y lo guarda con la entrega.
+              }
+            </small>
+          </div>
+          @if (avisoInstrumento()) {
+            <div class="note blue" style="margin-top: 10px">{{ avisoInstrumento() }}</div>
+          }
+          @if (medicion(); as m) {
+            <div class="card" style="margin-top: 10px">
+              <div class="table-title" style="margin: 0 0 10px">
+                <div>
+                  <h3 style="font-size: 14px">Analizador de leche</h3>
+                  <p>
+                    @if (m.analizadorSn) {
+                      SN {{ m.analizadorSn }}
+                    }
+                    @if (m.modo) {
+                      · Modo {{ m.modo }}
+                    }
+                    @if (m.medidoEn) {
+                      · {{ m.medidoEn | date: 'dd/MM/yy HH:mm' : '-0500' }}
+                    }
+                  </p>
+                </div>
+              </div>
+              <div class="context-grid">
+                @for (fila of filasMedicion(); track fila.etiqueta) {
+                  <div class="context-item">
+                    <span>{{ fila.etiqueta }}</span
+                    ><strong>{{ fila.valor }}</strong>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
+          @if (errorForm()) {
+            <p class="error-text" style="margin-top: 10px">{{ errorForm() }}</p>
+          }
+
+          <div class="actions" style="margin-top: 14px">
+            <button type="submit" class="btn btn-primary" [disabled]="guardando()">
+              {{ guardando() ? 'Guardando…' : 'Guardar' }}
+            </button>
+            <button type="button" class="btn btn-soft" (click)="mostrarForm.set(false)">
+              Cancelar
+            </button>
+          </div>
+        </form>
       </div>
-      <div class="actions">
+    </div>
+  }
+
+  @if (!esPlanta) {
+  <details class="module-extra">
+    <summary>Ver reporte por acopiador</summary>
+    <div class="card" style="margin-bottom: 16px">
+      <div class="table-title" style="margin-top: 0">
+        <div>
+          <h3>Reporte de acopiadores</h3>
+          <p>Consulta el rendimiento por día, semana o mes, con la zona y ruta asignadas.</p>
+        </div>
+      </div>
+      <div class="toolbar">
+        <select [(ngModel)]="periodoReporte">
+          <option value="DIA">Día</option>
+          <option value="SEMANA">Semana</option>
+          <option value="MES">Mes</option>
+        </select>
+        <input type="date" [(ngModel)]="fechaReporte" />
+        <app-buscador
+          [opciones]="opcAcopiadoresConTodos()"
+          [(ngModel)]="acopiadorReporteId"
+          etiqueta="Acopiador del reporte"
+          placeholder="Buscar acopiador o zona…"
+        />
         <button
           type="button"
-          class="btn"
-          [class.btn-primary]="!compartiendoGps()"
-          [class.btn-danger]="compartiendoGps()"
-          (click)="alternarGps()"
+          class="btn btn-primary"
+          (click)="cargarReporte()"
+          [disabled]="cargandoReporte()"
         >
-          {{ compartiendoGps() ? '◉ Compartiendo ubicación — detener' : '◎ Compartir mi ubicación (GPS)' }}
+          {{ cargandoReporte() ? 'Consultando…' : 'Consultar reporte' }}
         </button>
-        <button type="button" class="btn btn-primary" (click)="abrirFormulario()">+ Nueva recepción</button><button type="button" class="btn btn-blue" (click)="exportar()">Exportar Excel</button>
       </div>
-    </div>
 
-    <div class="stats">
-      <div class="stat">
-        <span>Precio normal</span>
-        <strong>{{ tarifaVigente() ? 'S/ ' + (tarifaVigente()!.precioNormal | number: '1.2-2') : '—' }}</strong>
-        <small class="muted">Leche apta</small>
-      </div>
-      <div class="stat">
-        <span>Baja calidad / sospecha</span>
-        <strong>{{ tarifaVigente() ? 'S/ ' + (tarifaVigente()!.precioObservada | number: '1.2-2') : '—' }}</strong>
-        <small class="muted">Tarifa reducida</small>
-      </div>
-      <div class="stat">
-        <span>Envases de referencia</span><strong>22 / 35 L</strong><small class="muted">Seleccionables.</small>
-      </div>
-      <div class="stat">
-        <span>Horario de acopio</span><strong>08:40–10:00</strong><small class="muted">Furgón / cierre de referencia.</small>
-      </div>
-    </div>
-
-    <div class="mobile-app-pointer-v141 no-print"><b>App del acopiador:</b> los recojos enviados desde la aplicación móvil se muestran en el registro para su validación.</div>
-
-    @if (gpsMensaje()) {
-      <div class="note" [class.green]="compartiendoGps() && !gpsError()" [class.red]="gpsError()" style="margin-bottom:16px">
-        {{ gpsMensaje() }}
-      </div>
-    }
-
-    @if (mostrarForm()) {
-      <div class="prototype-modal" role="dialog" aria-modal="true" aria-label="Nueva recepción"><div class="prototype-modal-box"><form class="card" (ngSubmit)="registrar()">
-        <div class="table-title" style="margin:0 0 12px">
-          <div>
-            <h3>{{ 'Nueva recepción' }}</h3>
-            <p>Precio y resultado se calculan según la tarifa vigente y las señales de calidad.</p>
-          </div>
+      <div class="context-grid" style="margin: 14px 0">
+        <div class="context-item">
+          <span>Litros recogidos</span
+          ><strong>{{ totalReporte().litros | number: '1.1-1' }} L</strong>
         </div>
-
-        <div class="form-grid">
-          <div class="field">
-            <label>Proveedor</label>
-            <select [(ngModel)]="form.productorId" name="productorId" required>
-              <option [ngValue]="undefined" disabled>Seleccionar…</option>
-              @for (p of productores(); track p.id) {
-                <option [ngValue]="p.id">{{ p.codigo }} · {{ p.nombres }} {{ p.apellidos }}</option>
-              }
-            </select>
-          </div>
-          <div class="field">
-            <label>Fuente</label>
-            <select [(ngModel)]="form.fuente" name="fuente">
-              <option value="PLANTA">Planta</option>
-              <option value="RUTA">Ruta</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>Ruta</label>
-            <select [(ngModel)]="form.rutaId" name="rutaId">
-              <option [ngValue]="undefined">Según el productor</option>
-              @for (r of rutas(); track r.id) {
-                <option [ngValue]="r.id">{{ r.nombre }}</option>
-              }
-            </select>
-          </div>
-          <div class="field">
-            <label>Acopiador que entregó</label>
-            <select [(ngModel)]="form.acopiadorId" name="acopiadorId">
-              <option [ngValue]="undefined">Sin asignar</option>
-              @for (a of acopiadores(); track a.id) {
-                <option [ngValue]="a.id">{{ a.nombres }} {{ a.apellidos }}</option>
-              }
-            </select>
-          </div>
-          <div class="field">
-            <label>Fecha y hora</label>
-            <input type="datetime-local" [(ngModel)]="form.fechaHoraLocal" name="fechaHora" required />
-          </div>
-          <div class="field">
-            <label>Litros</label>
-            <input type="number" step="0.1" min="0.01" [(ngModel)]="form.litros" name="litros" required />
-          </div>
-          <div class="field">
-            <label>N° envases</label>
-            <input type="number" step="1" min="1" [(ngModel)]="form.numeroEnvases" name="numeroEnvases" />
-          </div>
-          <div class="field">
-            <label>Capacidad referencial (L)</label>
-            <select [(ngModel)]="form.capacidadReferenciaL" name="capacidadReferenciaL">
-              <option [ngValue]="undefined">Otro</option>
-              <option [ngValue]="35">35 L</option>
-              <option [ngValue]="22">22 L</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>Temperatura (°C)</label>
-            <input type="number" step="0.1" [(ngModel)]="form.temperatura" name="temperatura" />
-          </div>
-          <div class="field">
-            <label>Densidad</label>
-            <input type="number" step="0.0001" [(ngModel)]="form.densidad" name="densidad" />
-          </div>
-          <div class="field">
-            <label>Punto de congelación</label>
-            <input type="number" step="0.001" [(ngModel)]="form.puntoCongelacion" name="puntoCongelacion" />
-          </div>
-          <div class="field">
-            <label>Agua añadida</label>
-            <select [(ngModel)]="form.aguaAnadida" name="aguaAnadida" (ngModelChange)="actualizarDecision()">
-              <option value="NO_EVIDENCIADA">No evidenciada</option>
-              <option value="SOSPECHA">Sospecha</option>
-              <option value="CONFIRMADA">Confirmada</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>Lugol</label>
-            <select [(ngModel)]="form.lugol" name="lugol" (ngModelChange)="actualizarDecision()">
-              <option value="NEGATIVA">Negativa</option>
-              <option value="NO_REALIZADA">No realizada</option>
-              <option value="POSITIVA">Positiva</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>Olor</label>
-            <select [(ngModel)]="form.olor" name="olor">
-              <option value="NORMAL">Normal</option>
-              <option value="AGRIO">Agrio</option>
-              <option value="RANCIO">Rancio</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>Aspecto</label>
-            <select [(ngModel)]="form.aspecto" name="aspecto">
-              <option value="NORMAL">Normal</option>
-              <option value="GRUMOS">Grumos</option>
-              <option value="SEDIMENTO">Sedimento</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>Calidad</label>
-            <select [(ngModel)]="form.resultado" name="resultado" (ngModelChange)="actualizarDecision()">
-              <option value="ACEPTADA">Apta</option>
-              <option value="OBSERVADA">Baja calidad</option>
-              <option value="RECHAZADA">Adulterada</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>Precio a aplicar</label>
-            <input type="text" [value]="precioAplicar() != null ? 'S/ ' + precioAplicar()!.toFixed(2) + ' / L' : 'Sin tarifa vigente'" readonly />
-          </div>
-          <div class="field">
-            <label>Monto estimado</label>
-            <input type="text" [value]="montoEstimado() != null ? 'S/ ' + montoEstimado()!.toFixed(2) : '—'" readonly />
-          </div>
-          <div class="field">
-            <label>Litros registrados en el recojo (app móvil)</label>
-            <input type="number" step="0.1" min="0" [(ngModel)]="form.litrosAppMovil" name="litrosAppMovil" placeholder="Igual al recojo en ruta" />
-          </div>
-          <div class="field">
-            <label>Responsable de recepción en planta</label>
-            <input type="text" [(ngModel)]="form.responsableRecepcion" name="responsableRecepcion" placeholder="Quién recibe en planta" />
-          </div>
-          <div class="field">
-            <label>Responsable del control de calidad</label>
-            <input type="text" [(ngModel)]="form.responsableCalidad" name="responsableCalidad" />
-          </div>
-          <div class="field">
-            <label>Equipo utilizado</label>
-            <input type="text" [(ngModel)]="form.equipoUtilizado" name="equipoUtilizado" />
-          </div>
+        <div class="context-item">
+          <span>Recepciones</span><strong>{{ totalReporte().recepciones }}</strong>
         </div>
-
-        @if (form.resultado === 'RECHAZADA') {
-          <div class="field" style="margin-top:12px">
-            <label>Motivo de rechazo</label>
-            <input type="text" [(ngModel)]="form.motivoRechazo" name="motivoRechazo" placeholder="Solo si la entrega se rechaza" />
-          </div>
-        }
-
-        <div class="field" style="margin-top:12px">
-          <label>Observación</label>
-          <textarea [(ngModel)]="form.revisionVisual" name="revisionVisual"></textarea>
+        <div class="context-item">
+          <span>Proveedores visitados</span><strong>{{ totalReporte().proveedores }}</strong>
         </div>
-
-        <div class="note" [class.green]="form.resultado === 'ACEPTADA'" [class.red]="form.resultado === 'RECHAZADA'" style="margin-top:12px">
-          {{ decisionTexto() }}
-        </div>
-
-        @if (errorForm()) {
-          <p class="error-text" style="margin-top:10px">{{ errorForm() }}</p>
-        }
-
-        <div class="actions" style="margin-top:14px">
-          <button type="submit" class="btn btn-primary" [disabled]="guardando()">
-            {{ guardando() ? 'Guardando…' : 'Guardar' }}
-          </button>
-          <button type="button" class="btn btn-soft" (click)="mostrarForm.set(false)">Cancelar</button>
-        </div>
-      </form></div></div>
-    }
-
-    <div class="card">
-      <div class="table-title" style="margin-top:0">
-        <div>
-          <h3>Recepciones registradas</h3>
-          <p>Filtra por proveedor, resultado o fuente (dentro de la página cargada).</p>
+        <div class="context-item">
+          <span>No entregaron</span><strong>{{ totalReporte().noEntregados }}</strong>
         </div>
       </div>
 
-      <div class="toolbar">
-        <input type="text" placeholder="Buscar por proveedor o acopiador…" [(ngModel)]="filtroTexto" (ngModelChange)="buscar()" />
-        <select [(ngModel)]="filtroResultado" (ngModelChange)="buscar()">
-          <option [ngValue]="undefined">Todos los resultados</option>
-          <option value="ACEPTADA">Apta</option>
-          <option value="OBSERVADA">Baja calidad</option>
-          <option value="RECHAZADA">Adulterada</option>
-          <option value="PENDIENTE">Pendiente</option>
-        </select>
-        <select [(ngModel)]="filtroFuente" (ngModelChange)="buscar()">
-          <option [ngValue]="undefined">Planta y ruta</option>
-          <option value="PLANTA">Planta</option>
-          <option value="RUTA">Ruta</option>
-        </select>
-        <select [(ngModel)]="filtroProductorId" (ngModelChange)="buscar()">
-          <option [ngValue]="undefined">Todos los productores</option>
-          @for (p of productores(); track p.id) {
-            <option [ngValue]="p.id">{{ p.codigo }} · {{ p.nombres }} {{ p.apellidos }}</option>
-          }
-        </select>
-        <select [(ngModel)]="filtroEstado" (ngModelChange)="buscar()">
-          <option [ngValue]="undefined">Todos los estados</option>
-          <option value="SYNCED">Sincronizado</option>
-          <option value="PENDING_SYNC">Pendiente de sincronizar</option>
-          <option value="CANCELLED">Cancelado</option>
-        </select>
-      </div>
-
-      <div class="tablebox">
+      <div class="table-wrap">
         <table>
           <thead>
             <tr>
-              <th>Código</th>
-              <th>Fecha</th>
-              <th>Proveedor</th>
+              <th>Acopiador</th>
+              <th>Zona</th>
               <th>Ruta</th>
-              <th class="num">Litros</th>
-              <th>Fuente</th>
-              <th>Resultado</th>
-              <th class="no-print">Acciones</th>
+              <th>Periodo</th>
+              <th>Litros</th>
+              <th>Recepciones</th>
+              <th>Visitados</th>
+              <th>No entregaron</th>
             </tr>
           </thead>
           <tbody>
-            @for (r of filaVisibles(); track r.id) {
+            @for (r of reportesAcopiador(); track r.acopiadorId) {
               <tr>
-                <td>REC-{{ r.id.toString().padStart(6, '0') }}</td>
-                <td>{{ r.fechaHora | date: 'short' }}</td>
-                <td>{{ r.productorNombre }}</td>
-                <td>{{ r.rutaNombre ?? '—' }}</td>
-                <td class="num">{{ r.litros }}</td>
-                <td>{{ r.fuente === 'PLANTA' ? 'Planta' : 'Ruta' }}</td>
-                <td><app-badge-estado [estado]="r.resultadoCalidad ?? (r.estado === 'CANCELLED' ? 'CANCELLED' : 'PENDIENTE')" /></td>
-                <td>
-                  @if (r.estado !== 'CANCELLED') {
-                    <button type="button" class="btn btn-danger" (click)="cancelar(r)">Cancelar</button>
-                  }
-                </td>
+                <td>{{ r.acopiadorNombre }}</td>
+                <td>{{ r.zona || 'Sin zona' }}</td>
+                <td>{{ r.rutaNombre || 'Sin ruta' }}</td>
+                <td>{{ r.desde | date: 'dd/MM/yy' }} – {{ r.hasta | date: 'dd/MM/yy' }}</td>
+                <td class="num">{{ r.litros | number: '1.1-1' }} L</td>
+                <td>{{ r.recepciones }}</td>
+                <td>{{ r.proveedoresVisitados }}</td>
+                <td>{{ r.noEntregados }}</td>
               </tr>
             }
-            @if (filaVisibles().length === 0) {
+            @if (!cargandoReporte() && reportesAcopiador().length === 0) {
               <tr>
-                <td colspan="8" class="muted" style="text-align:center; padding:24px">Sin resultados.</td>
+                <td colspan="8" class="muted" style="text-align: center; padding: 20px">
+                  No hay acopiadores para el periodo seleccionado.
+                </td>
               </tr>
             }
           </tbody>
         </table>
       </div>
-      @if (pagina(); as pg) {
-        <app-paginador
-          [page]="pg.page"
-          [totalElements]="pg.totalElements"
-          [totalPages]="pg.totalPages"
-          (anterior)="cambiarPagina(pg.page - 1)"
-          (siguiente)="cambiarPagina(pg.page + 1)"
-        />
+    </div>
+  </details>
+  }
+
+  @if (esPlanta) {
+    <div class="card ed">
+      <div class="ed-barra">
+        <div class="ed-presets" role="group" aria-label="Periodo">
+          <button type="button" [class.activo]="periodoEntregas() === 'DIA'" (click)="elegirPeriodo('DIA')">Día</button>
+          <button type="button" [class.activo]="periodoEntregas() === 'SEMANA'" (click)="elegirPeriodo('SEMANA')">Semana</button>
+          <button type="button" [class.activo]="periodoEntregas() === 'MES'" (click)="elegirPeriodo('MES')">Mes</button>
+        </div>
+
+        <div class="ed-nav">
+          <button type="button" class="ed-nav-btn" (click)="moverEntregas(-1)" aria-label="Periodo anterior" title="Anterior">
+            <app-icono nombre="anterior" [tamano]="16" />
+          </button>
+          <button type="button" class="ed-fecha" (click)="abrirCalendario(selectorFecha)" title="Elegir fecha">
+            <app-icono nombre="calendario" [tamano]="16" />
+            <span>{{ etiquetaRango() }}</span>
+          </button>
+          <input
+            #selectorFecha
+            class="ed-selector-oculto"
+            type="date"
+            tabindex="-1"
+            aria-hidden="true"
+            [max]="hoy"
+            [ngModel]="referenciaEntregas()"
+            (ngModelChange)="elegirDia($event)"
+          />
+          <button
+            type="button"
+            class="ed-nav-btn"
+            (click)="moverEntregas(1)"
+            [disabled]="!puedeAvanzar()"
+            aria-label="Periodo siguiente"
+            title="Siguiente"
+          >
+            <app-icono nombre="siguiente" [tamano]="16" />
+          </button>
+          @if (!incluyeHoy()) {
+            <button type="button" class="ed-hoy" (click)="irAHoy()">Hoy</button>
+          }
+        </div>
+
+        <div class="ed-filtros">
+          <label class="ed-buscar">
+            <app-icono nombre="buscar" [tamano]="16" />
+            <input
+              type="search"
+              placeholder="Buscar proveedor"
+              aria-label="Buscar proveedor"
+              [(ngModel)]="filtroTexto"
+              (ngModelChange)="buscar()"
+            />
+          </label>
+          <select aria-label="Mostrar" [ngModel]="filtroPlanta" (ngModelChange)="cambiarFiltroPlanta($event)">
+            <option value="">Todas</option>
+            <option value="PENDIENTE">Sin análisis</option>
+            <option value="ACEPTADA">Aptas</option>
+            <option value="OBSERVADA">Observadas</option>
+            <option value="RECHAZADA">Rechazadas</option>
+            <option value="CANCELLED">Canceladas</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="ed-resumen">
+        <div class="ed-dato principal">
+          <strong>{{ resumenEntregas().litros | number: '1.1-1' }} L</strong>
+          <span>recibidos</span>
+        </div>
+        <div class="ed-dato">
+          <strong>{{ resumenEntregas().entregas }}</strong>
+          <span>{{ resumenEntregas().entregas === 1 ? 'entrega' : 'entregas' }}</span>
+        </div>
+        <div class="ed-dato">
+          <strong>{{ resumenEntregas().proveedores }}</strong>
+          <span>{{ resumenEntregas().proveedores === 1 ? 'proveedor' : 'proveedores' }}</span>
+        </div>
+        @if (resumenEntregas().pendientesAnalisis > 0) {
+          <div class="ed-dato aviso">
+            <strong>{{ resumenEntregas().pendientesAnalisis }}</strong>
+            <span>sin análisis</span>
+          </div>
+        }
+      </div>
+
+      @if (cargandoEntregas() && diasEntregas().length === 0) {
+        <div class="ed-vacio">Cargando…</div>
+      } @else if (diasEntregas().length === 0) {
+        <div class="ed-vacio">
+          <app-icono nombre="entrega" [tamano]="26" />
+          <strong>Sin entregas en este periodo</strong>
+          <span>Usa las flechas para ver otras fechas.</span>
+        </div>
+      } @else {
+        @if (entregasIncompletas()) {
+          <div class="note ed-nota">
+            Se muestran {{ entregas().length }} de {{ totalEntregasServidor() }} entregas. Elige un periodo más corto para verlas todas.
+          </div>
+        }
+        <div class="ed-dias" [class.cargando]="cargandoEntregas()">
+          @for (dia of diasEntregas(); track dia.fecha) {
+            <section class="ed-dia">
+              @if (periodoEntregas() !== 'DIA') {
+                <button
+                  type="button"
+                  class="ed-dia-head"
+                  (click)="alternarDia(dia.fecha)"
+                  [attr.aria-expanded]="diaAbierto(dia.fecha)"
+                >
+                  <span class="ed-dia-chevron" [class.abierto]="diaAbierto(dia.fecha)">
+                    <app-icono nombre="abajo" [tamano]="16" />
+                  </span>
+                  <strong class="ed-dia-titulo" [class.hoy]="dia.fecha === hoy">{{ tituloDia(dia.fecha) }}</strong>
+                  <span class="ed-dia-meta">{{ dia.cantidad }} {{ dia.cantidad === 1 ? 'entrega' : 'entregas' }}</span>
+                  <span class="ed-dia-total">{{ dia.litros | number: '1.1-1' }} L</span>
+                </button>
+              }
+              @if (periodoEntregas() === 'DIA' || diaAbierto(dia.fecha)) {
+                <table class="ed-tabla">
+                  <thead>
+                    <tr>
+                      <th>Hora</th>
+                      <th>Proveedor</th>
+                      <th class="num">Litros</th>
+                      <th>Análisis</th>
+                      <th class="no-print"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (r of dia.entregas; track r.id) {
+                      <tr [class.ed-cancelada]="r.estado === 'CANCELLED'">
+                        <td class="ed-hora">{{ r.fechaHora | date: 'HH:mm' }}</td>
+                        <td>
+                          <span class="ed-proveedor">{{ r.productorNombre }}</span>
+                          @if (r.observado) {
+                            <span class="ed-marca" title="Corregido: {{ r.motivoObservacion }}">corregido</span>
+                          }
+                          @if (r.estado === 'CANCELLED' && r.motivoCancelacion) {
+                            <small class="ed-motivo">{{ r.motivoCancelacion }}</small>
+                          }
+                        </td>
+                        <td class="num ed-litros">{{ r.litros | number: '1.1-1' }}</td>
+                        <td>
+                          <app-badge-estado
+                            [estado]="r.estado === 'CANCELLED' ? 'CANCELLED' : (r.resultadoCalidad ?? 'PENDIENTE')"
+                          />
+                        </td>
+                        <td class="no-print ed-acciones">
+                          @if (r.estado !== 'CANCELLED' && puedeCancelar()) {
+                            <button
+                              type="button"
+                              class="ed-anular"
+                              (click)="cancelar(r)"
+                              title="Cancelar esta entrega"
+                              [attr.aria-label]="'Cancelar entrega ' + codigoRecepcion(r)"
+                            >
+                              <app-icono nombre="bloquear" [tamano]="16" />
+                            </button>
+                          }
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              }
+            </section>
+          }
+        </div>
       }
     </div>
-  </section>
+  } @else {
+  <div class="card">
+    <div class="table-title" style="margin-top: 0">
+      <div>
+        <h3>Recojos registrados</h3>
+        <p>Filtra por proveedor, resultado o estado.</p>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <input
+        type="text"
+        placeholder="Buscar por proveedor o acopiador…"
+        [(ngModel)]="filtroTexto"
+        (ngModelChange)="buscar()"
+      />
+      <select [(ngModel)]="filtroResultado" (ngModelChange)="buscar()">
+        <option [ngValue]="undefined">Todos los resultados</option>
+        <option value="ACEPTADA">Apta</option>
+        <option value="OBSERVADA">Baja calidad</option>
+        <option value="RECHAZADA">Adulterada</option>
+        <option value="PENDIENTE">Pendiente</option>
+      </select>
+      <app-buscador
+        [opciones]="opcProductoresConTodos()"
+        [(ngModel)]="filtroProductorId"
+        (ngModelChange)="buscar()"
+        etiqueta="Filtrar por productor"
+        placeholder="Buscar productor…"
+      />
+      <select [(ngModel)]="filtroEstado" (ngModelChange)="buscar()">
+        <option [ngValue]="undefined">Todos los estados</option>
+        <option value="SYNCED">Sincronizado</option>
+        <option value="PENDING_SYNC">Pendiente de sincronizar</option>
+        <option value="CANCELLED">Cancelado</option>
+      </select>
+    </div>
+
+    <div class="tablebox">
+      <table>
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Fecha</th>
+            <th>Proveedor</th>
+            <th>Ruta</th>
+            <th class="num">Litros</th>
+            @if (!esPlanta) {
+              <th>Acopiador</th>
+              <th>Visita</th>
+            }
+            <th>Resultado</th>
+            <th class="no-print">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (r of pagina()?.content ?? []; track r.id) {
+            <tr>
+              <td>REC-{{ r.id.toString().padStart(6, '0') }}</td>
+              <td>{{ r.fechaHora | date: 'short' }}</td>
+              <td>
+                {{ r.productorNombre }}
+                @if (r.gpsFueraDeRango) {
+                  <span
+                    class="flag flag-error"
+                    title="GPS a {{
+                      r.distanciaProveedorM ? (r.distanciaProveedorM | number: '1.0-0') : '?'
+                    }} m del proveedor{{
+                      r.distanciaPuntoEstablecidoM != null
+                        ? ' · a ' +
+                          (r.distanciaPuntoEstablecidoM | number: '1.0-0') +
+                          ' m del punto establecido'
+                        : ''
+                    }} al registrar. Revisar."
+                    >GPS lejano</span
+                  >
+                }
+                @if (r.observado) {
+                  <span class="flag flag-aviso" title="Corregido: {{ r.motivoObservacion }}"
+                    >Corregido</span
+                  >
+                }
+              </td>
+              <td>{{ r.rutaNombre ?? '—' }}</td>
+              <td class="num">{{ r.litros }}</td>
+              @if (!esPlanta) {
+                <td>{{ r.acopiadorNombre || '—' }}</td>
+                <td [title]="r.motivoNoEntrega ? 'Motivo: ' + r.motivoNoEntrega : ''">
+                  @if (r.estadoVisita) {
+                    <app-badge-estado [estado]="r.estadoVisita" />
+                  } @else {
+                    <span class="muted">—</span>
+                  }
+                </td>
+              }
+              <td>
+                <app-badge-estado
+                  [estado]="
+                    r.resultadoCalidad ?? (r.estado === 'CANCELLED' ? 'CANCELLED' : 'PENDIENTE')
+                  "
+                />
+              </td>
+              <td>
+                @if (r.estado !== 'CANCELLED' && puedeCancelar()) {
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-danger"
+                    (click)="cancelar(r)"
+                    [attr.aria-label]="'Cancelar recepción REC-' + r.id.toString().padStart(6, '0')"
+                  >
+                    Cancelar
+                  </button>
+                }
+              </td>
+            </tr>
+          }
+          @if ((pagina()?.content?.length ?? 0) === 0) {
+            <tr>
+              <td [attr.colspan]="esPlanta ? 7 : 9" class="muted" style="text-align: center; padding: 24px">
+                Sin resultados.
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    @if (pagina(); as pg) {
+      <app-paginador
+          [page]="pg.page"
+          [size]="size"
+          [total]="pg.totalElements"
+          (pageChange)="cambiarPagina($event)"
+          (sizeChange)="cambiarTamano($event)"
+        />
+    }
+  </div>
+  }
+</section>

@@ -8,4 +8,6 @@ public interface EvidenciaCalidadRepository extends JpaRepository<EvidenciaCalid
     List<EvidenciaCalidad> findByControlCalidadId(Long controlCalidadId);
 
     List<EvidenciaCalidad> findByIncidenciaId(Long incidenciaId);
+
+    java.util.Optional<EvidenciaCalidad> findByClientUuid(String clientUuid);
 }

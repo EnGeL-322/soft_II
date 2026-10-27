@@ -7,6 +7,7 @@ import {
   ControlCalidad,
   EstadoIncidencia,
   IncidenciaCalidad,
+  LugarAnalisis,
   Olor,
   ParametroCalidad,
   ResultadoCalidad,
@@ -14,7 +15,11 @@ import {
 } from '../models/models';
 
 export interface ControlCalidadRequest {
-  recojoId: number;
+  /** Recojo analizado, o null si el testeador se adelantó al acopiador (entonces va productorId). */
+  recojoId: number | null;
+  productorId?: number;
+  lugarAnalisis?: LugarAnalisis;
+  fechaHora?: string;
   densidad?: number;
   puntoCongelacion?: number;
   acidez?: number;
@@ -31,6 +36,23 @@ export interface ControlCalidadRequest {
   olor?: Olor;
   aspecto?: Aspecto;
   motivoRechazo?: string;
+}
+
+/** Evidencia de un control (backend `EvidenciaCalidadResponse`). */
+export interface EvidenciaCalidad {
+  id: number;
+  controlCalidadId: number | null;
+  tipo: 'FOTO' | 'FIRMA' | 'VOUCHER' | 'OTRO';
+  urlArchivo: string;
+  /** La foto está en el almacén propio y se descarga con el token de la sesión. */
+  tieneArchivo: boolean;
+  tipoContenido?: string;
+  tamanoBytes?: number;
+  textoOcr?: string;
+  valoresOcr?: string;
+  confianzaOcr?: number;
+  verificadoPor?: string;
+  fecha?: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -52,6 +74,25 @@ export class CalidadService {
   }
 
   /** Historial de calidad de un proveedor (boton "Historial de calidad" del UI/UX). */
+  /** Análisis registrados con la app que todavía no se aprobaron (V48). */
+  porAprobar(dias = 14) {
+    return this.http.get<ControlCalidad[]>(`${API_BASE_URL}/calidad/controles/por-aprobar`, {
+      params: { dias },
+    });
+  }
+
+  /** Aprueba un análisis con advertencia (calidad.aprobar). Aprobar dos veces no cambia quién aprobó. */
+  aprobar(controlId: number) {
+    return this.http.patch<void>(`${API_BASE_URL}/calidad/controles/${controlId}/aprobar`, {});
+  }
+
+  /** Análisis de campo de los últimos días que todavía esperan el recojo del acopiador. */
+  controlesSinRecojo(dias = 7) {
+    return this.http.get<ControlCalidad[]>(`${API_BASE_URL}/calidad/controles/sin-recojo`, {
+      params: { dias },
+    });
+  }
+
   historial(productorId: number) {
     return this.http.get<ControlCalidad[]>(`${API_BASE_URL}/calidad/historial/${productorId}`);
   }
@@ -66,6 +107,18 @@ export class CalidadService {
 
   cambiarEstadoIncidencia(id: number, estado: EstadoIncidencia) {
     return this.http.patch<IncidenciaCalidad>(`${API_BASE_URL}/calidad/incidencias/${id}/estado`, { estado });
+  }
+
+  evidenciasDeControl(controlId: number) {
+    return this.http.get<EvidenciaCalidad[]>(`${API_BASE_URL}/calidad/evidencias/control/${controlId}`);
+  }
+
+  /**
+   * La foto se pide como blob por HttpClient (que pone el token) y no con un <img src> directo: el
+   * endpoint exige sesión, y un enlace sin token respondería 401.
+   */
+  archivoEvidencia(evidenciaId: number) {
+    return this.http.get(`${API_BASE_URL}/calidad/evidencias/${evidenciaId}/archivo`, { responseType: 'blob' });
   }
 
   /** Seguimiento de incidencias/adulteraciones de un proveedor. */

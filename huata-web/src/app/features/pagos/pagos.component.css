@@ -1,0 +1,36 @@
+.payment-filters {
+  grid-template-columns: minmax(220px, 1fr) minmax(260px, 2fr);
+}
+
+.payment-provider-name {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.payment-provider-name:hover,
+.payment-provider-name:focus-visible {
+  color: var(--primary, #226b4b);
+  text-decoration: underline;
+}
+
+.payment-provider-name:disabled {
+  cursor: wait;
+}
+
+.workflow-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+@media (max-width: 700px) {
+  .payment-filters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

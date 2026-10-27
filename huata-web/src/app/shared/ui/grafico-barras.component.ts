@@ -28,7 +28,7 @@ const MARGEN_INF = 34;
       >
         @for (linea of lineasGuia(); track linea.y) {
           <line [attr.x1]="margenX" [attr.x2]="ancho - 8" [attr.y1]="linea.y" [attr.y2]="linea.y" stroke="#e6dcc4" stroke-width="1" />
-          <text x="4" [attr.y]="linea.y + 4" font-size="10" fill="#7a6f57">{{ linea.texto }}</text>
+          <text x="4" [attr.y]="linea.y + 4" font-size="10" fill="#64748b">{{ linea.texto }}</text>
         }
 
         @for (b of geometria(); track b.etiqueta) {
@@ -38,7 +38,7 @@ const MARGEN_INF = 34;
             [attr.width]="b.ancho"
             [attr.height]="b.alto"
             rx="3"
-            [attr.fill]="b.destacado ? '#a15344' : '#539479'"
+            [attr.fill]="b.destacado ? '#a15344' : '#15916d'"
           />
           @if (b.altoSecundario !== null) {
             <rect
@@ -50,7 +50,7 @@ const MARGEN_INF = 34;
               fill="#9d7736"
             />
           }
-          <text [attr.x]="b.xTexto" [attr.y]="alto - 12" font-size="10" fill="#7a6f57" text-anchor="middle">
+          <text [attr.x]="b.xTexto" [attr.y]="alto - 12" font-size="10" fill="#64748b" text-anchor="middle">
             {{ b.etiqueta }}
           </text>
         }

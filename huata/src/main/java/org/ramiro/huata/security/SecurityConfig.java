@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -32,6 +33,9 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final org.ramiro.huata.ingesta.IngestaApiKeyFilter ingestaApiKeyFilter;
+    private final org.ramiro.huata.ivr.IvrApiKeyFilter ivrApiKeyFilter;
+    private final RestAuthenticationHandlers restAuthenticationHandlers;
 
     @Value("${huata.security.cors.allowed-origins}")
     private String allowedOrigins;
@@ -63,18 +67,58 @@ public class SecurityConfig {
         return source;
     }
 
+    /**
+     * La consola H2 y Swagger UI solo se abren en el perfil dev. En prod ademas estan
+     * deshabilitados por configuracion (application-prod.properties), de modo que quedan cerrados
+     * por dos vias distintas y no dependen de que nadie recuerde apagarlos.
+     */
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, Environment environment) throws Exception {
+        boolean desarrollo = environment.matchesProfiles("dev");
+
         http.csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/v1/auth/**").permitAll()
-                        .requestMatchers("/api/v1/public/**").permitAll()
-                        .requestMatchers("/h2-console/**").permitAll()
-                        .anyRequest().authenticated())
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .headers(headers -> headers.frameOptions(frame -> {
+                    if (desarrollo) {
+                        // Necesario solo para que la consola H2 pueda dibujarse en un iframe.
+                        frame.sameOrigin();
+                    } else {
+                        frame.deny();
+                    }
+                }))
+                .authorizeHttpRequests(auth -> {
+                    // Solo el login es publico, NO todo /auth/**. Con el comodin, "/auth/me" tambien
+                    // quedaba abierto: una peticion sin sesion llegaba al controlador con
+                    // Authentication nulo y reventaba con un 500 en vez de responder 401. Pasaba de
+                    // verdad cada vez que un token expiraba, y ensuciaba el log con errores de
+                    // servidor por algo que es culpa de la peticion (mismo criterio que la seccion
+                    // 36.4). "/auth/me" cae ahora en anyRequest().authenticated().
+                    auth.requestMatchers("/api/v1/auth/login").permitAll()
+                            // El upgrade WebSocket no permite cabeceras Authorization desde el
+                            // navegador. El interceptor del socket valida el JWT antes de aceptar.
+                            .requestMatchers("/api/ws/**").permitAll()
+                            .requestMatchers("/api/v1/public/**").permitAll()
+                            // Sonda de vida del contenedor (healthcheck del docker-compose). El
+                            // detalle del estado solo se muestra a usuarios autenticados
+                            // (management.endpoint.health.show-details=when-authorized).
+                            .requestMatchers("/actuator/health", "/actuator/health/**").permitAll();
+                    if (desarrollo) {
+                        auth.requestMatchers("/h2-console/**").permitAll()
+                                .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll();
+                    }
+                    auth.anyRequest().authenticated();
+                })
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(restAuthenticationHandlers)
+                        .accessDeniedHandler(restAuthenticationHandlers))
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                // Ingesta del equipo de domotica: se autentica con X-Api-Key, no con el JWT de una
+                // persona. La ruta NO se declara permitAll: sigue exigiendo autenticacion, y quien
+                // la concede es este filtro. Si la clave no esta configurada, nadie entra.
+                .addFilterBefore(ingestaApiKeyFilter, UsernamePasswordAuthenticationFilter.class)
+                // IVR telefonico: mismo esquema con su propia clave (HUATA_IVR_API_KEY).
+                .addFilterBefore(ivrApiKeyFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 }

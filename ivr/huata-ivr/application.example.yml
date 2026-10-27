@@ -1,0 +1,39 @@
+# Configuracion del servicio huata-ivr (Spring Boot) en el mini PC de la planta.
+# Los secretos NO van aqui: se leen de /etc/huata-ivr.env (permisos 600).
+huata:
+  ivr:
+    backend:
+      url: https://CAMBIAR.onrender.com/api/v1/ivr
+      api-key: ${HUATA_IVR_API_KEY}
+      timeout-ms: 4000          # conexion y lectura; pasado esto suena error_sistema
+      reintentos-get: 1         # solo consultas; las escrituras no se reintentan solas
+      ping-salud: 10m           # mantiene despierto Render mientras siga en plan gratuito
+    ari:
+      url: http://127.0.0.1:8088/ari
+      usuario: huata-ivr
+      password: ${HUATA_ARI_PASSWORD}
+      aplicacion: huata-ivr
+    audios:
+      carpeta: /var/lib/huata-ivr/audios          # WAV 8 kHz mono 16 bits (ver audios/guion.csv)
+      tts:
+        comando: /opt/piper/bin/piper
+        voz: CAMBIAR                               # voz es_MX elegida con el cliente
+        cache: /var/lib/huata-ivr/audios/tts
+    menu:
+      espera-tecla-segundos: 6
+      intentos-maximos: 3
+    # Modo de cada linea (nombre = seccion de quectel.conf):
+    #   CONTESTAR: atiende la llamada (la paga el proveedor segun su plan).
+    #   DEVOLVER:  rechaza sin contestar (al proveedor no se le cobra) y lo llama de vuelta.
+    lineas:
+      linea_claro: { modo: CONTESTAR }
+      linea_entel: { modo: CONTESTAR }
+      linea_bitel: { modo: DEVOLVER }
+      linea_extra: { modo: CONTESTAR }
+    devoluciones:
+      minutos-entre-llamadas: 10   # por numero
+      maximo-por-dia: 5            # por numero
+      timbrado-segundos: 30
+      reintentos: 1
+      espera-reintento: 3m
+      solo-registrados: true       # nunca devolver a numeros que no estan en el padron

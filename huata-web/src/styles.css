@@ -1,16 +1,24 @@
 /* Tema "crema pastel + verde" tomado del prototipo HTML de Huata Lácteos.
    Ver PROMPT_ARQUITECTURA_HUATA.md sección 4 (identidad visual). */
 
+/* OJO: esta NO es la paleta que se ve en pantalla.
+ *
+ * angular.json carga styles.css y despues prototype-theme.css, cuya capa final ("verde andino",
+ * importada de huata_lacteos_verde_andino_v2.7.html) redefine todas estas variables menos --radius.
+ * Lo que queda aqui es el tema crema anterior; se conserva como respaldo para que la aplicacion siga
+ * teniendo colores validos si algun dia se quita prototype-theme.css.
+ *
+ * Para cambiar los colores reales, edita la capa final de src/prototype-theme.css. */
 :root {
   --bg: #f3ecdc;
-  --panel: #fbf7ec;
+  --panel: #f1f4f8;
   --panel2: #ece1c9;
   --text: #2b2417;
-  --muted: #7a6f57;
+  --muted: #64748b;
   --line: #e6dcc4;
 
   --green: #336751;
-  --green2: #539479;
+  --green2: #15916d;
   --green-soft: #e5e6d6;
 
   --blue: #3e6f5a;
@@ -412,27 +420,100 @@ td.num {
   min-width: 220px;
 }
 
+/* ---------- Paginación (app-paginador) ----------
+   Abajo a la derecha de cada tabla: indicador a la izquierda, controles a la derecha. Botones de
+   28 px en escritorio y 40 px en celular; la página actual se resalta en verde. */
 .paginador {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
-  gap: 10px;
-  padding: 10px 12px;
-  font-size: 11.5px;
+  gap: 8px 14px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--line);
+  font-size: 12.5px;
   color: var(--muted);
 }
-
+.paginador-info {
+  margin-right: auto;
+  white-space: nowrap;
+}
+.paginador-info b {
+  color: var(--text);
+  font-weight: 600;
+}
+.paginador-tamano {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.paginador .paginador-tamano select {
+  min-height: 28px !important;
+  height: 28px !important;
+  padding: 0 6px !important;
+  font-size: 12.5px !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 6px !important;
+  background: #fff !important;
+}
+.paginador-botones {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px;
+}
 .paginador button {
+  min-width: 28px;
+  height: 28px;
+  padding: 0 8px;
   border: 1px solid var(--line);
-  background: var(--panel);
   border-radius: 6px;
-  padding: 4px 10px;
+  background: #fff;
+  color: var(--text);
+  font-size: 12.5px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
   cursor: pointer;
 }
-
+.paginador button:hover:not(:disabled):not(.activa) {
+  background: #f2f6f3;
+}
+.paginador button.activa {
+  background: #376d50;
+  border-color: #376d50;
+  color: #fff;
+  font-weight: 600;
+  cursor: default;
+}
 .paginador button:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+.paginador-hueco {
+  min-width: 18px;
+  text-align: center;
+  color: var(--muted);
+}
+@media (max-width: 760px) {
+  .paginador {
+    justify-content: space-between;
+  }
+  .paginador-info {
+    width: 100%;
+  }
+  .paginador button {
+    min-width: 40px;
+    height: 40px;
+  }
+  .paginador .paginador-tamano select {
+    min-height: 40px !important;
+    height: 40px !important;
+  }
+  /* En celular solo flechas: los números caben sin desbordar. */
+  .paginador-texto {
+    display: none;
+  }
 }
 
 /* ---------- Badges de estado ---------- */
@@ -591,7 +672,7 @@ td.num {
 }
 
 .hero-fecha {
-  background: #fbf7ec;
+  background: #f1f4f8;
   border-radius: 10px;
   padding: 14px 16px;
   min-width: 200px;
@@ -679,4 +760,24 @@ td.num {
 
 [hidden] {
   display: none !important;
+}
+
+/* ============================================================
+   Impresión · adaptación del prototipo al shell de Angular
+   ------------------------------------------------------------
+   prototype-theme.css oculta al imprimir `.topbar`, `.sidebar` y `.app`, que son las clases del
+   prototipo HTML. En esta aplicación el shell usa `.operation-header`, `.operation-sidebar` y el
+   elemento <app-shell>, así que sin estas reglas se imprimía la pantalla completa, menú incluido.
+   ============================================================ */
+@media print {
+  .operation-header,
+  .operation-sidebar,
+  .no-print {
+    display: none !important;
+  }
+
+  .operation-layout,
+  .operation-content {
+    display: block !important;
+  }
 }

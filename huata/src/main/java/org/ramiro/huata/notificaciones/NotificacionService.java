@@ -35,9 +35,33 @@ public class NotificacionService {
         notificacionRepository.save(notificacion);
     }
 
+    /**
+     * Marca leida una notificacion del usuario que la pide.
+     *
+     * <p>La comprobacion de pertenencia va aqui y no en el controlador porque es una regla de
+     * dominio (a quien pertenece una notificacion), no de transporte, y porque asi cualquier otro
+     * llamador futuro la hereda. @PreAuthorize no puede cubrirlo: el permiso no depende del rol
+     * sino del dato concreto.
+     *
+     * <p>Responde 404 y no 403 cuando la notificacion es de otra persona: un 403 confirmaria que
+     * ese id existe, y los ids son correlativos. Para quien pregunta, una notificacion ajena y una
+     * inexistente deben ser indistinguibles.
+     */
     @Transactional
-    public Notificacion marcarLeida(Long id) {
-        Notificacion notificacion = notificacionRepository.findById(id).orElseThrow(() -> NotFoundException.of("Notificacion", id));
+    public Notificacion marcarLeida(Long id, String username) {
+        Usuario usuario = usuarioRepository
+                .findByUsernameIgnoreCaseAndActivoTrue(username)
+                .orElseThrow(() -> new NotFoundException("Usuario no encontrado: " + username));
+        Notificacion notificacion =
+                notificacionRepository.findById(id).orElseThrow(() -> NotFoundException.of("Notificacion", id));
+
+        // usuario == null es una notificacion general del equipo: cualquiera de sus destinatarios
+        // puede marcarla. Ver la deuda anotada debajo sobre el estado "leida" compartido.
+        Usuario destinatario = notificacion.getUsuario();
+        if (destinatario != null && !destinatario.getId().equals(usuario.getId())) {
+            throw NotFoundException.of("Notificacion", id);
+        }
+
         notificacion.setLeida(true);
         return notificacionRepository.save(notificacion);
     }

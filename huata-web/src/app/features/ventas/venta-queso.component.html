@@ -1,0 +1,278 @@
+<section class="view active printable">
+  <div class="page-head">
+    <div>
+      <div class="kicker">Ventas</div>
+      @switch (vista()) {
+        @case ('registrar') {
+          <h1>Registrar venta</h1>
+          <p>El precio lo pone la tarifa vigente según el tipo de comprador.</p>
+        }
+        @case ('clientes') {
+          <h1>Historial de clientes</h1>
+          <p>Cada cliente con lo que compró y su historial completo.</p>
+        }
+        @case ('precios') {
+          <h1>Precios de venta</h1>
+          <p>Consulta o configura los precios por período y tipo de comprador.</p>
+        }
+        @default {
+          <h1>Ventas y cobros</h1>
+          <p>Revisa las ventas registradas y confirma los cobros pendientes.</p>
+        }
+      }
+    </div>
+    @if (vista() === 'cobros' && puedeVender()) {
+      <div class="actions no-print">
+        <a class="btn btn-primary" routerLink="/venta-queso" [queryParams]="{ vista: 'registrar' }">
+          + Registrar venta
+        </a>
+      </div>
+    }
+  </div>
+
+  @if (error()) {
+    <div class="note" role="alert">{{ error() }}</div>
+  }
+
+  @if (vista() === 'registrar' && puedeVender()) {
+    <form class="card" style="margin-bottom: 16px" (ngSubmit)="registrarVenta()">
+      <div class="table-title">
+        <div>
+          <h3>Registrar venta</h3>
+          <p>
+            @if (producto(); as p) {
+              Hay {{ p.stock }} {{ p.unidadVenta }} de {{ p.productoNombre }} en cámara. Sale primero lo que vence antes.
+              @if (!tarifa()) {
+                <strong>{{ p.productoNombre }} no tiene precio para esta fecha:</strong> configúralo
+                en Precios de venta.
+              }
+            } @else if (productosEnCamara().length) {
+              Elige el producto: sale primero lo que vence antes.
+            } @else {
+              No hay producto en cámara: registra producción antes de vender.
+            }
+          </p>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="field">
+          <label for="vt-fecha">Fecha</label>
+          <input id="vt-fecha" type="date" [value]="fecha" disabled />
+          <small class="muted">Siempre hoy: la pone el servidor al registrar</small>
+        </div>
+        <div class="field">
+          <label for="vt-producto">Producto</label>
+          <app-buscador
+            [opciones]="opcProductos()"
+            name="producto"
+            [(ngModel)]="productoId"
+            etiqueta="Producto"
+            placeholder="Buscar producto…"
+          />
+        </div>
+        <div class="field">
+          <label for="vt-comprador">Tipo de comprador</label>
+          <select id="vt-comprador" name="comprador" [(ngModel)]="tipoComprador">
+            <option value="PUBLICO_GENERAL">Público en general</option>
+            <option value="MAYORISTA">Mayorista</option>
+            <option value="PROVEEDOR">Proveedor de leche</option>
+          </select>
+          <small class="muted">Decide el precio por unidad</small>
+        </div>
+        <div class="field">
+          <label for="vt-cliente">Cliente</label>
+          <input
+            id="vt-cliente"
+            name="cliente"
+            [(ngModel)]="cliente"
+            placeholder="Mercado Huata"
+            required
+          />
+        </div>
+        <div class="field">
+          <label for="vt-unidades">Unidades</label>
+          <input
+            id="vt-unidades"
+            type="number"
+            step="1"
+            min="1"
+            name="unidades"
+            [(ngModel)]="unidades"
+            placeholder="20"
+            required
+          />
+          <small class="muted">Máx. {{ producto()?.stock ?? 0 }}</small>
+        </div>
+        <div class="field">
+          <label for="vt-cond">Condición</label>
+          <select id="vt-cond" name="condicion" [(ngModel)]="condicion">
+            <option value="CONTADO">Contado</option>
+            <option value="CREDITO_7D">Crédito 7 días</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="vt-medio">Medio de cobro</label>
+          <select id="vt-medio" name="medio" [(ngModel)]="medioCobro">
+            <option value="EFECTIVO">Efectivo</option>
+            <option value="TRANSFERENCIA">Transferencia</option>
+            <option value="YAPE_PLIN">Yape / Plin</option>
+          </select>
+        </div>
+      </div>
+
+      @if (reparto().length) {
+        <p class="muted" style="margin: 10px 0 0">
+          Sale de:
+          @for (t of reparto(); track t.loteId; let ultimo = $last) {
+            <strong>{{ t.unidades }} del lote {{ t.codigo }}</strong>{{ t.fechaVencimiento ? ' (vence ' + t.fechaVencimiento + ')' : '' }}{{ ultimo ? '.' : ', ' }}
+          }
+        </p>
+      }
+
+      <div class="payment-report-footer" style="margin-top: 12px">
+        <div>
+          <span>Unidades</span><strong>{{ unidades ?? 0 }}</strong>
+        </div>
+        <div>
+          <span>Precio unitario</span><strong>S/ {{ precio() | number: '1.2-2' }}</strong>
+        </div>
+        <div>
+          <span>Total de la venta</span><strong>S/ {{ total() | number: '1.2-2' }}</strong>
+        </div>
+        <div>
+          <span>Diferencia por unidad</span
+          ><strong>{{
+            margenUnidad() != null
+              ? 'S/ ' + (margenUnidad() | number: '1.2-2')
+              : 'Sin costo registrado'
+          }}</strong>
+        </div>
+        <div class="no-print">
+          <button
+            type="submit"
+            class="btn btn-primary"
+            [disabled]="guardando() || !producto() || precio() <= 0"
+          >
+            {{ guardando() ? 'Registrando…' : 'Registrar venta' }}
+          </button>
+        </div>
+      </div>
+    </form>
+  }
+
+  @if (vista() === 'cobros') {
+    <div class="card">
+      <div class="table-title">
+        <div>
+          <h3>Ventas registradas</h3>
+          <p>S/ {{ resumen()?.ventaAcumulada ?? 0 | number: '1.2-2' }} acumulado.</p>
+        </div>
+      </div>
+      <div class="tablebox">
+        <table>
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Cliente</th>
+              <th>Producto</th>
+              <th class="num">Unidades</th>
+              <th class="num">Precio</th>
+              <th class="num">Total</th>
+              <th>Estado</th>
+              <th class="no-print">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (v of pag.ver(ventas(), ''); track v.id) {
+              <tr>
+                <td>{{ v.fecha }}</td>
+                <td>{{ v.cliente }}</td>
+                <td>
+                  {{ v.productoNombre }}
+                  <details class="sale-detail">
+                    <summary>Ver detalle</summary>
+                    <dl>
+                      <dt>Lote</dt>
+                      <dd>{{ v.loteCodigo }}</dd>
+                      <dt>Comprador</dt>
+                      <dd>{{ etiquetaComprador(v.tipoComprador) }}</dd>
+                      <dt>IGV</dt>
+                      <dd>
+                        {{
+                          v.montoIgv != null ? 'S/ ' + (v.montoIgv | number: '1.2-2') : 'Sin dato'
+                        }}
+                      </dd>
+                      <dt>Venta menos costo</dt>
+                      <dd>
+                        {{
+                          v.anulada
+                            ? 'Anulada'
+                            : margenVenta(v) != null
+                              ? 'S/ ' + (margenVenta(v) | number: '1.2-2')
+                              : 'Sin costo registrado'
+                        }}
+                      </dd>
+                    </dl>
+                  </details>
+                </td>
+                <td class="num">{{ v.unidades }}</td>
+                <td class="num">{{ v.precioUnitario | number: '1.2-2' }}</td>
+                <td class="num">{{ v.total | number: '1.2-2' }}</td>
+                <td>
+                  <span
+                    class="badge"
+                    [class.badge-verde]="!v.anulada && v.estado === 'COBRADO'"
+                    [class.badge-ambar]="!v.anulada && v.estado !== 'COBRADO'"
+                  >
+                    {{ v.anulada ? 'Anulada' : v.estado === 'COBRADO' ? 'Cobrado' : 'Por cobrar' }}
+                  </span>
+                  <small class="sale-condition">{{ etiquetaCondicion(v.condicion) }}</small>
+                </td>
+                <td class="no-print" style="white-space: nowrap">
+                  @if (!v.anulada) {
+                    @if (puedeCobrar() && v.estado === 'POR_COBRAR') {
+                      <button type="button" class="btn btn-soft" (click)="marcarCobrada(v)">
+                        Marcar cobrada
+                      </button>
+                    }
+                    @if (puedeAnular()) {
+                      <details class="row-actions">
+                        <summary>Más acciones</summary>
+                        <div class="actions">
+                          <button type="button" class="btn btn-soft" (click)="anular(v)">
+                            Anular venta
+                          </button>
+                        </div>
+                      </details>
+                    }
+                  }
+                </td>
+              </tr>
+            }
+            @if (ventas().length === 0) {
+              <tr>
+                <td colspan="8" class="muted" style="text-align: center; padding: 24px">
+                  Sin ventas registradas.
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <app-paginador
+        [page]="pag.pagina(ventas().length)"
+        [size]="pag.tamano()"
+        [total]="ventas().length"
+        (pageChange)="pag.irA($event)"
+        (sizeChange)="pag.cambiarTamano($event)"
+      />
+    </div>
+  }
+
+  @if (vista() === 'clientes') {
+    <app-historial-clientes />
+  }
+  @if (vista() === 'precios') {
+    <app-tarifas-queso [tarifas]="tarifas()" (actualizadas)="cargar()" />
+  }
+</section>

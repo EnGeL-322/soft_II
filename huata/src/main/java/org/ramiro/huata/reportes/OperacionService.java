@@ -21,6 +21,7 @@ public class OperacionService {
     private final LiquidacionRepository liquidaciones;
     private final TarifaLecheRepository tarifas;
     private final CierreAcopioRepository cierres;
+    private final ConciliacionRutaRepository conciliaciones;
     private final AuditoriaService auditoria;
     private static final ZoneId ZONA = ZoneId.of("America/Lima");
 
@@ -36,8 +37,11 @@ public class OperacionService {
         var fin = fecha.plusDays(1).atStartOfDay(ZONA).toInstant().minusNanos(1);
         var filas = recojos.findByFechaHoraBetweenAndEstadoNot(inicio, fin, EstadoRecojo.CANCELLED);
         var ids = filas.stream().map(Recojo::getId).collect(Collectors.toSet());
-        var resultados = controles.findAll().stream().filter(c -> ids.contains(c.getRecojo().getId()))
-                .collect(Collectors.toMap(c -> c.getRecojo().getId(), ControlCalidad::getResultado));
+        // Solo los controles de las recepciones del dia. Antes era controles.findAll(): toda la
+        // historia de calidad en memoria para quedarse con las de un dia.
+        var resultados = controles.findByRecojo_FechaHoraBetween(inicio, fin).stream()
+                .filter(c -> ids.contains(c.getRecojo().getId()))
+                .collect(Collectors.toMap(c -> c.getRecojo().getId(), ControlCalidad::getResultado, (a, b) -> b));
         double aceptados = 0, observados = 0, rechazados = 0;
         long aceptadas = 0, observadas = 0, rechazadas = 0, pendientes = 0;
         for (var r : filas) {
@@ -49,7 +53,7 @@ public class OperacionService {
                 if (calidad == ResultadoCalidad.OBSERVADA) { observados += r.getLitros(); observadas++; }
             }
         }
-        var tarifa = tarifas.findTopByVigenteDesdeLessThanEqualOrderByVigenteDesdeDescIdDesc(fecha)
+        var tarifa = tarifas.findTopByVigenteDesdeLessThanEqualOrderByVigenteDesdeDesc(fecha)
                 .filter(t -> t.isActivo() && (t.getVigenteHasta() == null || !t.getVigenteHasta().isBefore(fecha)));
         Double compra = tarifa.isEmpty() ? null : (aceptados - observados) * tarifa.get().getPrecioNormal()
                 + observados * tarifa.get().getPrecioObservada();
@@ -62,31 +66,76 @@ public class OperacionService {
                 compra, rutas, cierres.findByFecha(fecha).orElse(null));
     }
 
+    /** Lo que el cierre del dia compara, calculado (no escrito a mano). */
+    public record TotalesDia(double recogido, double recibidoPlanta, List<String> rutasSinRecibir) {}
+
+    /**
+     * Totales del cierre a partir de las rutas (decision del cliente, 2026-09-27). Antes el cierre
+     * pedia escribir a mano un total de planta que podia contradecir a la conciliacion por ruta, y
+     * solo la conciliacion movia el inventario. Ahora hay un solo dato: lo recibido en cada ruta.
+     *
+     * <p>Recogido = toda la leche del dia (camion y entregas directas). Recibido en planta = lo que
+     * planta anoto de cada ruta mas las entregas directas, que ya estan en planta.
+     */
+    @Transactional(readOnly = true)
+    public TotalesDia totales(LocalDate fecha) {
+        var inicio = fecha.atStartOfDay(ZONA).toInstant();
+        var fin = fecha.plusDays(1).atStartOfDay(ZONA).toInstant().minusNanos(1);
+        var filas = recojos.findByFechaHoraBetweenAndEstadoNot(inicio, fin, EstadoRecojo.CANCELLED);
+        double recogido = filas.stream().mapToDouble(Recojo::getLitros).sum();
+        double directo = filas.stream()
+                .filter(r -> r.getFuente() == FuenteRecojo.PLANTA)
+                .mapToDouble(Recojo::getLitros)
+                .sum();
+        var registradas = conciliaciones.findByFechaOrderByRuta_Nombre(fecha).stream()
+                .filter(c -> c.getLitrosRecibidosPlanta() != null)
+                .toList();
+        double recibidoRutas = registradas.stream().mapToDouble(ConciliacionRuta::getLitrosRecibidosPlanta).sum();
+        Set<Long> conTotal = registradas.stream().map(c -> c.getRuta().getId()).collect(Collectors.toSet());
+        List<String> sinRecibir = filas.stream()
+                .filter(r -> r.getFuente() != FuenteRecojo.PLANTA && r.getRuta() != null)
+                .map(Recojo::getRuta)
+                .filter(ruta -> !conTotal.contains(ruta.getId()))
+                .map(ruta -> ruta.getNombre())
+                .distinct()
+                .sorted()
+                .toList();
+        return new TotalesDia(recogido, recibidoRutas + directo, sinRecibir);
+    }
+
     @Transactional
-    public CierreAcopio cerrar(LocalDate fecha, double litrosPlanta, String observacion) {
-        if (fecha.isAfter(LocalDate.now(ZONA)) || !Double.isFinite(litrosPlanta) || litrosPlanta < 0)
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Fecha o litros inválidos.");
+    public CierreAcopio cerrar(LocalDate fecha, String observacion) {
+        if (fecha.isAfter(LocalDate.now(ZONA)))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No se puede cerrar un día que todavía no ocurrió.");
         var resumen = resumen(fecha);
         if (resumen.pendientesCalidad() > 0)
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Completa los controles de calidad pendientes.");
-        if (Math.abs(resumen.aceptados() - litrosPlanta) > 0.01 && (observacion == null || observacion.isBlank()))
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Explica la diferencia en la observación.");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Faltan " + resumen.pendientesCalidad()
+                    + " control(es) de calidad de este día. Complétalos antes de cerrar.");
+        var totales = totales(fecha);
+        if (!totales.rutasSinRecibir().isEmpty())
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Falta anotar lo recibido en planta de: " + String.join(", ", totales.rutasSinRecibir()) + ".");
+        if (Math.abs(totales.recogido() - totales.recibidoPlanta()) > 0.01
+                && (observacion == null || observacion.isBlank()))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Lo recogido y lo recibido en planta no coinciden: explica la diferencia en la observación.");
         var cierre = cierres.findByFecha(fecha).orElseGet(CierreAcopio::new);
-        if (cierre.isCerrado()) throw new ResponseStatusException(HttpStatus.CONFLICT, "La conciliación ya está cerrada.");
+        if (cierre.isCerrado()) throw new ResponseStatusException(HttpStatus.CONFLICT, "El día ya está cerrado.");
+        double litrosPlanta = totales.recibidoPlanta();
         cierre.setFecha(fecha);
-        cierre.setLitrosSistema(resumen.aceptados());
+        cierre.setLitrosSistema(totales.recogido());
         cierre.setLitrosPlanta(litrosPlanta);
         cierre.setObservacion(observacion);
         cierre.setCerrado(true);
         cierres.save(cierre);
-        auditoria.registrar("Cierre diario", "Acopio", fecha + " · Sistema: " + resumen.aceptados() + " L · Planta: " + litrosPlanta + " L");
+        auditoria.registrar("Cierre diario", "Acopio", fecha + " · Recogido: " + totales.recogido() + " L · Planta: " + litrosPlanta + " L");
         return cierre;
     }
 
     @Transactional
     public CierreAcopio reabrir(LocalDate fecha) {
         var cierre = cierres.findByFecha(fecha).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-        if (!cierre.isCerrado()) throw new ResponseStatusException(HttpStatus.CONFLICT, "La conciliación ya está abierta.");
+        if (!cierre.isCerrado()) throw new ResponseStatusException(HttpStatus.CONFLICT, "El día ya está abierto.");
         cierre.setCerrado(false);
         auditoria.registrar("Reapertura diaria", "Acopio", fecha.toString());
         return cierres.save(cierre);

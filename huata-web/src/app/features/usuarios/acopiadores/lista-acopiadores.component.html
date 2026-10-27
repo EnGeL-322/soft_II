@@ -1,0 +1,108 @@
+<div class="filtros">
+  <input type="search" class="buscar" aria-label="Buscar acopiadores" placeholder="Nombre, DNI, teléfono, cuenta o ruta…"
+    [(ngModel)]="q" (ngModelChange)="lista.buscarAlEscribir()" />
+  <select aria-label="Zona" [(ngModel)]="zona" (ngModelChange)="cambiarZona()">
+    <option value="">Todas las zonas</option>
+    @for (z of territorio.zonas(); track z) {
+      <option [value]="z">{{ z }}</option>
+    }
+  </select>
+  <select aria-label="Ruta" [(ngModel)]="rutaId" (ngModelChange)="lista.buscar()">
+    <option [ngValue]="undefined">Todas las rutas</option>
+    @for (r of rutasDeLaZona; track r.id) {
+      <option [ngValue]="r.id">{{ zona ? r.nombre : r.zona + ' · ' + r.nombre }}</option>
+    }
+  </select>
+  @if (hayFiltros) {
+    <button type="button" class="btn btn-soft limpiar" (click)="limpiarFiltros()">Limpiar filtros</button>
+  }
+</div>
+
+@if (lista.error()) {
+  <p class="note red" role="alert">{{ lista.error() }}</p>
+}
+
+<div class="tablebox">
+  <table>
+    <thead>
+      <tr>
+        <th>Acopiador</th>
+        <th>Zona · Ruta</th>
+        <th>Cuenta</th>
+        <th>Teléfono</th>
+        <th class="no-print col-acciones"><span class="sr-only">Acciones</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (a of lista.pagina()?.content ?? []; track a.id) {
+        <tr>
+          <td>
+            <div class="persona">
+              <span class="avatar" aria-hidden="true">{{ iniciales(a.nombres + ' ' + a.apellidos) }}</span>
+              <span>
+                <strong>{{ a.nombres }} {{ a.apellidos }}</strong>
+                @if (a.documentoIdentidad) {
+                  <small>DNI {{ a.documentoIdentidad }}</small>
+                }
+              </span>
+            </div>
+          </td>
+          <td>
+            @if (a.zona) {
+              <strong>{{ a.zona }}</strong><span class="secundario">&nbsp;· {{ a.rutaNombre }}</span>
+            } @else {
+              <span class="badge badge-ambar">Sin ruta</span>
+            }
+          </td>
+          <td>
+            @if (a.username) {
+              {{ a.username }}
+            } @else {
+              <span class="badge badge-gris">Sin cuenta</span>
+            }
+          </td>
+          <td>{{ a.telefono || '—' }}</td>
+          <td class="no-print">
+            <div class="acciones-fila">
+              @if (puedeEditar()) {
+                <button type="button" class="icon-btn" data-tip="Editar" [attr.aria-label]="'Editar a ' + a.nombres"
+                  (click)="editar(a)">
+                  <app-icono nombre="editar" [tamano]="17" />
+                </button>
+              }
+              @if (puedeAjustarPermisos() && a.usuarioId) {
+                <button type="button" class="icon-btn" data-tip="Permisos de su cuenta"
+                  [attr.aria-label]="'Permisos de ' + a.nombres" (click)="permisos(a)">
+                  <app-icono nombre="llave" [tamano]="17" />
+                </button>
+              }
+              @if (a.rutaId && a.zona) {
+                <a class="icon-btn" data-tip="Pintar su ruta" [attr.aria-label]="'Pintar la ruta de ' + a.nombres"
+                  routerLink="/rutas" [queryParams]="{ tab: 'territorio', zona: a.zona, ruta: a.rutaId }">
+                  <app-icono nombre="ruta" [tamano]="17" />
+                </a>
+              }
+              @if (puedeEditar()) {
+                <button type="button" class="icon-btn peligro" data-tip="Eliminar" [attr.aria-label]="'Eliminar a ' + a.nombres"
+                  (click)="eliminar(a)">
+                  <app-icono nombre="eliminar" [tamano]="17" />
+                </button>
+              }
+            </div>
+          </td>
+        </tr>
+      } @empty {
+        <tr>
+          <td colspan="5" class="vacio">{{ lista.cargando() ? 'Cargando acopiadores…' : 'Sin acopiadores que coincidan.' }}</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+  @if (lista.pagina(); as pg) {
+    <app-paginador [page]="pg.page" [size]="lista.tamano()" [total]="pg.totalElements"
+      (pageChange)="lista.irA($event)" (sizeChange)="lista.cambiarTamano($event)" />
+  }
+</div>
+
+<app-ficha-acopiador (guardado)="alGuardar($event)" />
+<app-ficha-interno (guardado)="alGuardarPermisos($event)" />

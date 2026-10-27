@@ -1,0 +1,256 @@
+<div class="page-head">
+  <div>
+    <div class="kicker">Planta</div>
+    <h1>Recepción de rutas</h1>
+    <p>Anota cuánta leche llegó de cada ruta. El sistema la compara con lo que recogió el acopiador.</p>
+  </div>
+  <div class="cabecera-acciones">
+    @if (enVivo()) {
+      <span class="en-vivo" [class.activo]="estadoSocket() === 'conectado'"
+        [title]="estadoSocket() === 'conectado' ? 'Cada acopio de la app aparece aquí al instante.' : 'Se actualiza al recargar.'">
+        <i></i>{{ estadoSocket() === 'conectado' ? 'En vivo' : 'Sin conexión en vivo' }}
+      </span>
+    }
+    <input type="date" class="fecha" aria-label="Fecha" [ngModel]="fecha" (ngModelChange)="cambiarFecha($event)" />
+  </div>
+</div>
+
+@if (error()) {
+  <p class="note red" role="alert">{{ error() }}</p>
+}
+
+<!-- Resumen del día en una línea -->
+<section class="resumen">
+  <div class="resumen-avance">
+    <span><strong>{{ rutasRecibidas() }}</strong> de {{ filas().length }} rutas recibidas</span>
+    <div class="barra" role="progressbar" [attr.aria-valuenow]="avance()" aria-valuemin="0" aria-valuemax="100">
+      <i [style.width.%]="avance()"></i>
+    </div>
+  </div>
+  <div class="resumen-dato"><span>Recogió el acopiador</span><strong>{{ totalEnRuta() | number: '1.0-1' }} L</strong></div>
+  <div class="resumen-dato"><span>Llegó a planta</span><strong>{{ totalEnPlanta() | number: '1.0-1' }} L</strong></div>
+  <div class="resumen-dato">
+    <span>Diferencia</span>
+    <strong [class.aviso]="totalDiferencia() !== 0">{{ totalDiferencia() | number: '1.0-1' }} L</strong>
+  </div>
+</section>
+
+<!-- Una fila por ruta -->
+<section class="rutas">
+  @for (f of filas(); track f.rutaId) {
+    <article class="ruta" [class.reciente]="resaltada(f.rutaId)" [attr.data-estado]="estado(f)">
+      <div class="ruta-fila">
+        <div class="ruta-nombre">
+          <strong>{{ f.rutaNombre }}</strong>
+          <small>{{ f.acopiadorNombre || 'Sin acopiador' }}{{ f.zona ? ' · ' + f.zona : '' }}</small>
+        </div>
+        <div class="ruta-dato">
+          <span>Recogió</span>
+          <strong>{{ f.litrosEnRuta | number: '1.0-1' }} L</strong>
+          <small>{{ f.proveedoresAcopiados }} proveedores</small>
+        </div>
+        <div class="ruta-dato">
+          <span>Llegó a planta</span>
+          <strong>{{ f.litrosRecibidosPlanta != null ? (f.litrosRecibidosPlanta | number: '1.0-1') + ' L' : '—' }}</strong>
+        </div>
+        <div class="ruta-dato">
+          <span>Diferencia</span>
+          @if (f.diferencia != null) {
+            <strong>{{ f.diferencia | number: '1.0-1' }} L</strong>
+            @if (porcentaje(f); as pct) {
+              <small>{{ pct | number: '1.0-1' }} %</small>
+            }
+          } @else {
+            <strong>—</strong>
+          }
+        </div>
+        <div class="ruta-estado">
+          @switch (estado(f)) {
+            @case ('por-recibir') {
+              <span class="estado gris">Por recibir</span>
+            }
+            @case ('cuadra') {
+              <span class="estado verde">Cuadra</span>
+            }
+            @case ('diferencia') {
+              <span class="estado ambar" title="Se revisa y se justifica: por sí sola no implica pérdida ni responsable.">Con diferencia</span>
+            }
+          }
+        </div>
+        <div class="ruta-acciones">
+          @if (puedeEscribir() && registrando() !== f.rutaId) {
+            @if (f.litrosRecibidosPlanta == null) {
+              <button type="button" class="btn btn-primary" (click)="abrirRegistro(f)">Registrar llegada</button>
+            } @else {
+              <button type="button" class="btn btn-soft btn-sm" (click)="abrirRegistro(f)">Corregir</button>
+            }
+          }
+          <button type="button" class="ver" [attr.aria-expanded]="detalleVisible(f.rutaId)"
+            [attr.aria-label]="(detalleVisible(f.rutaId) ? 'Ocultar' : 'Ver') + ' detalle de ' + f.rutaNombre"
+            (click)="alternarDetalle(f.rutaId)">{{ detalleVisible(f.rutaId) ? '▴' : '▾' }}</button>
+        </div>
+      </div>
+
+      @if (registrando() === f.rutaId) {
+        <form class="registro" (ngSubmit)="registrar(f)">
+          <label class="registro-litros">
+            <span>Litros que llegaron</span>
+            <input type="number" min="0" step="0.1" name="litros" [(ngModel)]="litros" required autofocus />
+          </label>
+          <label class="registro-obs">
+            <span>Observación (opcional)</span>
+            <input type="text" name="observacion" maxlength="300" [(ngModel)]="observacion"
+              placeholder="Ej.: se derramó un porongo" />
+          </label>
+          <div class="registro-pie">
+            <small>Recibe: <strong>{{ auth.nombreCompleto() }}</strong></small>
+            <button type="button" class="btn btn-soft btn-sm" [disabled]="guardando()" (click)="cancelarRegistro()">Cancelar</button>
+            <button type="submit" class="btn btn-primary btn-sm" [disabled]="guardando()">
+              {{ guardando() ? 'Guardando…' : 'Guardar' }}
+            </button>
+          </div>
+        </form>
+      }
+
+      @if (detalleVisible(f.rutaId)) {
+        <div class="detalle">
+          <p class="detalle-resumen">
+            @if (f.ultimoAcopio) {
+              Último acopio {{ f.ultimoAcopio | date: 'HH:mm' }}
+            }
+            @if (f.proveedoresNoEntregaron > 0) {
+              · {{ f.proveedoresNoEntregaron }} sin leche
+            }
+            @if (f.litrosNoAptos) {
+              · Rechazada por calidad: {{ f.litrosNoAptos | number: '1.0-1' }} L
+            }
+            @if (f.litrosAlInventario != null) {
+              · Entró a inventario: {{ f.litrosAlInventario | number: '1.0-1' }} L
+            }
+            @if (f.responsable) {
+              · Recibió: {{ f.responsable }}
+            }
+            @if (f.observacion) {
+              · «{{ f.observacion }}»
+            }
+          </p>
+          @if (f.detalle.length) {
+            <table>
+              <thead>
+                <tr>
+                  <th>Hora</th>
+                  <th>Proveedor</th>
+                  <th class="num">Litros</th>
+                  <th>Calidad</th>
+                  <th>Nota</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (v of f.detalle; track v.recojoId) {
+                  <tr>
+                    <td>{{ v.fechaHora | date: 'HH:mm' }}</td>
+                    <td>{{ v.productorNombre }} <small class="secundario">{{ v.productorCodigo }}</small></td>
+                    <td class="num">{{ v.litros | number: '1.0-1' }}</td>
+                    <td>
+                      @switch (v.calidad) {
+                        @case ('ACEPTADA') {
+                          <span class="estado verde">Buena</span>
+                        }
+                        @case ('OBSERVADA') {
+                          <span class="estado ambar">Mala calidad</span>
+                        }
+                        @case ('RECHAZADA') {
+                          <span class="estado rojo">Rechazada</span>
+                        }
+                        @default {
+                          <span class="secundario">Sin analizar</span>
+                        }
+                      }
+                    </td>
+                    <td class="secundario">
+                      @if (v.estadoVisita === 'NO_ENTREGADO') {
+                        No entregó{{ v.motivoNoEntrega ? ': ' + v.motivoNoEntrega : '' }}
+                      } @else if (v.fuente === 'PLANTA') {
+                        Lo trajo a planta
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          } @else {
+            <p class="secundario">Todavía no hay acopios en esta ruta.</p>
+          }
+        </div>
+      }
+    </article>
+  } @empty {
+    <p class="vacio">{{ cargando() ? 'Cargando rutas…' : 'Ninguna ruta tuvo acopio en esta fecha.' }}</p>
+  }
+</section>
+
+<!-- Último paso: cerrar el día -->
+@if (puedeCerrarDia() && filas().length) {
+  <section class="cierre">
+    @if (cierre()?.cerrado) {
+      <p><strong>Día cerrado.</strong></p>
+      <button type="button" class="btn btn-soft btn-sm" (click)="reabrirDia()">Reabrir el día</button>
+    } @else {
+      @if (totales(); as t) {
+        <p>
+          Hoy se recogieron <strong>{{ t.recogido | number: '1.0-1' }} L</strong> y llegaron
+          <strong>{{ t.recibidoPlanta | number: '1.0-1' }} L</strong>
+          @if (t.recogido - t.recibidoPlanta !== 0) {
+            : diferencia de <strong>{{ t.recogido - t.recibidoPlanta | number: '1.0-1' }} L</strong>.
+          } @else {
+            : todo cuadra.
+          }
+        </p>
+        @if (t.rutasSinRecibir.length) {
+          <p class="secundario">Para cerrar falta registrar la llegada de: {{ t.rutasSinRecibir.join(', ') }}.</p>
+        }
+      }
+      <div class="cierre-form">
+        <input type="text" [(ngModel)]="observacionCierre" placeholder="Observación (obligatoria si hay diferencia)"
+          aria-label="Observación del cierre" />
+        <button type="button" class="btn btn-primary" [disabled]="cerrandoDia() || (totales()?.rutasSinRecibir?.length ?? 0) > 0"
+          (click)="cerrarDia()">
+          {{ cerrandoDia() ? 'Cerrando…' : 'Cerrar el día' }}
+        </button>
+      </div>
+    }
+  </section>
+}
+
+@if (zonas().length > 1) {
+  <details class="por-zona">
+    <summary>Resumen por zona</summary>
+    <table>
+      <thead>
+        <tr>
+          <th>Zona</th>
+          <th class="num">Rutas</th>
+          <th class="num">Recogió</th>
+          <th class="num">Llegó a planta</th>
+          <th class="num">Diferencia</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (z of zonas(); track z.zona) {
+          <tr>
+            <td><strong>{{ z.zona }}</strong></td>
+            <td class="num">{{ z.rutas - z.rutasSinRecibir }}/{{ z.rutas }}</td>
+            <td class="num">{{ z.litrosEnRuta | number: '1.0-1' }} L</td>
+            <td class="num">{{ z.litrosRecibidosPlanta != null ? (z.litrosRecibidosPlanta | number: '1.0-1') + ' L' : '—' }}</td>
+            <td class="num">
+              {{ z.diferencia != null ? (z.diferencia | number: '1.0-1') + ' L' : '—' }}
+              @if (z.porcentaje != null) {
+                <small class="secundario">({{ z.porcentaje | number: '1.0-1' }} %)</small>
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </details>
+}

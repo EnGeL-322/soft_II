@@ -1,0 +1,231 @@
+<section class="page amigable">
+  <div class="page-head">
+    <div>
+      <h1>Precios y calidad</h1>
+      <p>Cuánto se paga según la calidad de la leche y qué pasa con la que llega mal.</p>
+    </div>
+  </div>
+
+  @if (error()) {
+    <div class="mensaje mensaje-error" role="alert">{{ error() }}</div>
+  }
+
+  <!-- ============ RESUMEN: los tres tipos de leche ============ -->
+  <section class="card resumen">
+    <div class="niveles">
+      <div class="nivel nivel-buena">
+        <span class="nivel-nombre">Buena</span>
+        @if (puedeVerTarifas()) {
+          <strong>{{ tarifaVigente() ? 'S/ ' + (tarifaVigente()!.precioNormal | number: '1.2-2') : '—' }}</strong>
+        }
+        <small>Entra al almacén</small>
+      </div>
+      <div class="nivel nivel-observada">
+        <span class="nivel-nombre">Observada</span>
+        @if (puedeVerTarifas()) {
+          <strong>{{ tarifaVigente() ? 'S/ ' + (tarifaVigente()!.precioObservada | number: '1.2-2') : '—' }}</strong>
+        }
+        <small>
+          {{ observadaEntraAInventario ? 'Entra al almacén' : 'No entra al almacén' }}
+          @if (retiroActivo()) {
+            · {{ observadaEsMalaCalidad ? 'cuenta para retiro' : 'no cuenta para retiro' }}
+          }
+        </small>
+      </div>
+      <div class="nivel nivel-rechazada">
+        <span class="nivel-nombre">Rechazada</span>
+        @if (puedeVerTarifas()) {
+          <strong>S/ 0.00</strong>
+        }
+        <small>No entra al almacén{{ retiroActivo() ? ' · cuenta para retiro' : '' }}</small>
+      </div>
+      @if (puedeVerTarifas() && tarifaVigente()?.precioExcelencia != null) {
+        <div class="nivel nivel-excelencia">
+          <span class="nivel-nombre">★ Excelencia</span>
+          <strong>S/ {{ tarifaVigente()!.precioExcelencia | number: '1.2-2' }}</strong>
+          <small>Leche buena de proveedor excelencia</small>
+        </div>
+      }
+    </div>
+    <div class="resumen-pie">
+      <span>{{ textoRetiro() }}</span>
+      @if (puedeVerTarifas()) {
+        <span class="muted">
+          {{ tarifaVigente() ? 'Precios por litro, vigentes desde el ' + fechaLegible(tarifaVigente()!.vigenteDesde) + '.' : 'No hay precios vigentes hoy.' }}
+        </span>
+      }
+    </div>
+  </section>
+
+  <div class="columnas">
+    <!-- ============ REGLAS DE CALIDAD ============ -->
+    <form class="card panel" (ngSubmit)="guardarReglas()">
+      <div class="panel-cabecera">
+        <h2>Reglas de calidad</h2>
+        @if (!puedeEditar()) {
+          <span class="badge badge-gris">Solo lectura</span>
+        }
+      </div>
+
+      <div class="regla">
+        <label for="rl-det">Retirar al proveedor después de</label>
+        <div class="con-unidad">
+          <input id="rl-det" type="number" min="0" max="20" step="1" name="detecciones" [(ngModel)]="detecciones" [disabled]="!puedeEditar()" />
+          <span>{{ detecciones === 1 ? 'vez' : 'veces' }} con leche mala</span>
+        </div>
+        <small>0 = nunca automático; decide administración.</small>
+      </div>
+
+      <div class="regla">
+        <span class="campo-etiqueta">¿La observada cuenta como leche mala?</span>
+        <div class="opciones">
+          <label class="opcion-radio"><input type="radio" name="obsMala" [value]="true" [(ngModel)]="observadaEsMalaCalidad" [disabled]="!puedeEditar()" /> Sí</label>
+          <label class="opcion-radio"><input type="radio" name="obsMala" [value]="false" [(ngModel)]="observadaEsMalaCalidad" [disabled]="!puedeEditar()" /> No, solo la rechazada</label>
+        </div>
+      </div>
+
+      <div class="regla">
+        <span class="campo-etiqueta">¿La observada se usa para producir?</span>
+        <div class="opciones">
+          <label class="opcion-radio"><input type="radio" name="obsInv" [value]="true" [(ngModel)]="observadaEntraAInventario" [disabled]="!puedeEditar()" /> Sí, entra al almacén</label>
+          <label class="opcion-radio"><input type="radio" name="obsInv" [value]="false" [(ngModel)]="observadaEntraAInventario" [disabled]="!puedeEditar()" /> No, se descarta</label>
+        </div>
+      </div>
+
+      <div class="regla">
+        <span class="campo-etiqueta">Costo de la leche para producir</span>
+        <div class="opciones">
+          <label class="opcion-radio"><input type="radio" name="costo" [value]="false" [(ngModel)]="usarCostoFijo" [disabled]="!puedeEditar()" /> Precio de leche buena del día</label>
+          <label class="opcion-radio"><input type="radio" name="costo" [value]="true" [(ngModel)]="usarCostoFijo" [disabled]="!puedeEditar()" /> Costo fijo</label>
+          @if (usarCostoFijo) {
+            <div class="con-unidad">
+              <span>S/</span>
+              <input id="rl-costo" type="number" step="0.01" min="0.01" name="costoFijo" aria-label="Costo fijo por litro" [(ngModel)]="costoFijo" [disabled]="!puedeEditar()" />
+              <span>por litro</span>
+            </div>
+          }
+        </div>
+      </div>
+
+      @if (puedeEditar()) {
+        <div class="panel-pie">
+          <button type="submit" class="btn btn-primary" [disabled]="guardandoReglas()">
+            {{ guardandoReglas() ? 'Guardando…' : 'Guardar reglas' }}
+          </button>
+        </div>
+      }
+    </form>
+
+    <!-- ============ REGLAS DE ACOPIO (V57) ============ -->
+    <form class="card panel" (ngSubmit)="guardarReglasAcopio()">
+      <div class="panel-cabecera">
+        <h2>Reglas de acopio</h2>
+        @if (acopioSinRestricciones()) {
+          <span class="badge badge-ambar">Modo demostración</span>
+        } @else if (!puedeEditar()) {
+          <span class="badge badge-gris">Solo lectura</span>
+        }
+      </div>
+
+      <div class="regla">
+        <span class="campo-etiqueta">¿El acopiador debe estar dentro de su zona?</span>
+        <div class="opciones">
+          <label class="opcion-radio"><input type="radio" name="geocerca" [value]="true" [(ngModel)]="exigirGeocerca" [disabled]="!puedeEditar()" /> Sí, para empezar el recorrido y registrar leche</label>
+          <label class="opcion-radio"><input type="radio" name="geocerca" [value]="false" [(ngModel)]="exigirGeocerca" [disabled]="!puedeEditar()" /> No (demostración)</label>
+        </div>
+      </div>
+
+      <div class="regla">
+        <span class="campo-etiqueta">¿Debe estar cerca del proveedor para registrar?</span>
+        <div class="opciones">
+          <label class="opcion-radio"><input type="radio" name="distancia" [value]="true" [(ngModel)]="exigirDistancia" [disabled]="!puedeEditar()" /> Sí</label>
+          <label class="opcion-radio"><input type="radio" name="distancia" [value]="false" [(ngModel)]="exigirDistancia" [disabled]="!puedeEditar()" /> No (demostración)</label>
+        </div>
+        <div class="con-unidad">
+          <span>Hasta</span>
+          <input id="ra-dist" type="number" min="20" max="5000" step="10" name="distanciaMaxima" aria-label="Distancia máxima al proveedor en metros" [(ngModel)]="distanciaMaxima" [disabled]="!puedeEditar()" />
+          <span>metros del proveedor</span>
+        </div>
+        <small>Aunque se apague, el sistema sigue marcando para revisión los recojos hechos lejos del proveedor.</small>
+      </div>
+
+      @if (puedeEditar()) {
+        <div class="panel-pie">
+          <button type="submit" class="btn btn-primary" [disabled]="guardandoAcopio()">
+            {{ guardandoAcopio() ? 'Guardando…' : 'Guardar reglas de acopio' }}
+          </button>
+        </div>
+      }
+    </form>
+
+    <!-- ============ VENCIMIENTO DE PRODUCTOS (2026-10-27) ============ -->
+    <app-vencimiento-productos />
+
+    <!-- ============ CAMBIAR PRECIOS ============ -->
+    @if (puedeVerTarifas() && puedeEditar()) {
+      <form class="card panel" (ngSubmit)="guardarTarifa()">
+        <div class="panel-cabecera">
+          <h2>Cambiar precios</h2>
+        </div>
+
+        <div class="form-grid">
+          <div class="field">
+            <label for="rl-normal">Buena (S/ por litro)</label>
+            <input id="rl-normal" type="number" step="0.01" min="0.01" name="normal" [(ngModel)]="precioNormal" required />
+            <small class="help">{{ comparar(precioNormal, tarifaVigente()?.precioNormal) }}</small>
+          </div>
+          <div class="field">
+            <label for="rl-mala">Observada (S/ por litro)</label>
+            <input id="rl-mala" type="number" step="0.01" min="0" name="mala" [(ngModel)]="precioMalaCalidad" required />
+            <small class="help">{{ comparar(precioMalaCalidad, tarifaVigente()?.precioObservada) }}</small>
+          </div>
+          <div class="field">
+            <label for="rl-exc">Excelencia <span class="muted">(opcional)</span></label>
+            <input id="rl-exc" type="number" step="0.01" min="0" name="excelencia" [(ngModel)]="precioExcelencia" />
+            <small class="help">{{ comparar(precioExcelencia, tarifaVigente()?.precioExcelencia) }}</small>
+          </div>
+          <div class="field">
+            <label for="rl-desde">Rigen desde</label>
+            <input id="rl-desde" type="date" name="desde" [(ngModel)]="desde" required />
+          </div>
+        </div>
+
+        <div class="codigo">
+          <div class="field">
+            <label for="rl-codigo">Código de seguridad</label>
+            <input id="rl-codigo" name="codigo" [(ngModel)]="codigo" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="6 dígitos" />
+          </div>
+          <button type="button" class="btn btn-soft" (click)="solicitarCodigo()">Enviar código</button>
+          <button type="submit" class="btn btn-primary" [disabled]="guardandoTarifa()">
+            {{ guardandoTarifa() ? 'Guardando…' : 'Guardar precios' }}
+          </button>
+        </div>
+        <small class="help">{{ avisoCodigo() || 'Pide el código: llega a tu correo y vence en pocos minutos.' }}</small>
+
+        @if (tarifasAnteriores().length) {
+          <details class="opcionales">
+            <summary>Precios anteriores ({{ tarifasAnteriores().length }})</summary>
+            <div class="tablebox">
+              <table>
+                <thead>
+                  <tr><th>Desde</th><th>Hasta</th><th class="num">Buena</th><th class="num">Observada</th><th class="num">Excelencia</th></tr>
+                </thead>
+                <tbody>
+                  @for (t of tarifasAnteriores(); track t.id) {
+                    <tr>
+                      <td>{{ fechaLegible(t.vigenteDesde) }}</td>
+                      <td>{{ t.vigenteHasta ? fechaLegible(t.vigenteHasta) : '—' }}</td>
+                      <td class="num">{{ t.precioNormal | number: '1.2-2' }}</td>
+                      <td class="num">{{ t.precioObservada | number: '1.2-2' }}</td>
+                      <td class="num">{{ t.precioExcelencia != null ? (t.precioExcelencia | number: '1.2-2') : '—' }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </details>
+        }
+      </form>
+    }
+  </div>
+</section>

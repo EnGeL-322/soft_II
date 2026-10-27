@@ -29,12 +29,29 @@
     <properties>
         <java.version>17</java.version>
         <jjwt.version>0.12.6</jjwt.version>
+        <springdoc.version>3.1.0</springdoc.version>
+        <jacoco.version>0.8.13</jacoco.version>
+        <dependency-check.version>12.1.0</dependency-check.version>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <!-- Equivalente funcional del starter WebSocket, declarado por módulos para conservar el
+             build offline en las estaciones Windows que inspeccionan TLS de Maven Central. -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-websocket</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-messaging</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.tomcat.embed</groupId>
+            <artifactId>tomcat-embed-websocket</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -47,6 +64,45 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+        <!--
+            Envio del codigo de verificacion de Configuracion. Sin `spring.mail.host` configurado no
+            se crea ningun JavaMailSender y el envio cae al log (ver EnviadorDeCodigo): asi dev y las
+            pruebas funcionan sin servidor de correo, y produccion lo configura por entorno.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+        <!--
+            Carga el .env de la raiz del repo como fuente de propiedades en dev, para que
+            spring.mail.* (SPRING_MAIL_HOST, SPRING_MAIL_USERNAME, etc.) lleguen sin exportar
+            variables de entorno a mano. Se eligio esta libreria y no
+            spring.config.import=optional:file:.env[.properties] porque el .env de este repo usa
+            claves en SCREAMING_SNAKE_CASE (las mismas que docker-compose ya lee de forma nativa);
+            importado como .properties, Spring NO relaja SPRING_MAIL_HOST a spring.mail.host (ese
+            guion-bajo-a-punto solo ocurre para fuentes que Spring reconoce como variables de
+            entorno reales). spring-dotenv expone el .env exactamente como si fueran variables de
+            entorno del proceso, así el relaxed binding sí aplica. En produccion esta libreria no
+            hace nada si no hay .env: ahi las variables las pone el entorno del servidor/contenedor,
+            nunca un archivo.
+        -->
+        <dependency>
+            <groupId>me.paulschwarz</groupId>
+            <artifactId>spring-dotenv</artifactId>
+            <version>4.0.0</version>
+        </dependency>
+        <!-- Health/metrics: base de la observabilidad de la Fase 3 y del healthcheck de Docker. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
+        <!-- OpenAPI/Swagger: el contrato de la API se publica desde el codigo (seccion 5.3). -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>${springdoc.version}</version>
         </dependency>
 
         <dependency>
@@ -78,6 +134,37 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- Migraciones versionadas del esquema (CLAUDE.md: nada de cambios manuales de esquema).
+             La version la gobiernan el BOM de Spring Boot.
+
+             Son TRES dependencias y las tres hacen falta:
+              - flyway-core: la libreria.
+              - flyway-database-postgresql: obligatorio desde Flyway 10 para hablar con PostgreSQL.
+              - spring-boot-flyway: la autoconfiguracion. Spring Boot 4 partio las autoconfiguraciones
+                en modulos y esta ya NO viene con flyway-core. Sin ella la aplicacion arranca sin
+                quejarse, ignora spring.flyway.* y no migra nada: el fallo es silencioso. Lo detecta
+                MigracionesFlywayIT. -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-flyway</artifactId>
+        </dependency>
+
+        <!-- Fotos de voucher y demas evidencias en almacenamiento de objetos (RNF-13, seccion 24):
+             MinIO en docker-compose, cualquier S3 compatible en produccion. -->
+        <dependency>
+            <groupId>io.minio</groupId>
+            <artifactId>minio</artifactId>
+            <version>8.5.17</version>
+        </dependency>
+
         <!-- Generacion real de Excel para "Datos y respaldo" (paridad con el prototipo) -->
         <dependency>
             <groupId>org.apache.poi</groupId>
@@ -100,6 +187,32 @@
             <artifactId>spring-security-test</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <!--
+          Testcontainers: PostgreSQL efimero para las pruebas de integracion de la Fase 1. Las
+          versiones las gobierna el BOM de Spring Boot (Testcontainers 2.0.x), por eso no se fijan
+          aqui.
+
+          OJO al seguir tutoriales: Testcontainers 2.x renombro los modulos. Los artefactos ya no
+          son "junit-jupiter" y "postgresql" (asi se llamaban en la linea 1.x, que es la que
+          aparece en casi toda la documentacion) sino "testcontainers-junit-jupiter" y
+          "testcontainers-postgresql".
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-testcontainers</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-postgresql</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -107,6 +220,71 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+
+            <!--
+              Las pruebas corren siempre en el perfil "test" (H2 propio, ver
+              src/test/resources/application-test.properties). Asi no dependen de como este
+              configurado el entorno de quien las ejecuta.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <systemPropertyVariables>
+                        <spring.profiles.active>test</spring.profiles.active>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+
+            <!--
+              Pruebas de integracion (sufijo *IT). Van en failsafe y no en surefire a proposito:
+              levantan PostgreSQL real con Testcontainers, asi que necesitan Docker. De este modo
+              "mvn test" sigue corriendo en cualquier maquina y es "mvn verify" el que exige Docker.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <configuration>
+                    <systemPropertyVariables>
+                        <spring.profiles.active>test</spring.profiles.active>
+                    </systemPropertyVariables>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!--
+              Cobertura. En la Fase 0 solo se mide y se publica el reporte
+              (target/site/jacoco/index.html); el gate de 80 % sobre service/domain se activa
+              cuando la Fase 1 tenga tests reales, y pasa a ser gate de CI en la Fase 2
+              (DESARROLLO.md seccion 10).
+            -->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco.version}</version>
+                <executions>
+                    <execution>
+                        <id>prepare-agent</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -146,5 +324,47 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <!--
+          Escaneo de dependencias (mitigacion de la seccion 4.1). Va en un perfil aparte a
+          proposito: la primera corrida descarga la base de datos de vulnerabilidades y tarda
+          varios minutos, asi que no puede colgarse del build normal. Se ejecuta con:
+
+              ./mvnw -P seguridad verify -Dnvd.api.key=<clave>
+
+          La clave del NVD se pide gratis en https://nvd.nist.gov/developers/request-an-api-key
+          y en CI va como secreto, nunca en el repositorio. Sin clave el escaneo igual corre,
+          pero con un rate limit que lo vuelve muy lento.
+        -->
+        <profile>
+            <id>seguridad</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.owasp</groupId>
+                        <artifactId>dependency-check-maven</artifactId>
+                        <version>${dependency-check.version}</version>
+                        <configuration>
+                            <nvdApiKey>${nvd.api.key}</nvdApiKey>
+                            <formats>
+                                <format>HTML</format>
+                                <format>JSON</format>
+                            </formats>
+                            <!-- CVSS >= 7 (High/Critical) rompe el build. -->
+                            <failBuildOnCVSS>7</failBuildOnCVSS>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>check</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 
 </project>

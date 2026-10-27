@@ -1,186 +1,309 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { finalize } from 'rxjs';
-import { RegistroAuditoria } from '../../core/models/models';
+import { Observable, catchError, forkJoin, of, Subscription } from 'rxjs';
+import {
+  DESCRIPCIONES_NAV,
+  ItemNav,
+  NAVEGACION,
+  permisosDeItem,
+  PERMISO,
+} from '../../core/config/navegacion';
+import { BloquePanel, panelDe } from '../../core/config/paneles';
+import {
+  ConciliacionRuta,
+  IncidenciaCalidad,
+  Liquidacion,
+  SolicitudCambioZona,
+} from '../../core/models/models';
 import { OperacionService, ResumenOperacion } from '../../core/services/operacion.service';
-import { AuditoriaService } from '../../core/services/auditoria.service';
 import { AuthService } from '../../core/services/auth.service';
+import { ConciliacionService } from '../../core/services/conciliacion.service';
+import { ProductoresService } from '../../core/services/productores.service';
+import { CalidadService } from '../../core/services/calidad.service';
+import { LiquidacionesService } from '../../core/services/liquidaciones.service';
+import { IconoComponent } from '../../shared/ui/icono.component';
+import { recargarEnVivo } from '../../core/services/cambios-tiempo-real.service';
+
+/** Indicador del día. `ruta` solo existe si el rol puede abrir el listado que lo explica. */
+export interface IndicadorPanel {
+  etiqueta: string;
+  valor: number;
+  unidad?: string;
+  decimales: string;
+  tono: 'normal' | 'aviso' | 'error';
+  ruta?: string;
+  /** Filtro o pestaña de destino, p. ej. { tipo: 'proveedores' } en Usuarios. */
+  query?: Record<string, string>;
+}
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [DecimalPipe, DatePipe, FormsModule, RouterLink],
+  imports: [DecimalPipe, DatePipe, FormsModule, RouterLink, IconoComponent],
   templateUrl: './dashboard.component.html',
-  styleUrls: ['./dashboard.component.css', './dashboard-panels.css', './dashboard-tabs.css'],
+  styleUrls: ['./dashboard.component.css'],
 })
 export class DashboardComponent implements OnInit {
+  /** Tiempo real: si alguien guarda algo de acopio, calidad, pagos, proveedores, rutas, produccion, ventas, inventario, esta pantalla se actualiza sola. */
+  private readonly _enVivo = recargarEnVivo(['acopio', 'calidad', 'pagos', 'proveedores', 'rutas', 'produccion', 'ventas', 'inventario'], () => this.cargar(true));
   readonly data = signal<ResumenOperacion | null>(null);
-  readonly actividad = signal<RegistroAuditoria[]>([]);
+  readonly conciliaciones = signal<ConciliacionRuta[] | null>(null);
+  readonly solicitudes = signal<SolicitudCambioZona[] | null>(null);
+  readonly incidencias = signal<IncidenciaCalidad[] | null>(null);
+  readonly liquidaciones = signal<Liquidacion[] | null>(null);
   readonly error = signal('');
-  readonly mensaje = signal('');
+  readonly avisos = signal<string[]>([]);
   readonly cargando = signal(false);
-  readonly guardando = signal(false);
-  errorActividad = '';
-  fecha = new Intl.DateTimeFormat('en-CA', {
+  readonly actualizado = signal<Date | null>(null);
+  readonly descripciones = DESCRIPCIONES_NAV;
+  readonly panel = computed(() => panelDe(this.auth.roles()));
+  readonly accesos = computed(() =>
+    NAVEGACION.filter((item) => item.ruta !== 'dashboard' && permisosDeItem(item).some((p) => this.auth.puede(p))),
+  );
+  readonly accesosPrincipales = computed(() => {
+    const roles = this.auth.roles();
+    const prioridades = roles.includes('ADMINISTRADOR')
+      ? ['recojo', 'rutas', 'usuarios', 'produccion-queso', 'pagos', 'venta-queso']
+      : roles.includes('SECRETARIA')
+        ? ['pagos', 'produccion-queso', 'usuarios', 'venta-queso', 'compras', 'inventario']
+        : roles.includes('CALIDAD')
+          ? ['recojo', 'calidad', 'conciliacion', 'usuarios', 'rutas']
+          : roles.includes('PRODUCTOR_QUESO')
+            ? ['produccion-queso', 'recetas', 'inventario']
+            : ['recojo', 'rutas', 'usuarios', 'conciliacion', 'calidad'];
+    const orden = (ruta: string) =>
+      prioridades.includes(ruta) ? prioridades.indexOf(ruta) : prioridades.length;
+    return [...this.accesos()].sort((a, b) => orden(a.ruta) - orden(b.ruta)).slice(0, 6);
+  });
+  /** Cifras de la fecha elegida, tal como las devuelve /operacion/{fecha}: nada se estima aquí. */
+  readonly indicadores = computed<IndicadorPanel[]>(() => {
+    const d = this.data();
+    if (!d) return [];
+    const enlace = (permiso: string, ruta: string) => (this.auth.puede(permiso) ? ruta : undefined);
+    return [
+      {
+        etiqueta: 'Litros aceptados',
+        valor: d.aceptados,
+        unidad: 'L',
+        decimales: '1.0-1',
+        tono: 'normal',
+        ruta: enlace(PERMISO.acopioRead, 'recojo'),
+      },
+      {
+        etiqueta: 'Proveedores con entrega',
+        valor: d.proveedores,
+        decimales: '1.0-0',
+        tono: 'normal',
+        ruta: enlace(PERMISO.proveedoresRead, 'usuarios'),
+        query: { tipo: 'proveedores' },
+      },
+      {
+        etiqueta: 'Controles observados',
+        valor: d.controlesObservados,
+        decimales: '1.0-0',
+        tono: d.controlesObservados > 0 ? 'aviso' : 'normal',
+        ruta: enlace(PERMISO.calidadRead, 'calidad'),
+      },
+      {
+        etiqueta: 'Entregas rechazadas',
+        valor: d.entregasRechazadas,
+        decimales: '1.0-0',
+        tono: d.entregasRechazadas > 0 ? 'error' : 'normal',
+        ruta: enlace(PERMISO.calidadRead, 'calidad'),
+      },
+    ];
+  });
+  readonly incidenciasAbiertas = computed(
+    () => this.incidencias()?.filter((i) => i.estado !== 'CERRADA') ?? [],
+  );
+  readonly liquidacionesPendientes = computed(
+    () => this.liquidaciones()?.filter((l) => l.estado !== 'CLOSED') ?? [],
+  );
+  readonly pendientes = computed(() =>
+    [
+      {
+        ruta: 'recojo',
+        permiso: PERMISO.acopioRead,
+        cantidad: this.data()?.pendientesCalidad ?? 0,
+        texto: 'Recepciones por revisar',
+      },
+      {
+        ruta: 'calidad',
+        permiso: PERMISO.calidadRead,
+        cantidad: this.incidenciasAbiertas().length,
+        texto: 'Incidencias de calidad abiertas',
+      },
+      {
+        ruta: 'conciliacion',
+        permiso: PERMISO.acopioRead,
+        cantidad: this.conciliaciones()?.filter((c) => c.litrosRecibidosPlanta == null).length ?? 0,
+        texto: 'Rutas pendientes de recibir en planta',
+      },
+      {
+        ruta: 'solicitudes-zona',
+        permiso: PERMISO.proveedoresWrite,
+        cantidad: this.solicitudes()?.length ?? 0,
+        texto: 'Solicitudes de cambio de zona',
+      },
+      {
+        ruta: 'pagos',
+        permiso: PERMISO.pagosRead,
+        cantidad: this.liquidaciones()
+          ? this.liquidacionesPendientes().length
+          : (this.data()?.liquidacionesPendientes ?? 0),
+        texto: 'Liquidaciones pendientes',
+      },
+    ].filter((pendiente) => pendiente.cantidad > 0 && this.auth.puede(pendiente.permiso)),
+  );
+  readonly hoy = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'America/Lima',
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
   }).format(new Date());
-  readonly hoy = this.fecha;
-  litrosPlanta: number | null = null;
-  observacion = '';
-  tab: 'alertas' | 'rutas' | 'actividad' = 'alertas';
-  private solicitud = 0;
+  fecha = this.hoy;
+  private readonly destroyRef = inject(DestroyRef);
+  private carga?: Subscription;
+
   constructor(
     private readonly operacion: OperacionService,
-    private readonly auditoria: AuditoriaService,
     protected readonly auth: AuthService,
+    private readonly conciliacion: ConciliacionService,
+    private readonly productores: ProductoresService,
+    private readonly calidad: CalidadService,
+    private readonly liquidacionesService: LiquidacionesService,
   ) {}
   ngOnInit() {
     this.cargar();
-    this.cargarActividad();
   }
-  cargar() {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(this.fecha)) {
-      this.error.set('Selecciona una fecha válida.');
+  etiquetaDe(item: ItemNav): string {
+    return item.etiquetaEscritura && item.permisoEscritura && this.auth.puede(item.permisoEscritura)
+      ? item.etiquetaEscritura
+      : item.etiqueta;
+  }
+  muestra(bloque: BloquePanel): boolean {
+    if (!this.panel().bloques.includes(bloque)) return false;
+    switch (bloque) {
+      case 'calidadDelDia':
+        return this.auth.puede(PERMISO.calidadRead);
+      case 'liquidacionesDelCiclo':
+        return this.auth.puede(PERMISO.pagosRead);
+      case 'produccionDelDia':
+        return this.auth.puede(PERMISO.produccionRead) || this.auth.puede(PERMISO.quesosRead);
+      case 'acopioPorRuta':
+        return this.auth.puede(PERMISO.acopioRead);
+      case 'cadenaProductiva':
+        return (
+          this.auth.puede(PERMISO.produccionRead) ||
+          this.auth.puede(PERMISO.quesosRead) ||
+          this.auth.puede(PERMISO.acopioRead)
+        );
+      default:
+        return true;
+    }
+  }
+  private consulta<T>(peticion: Observable<T>, aviso: string): Observable<T | null> {
+    return peticion.pipe(
+      catchError(() => {
+        this.avisos.update((avisos) => [...avisos, aviso]);
+        return of(null);
+      }),
+    );
+  }
+  /** `silencioso`: la recarga en vivo conserva lo que se ve hasta tener lo nuevo (sin parpadeo). */
+  cargar(silencioso = false) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(this.fecha) || this.fecha > this.hoy) {
+      if (!silencioso) this.error.set('Selecciona una fecha válida, hasta hoy.');
       return;
     }
-    const solicitud = ++this.solicitud;
+    if (silencioso && this.cargando()) return;
+    this.carga?.unsubscribe();
     this.error.set('');
-    this.mensaje.set('');
-    this.cargando.set(true);
-    this.data.set(null);
-    this.operacion.resumen(this.fecha).subscribe({
-      next: (d) => {
-        if (solicitud !== this.solicitud) return;
-        this.data.set(d);
-        this.litrosPlanta = d.cierre?.litrosPlanta ?? null;
-        this.observacion = d.cierre?.observacion ?? '';
-        this.cargando.set(false);
-      },
-      error: () => {
-        if (solicitud === this.solicitud) {
+    this.avisos.set([]);
+    if (!silencioso) {
+      this.cargando.set(true);
+      this.actualizado.set(null);
+      this.data.set(null);
+      this.solicitudes.set(null);
+      this.conciliaciones.set(null);
+      this.incidencias.set(null);
+      this.liquidaciones.set(null);
+    }
+    this.carga = forkJoin({
+      dia: this.operacion.resumen(this.fecha).pipe(catchError(() => of(null))),
+      planta: this.auth.puede(PERMISO.acopioRead)
+        ? this.consulta(
+            this.conciliacion.deFecha(this.fecha),
+            'No se pudo consultar la llegada a planta.',
+          )
+        : of(null),
+      solicitudes: this.auth.puede(PERMISO.proveedoresWrite)
+        ? this.consulta(
+            this.productores.solicitudesZona('PENDIENTE'),
+            'No se pudieron consultar los cambios de zona.',
+          )
+        : of(null),
+      incidencias: this.auth.puede(PERMISO.calidadRead)
+        ? this.consulta(
+            this.calidad.incidencias(),
+            'No se pudieron consultar las incidencias de calidad.',
+          )
+        : of(null),
+      liquidaciones: this.muestra('liquidacionesDelCiclo')
+        ? this.consulta(
+            this.liquidacionesService.listar(undefined, undefined, 0, 200),
+            'No se pudieron consultar las liquidaciones.',
+          )
+        : of(null),
+    })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((r) => {
+        this.data.set(r.dia);
+        this.conciliaciones.set(r.planta);
+        this.solicitudes.set(r.solicitudes);
+        this.incidencias.set(r.incidencias);
+        this.liquidaciones.set(r.liquidaciones?.content ?? null);
+        if (!r.dia)
           this.error.set(
-            'No se pudo cargar la operación. Comprueba la conexión y vuelve a intentar.',
+            'No se pudo consultar la fecha. Puedes abrir las secciones o intentar actualizar.',
           );
-          this.cargando.set(false);
-        }
-      },
-    });
+        this.cargando.set(false);
+        this.actualizado.set(new Date());
+      });
   }
-  cargarActividad() {
-    if (!this.auth.tieneRol('ADMINISTRADOR')) return;
-    this.auditoria.listar(0, 6).subscribe({
-      next: (r) => {
-        this.actividad.set(r.content);
-        this.errorActividad = '';
-      },
-      error: () => (this.errorActividad = 'No se pudo cargar la actividad reciente.'),
-    });
-  }
-  get cerrado() {
-    return this.data()?.cierre?.cerrado ?? false;
-  }
-  get sistema() {
-    return this.cerrado ? (this.data()?.cierre?.litrosSistema ?? 0) : (this.data()?.aceptados ?? 0);
-  }
-  get variacion() {
-    return this.litrosPlanta === null ? null : this.litrosPlanta - this.sistema;
-  }
-  get alertas() {
+
+  exportar() {
     const d = this.data();
-    if (!d) return [];
-    const filas: { icono: string; titulo: string; detalle: string; ruta: string }[] = [];
-    if (!this.cerrado)
-      filas.push({
-        icono: '⌁',
-        titulo: 'Jornada pendiente de cierre',
-        detalle: 'Registra el ingreso en planta y realiza la conciliación del día.',
-        ruta: '#cierre',
-      });
-    if (d.entregasRechazadas)
-      filas.push({
-        icono: '!',
-        titulo: `${d.entregasRechazadas} entregas rechazadas`,
-        detalle: 'Revisa la calidad, la evidencia y el estado del proveedor.',
-        ruta: '/calidad',
-      });
-    if (d.controlesObservados)
-      filas.push({
-        icono: '!',
-        titulo: `${d.controlesObservados} recepciones observadas`,
-        detalle: 'La liquidación debe considerar la tarifa reducida vigente.',
-        ruta: '/calidad',
-      });
-    if (d.pendientesCalidad)
-      filas.push({
-        icono: '✓',
-        titulo: `${d.pendientesCalidad} recepciones sin control de calidad`,
-        detalle: 'Completa los controles antes de conciliar el día.',
-        ruta: '/calidad',
-      });
-    if (d.liquidacionesPendientes)
-      filas.push({
-        icono: 'S/',
-        titulo: `${d.liquidacionesPendientes} liquidaciones pendientes`,
-        detalle: 'Pendientes de todos los periodos de pago.',
-        ruta: '/liquidaciones',
-      });
-    return filas;
-  }
-  cerrar() {
-    this.error.set('');
-    this.mensaje.set('');
-    if (this.guardando() || !this.data() || this.cerrado) return;
-    if (
-      this.litrosPlanta === null ||
-      !Number.isFinite(this.litrosPlanta) ||
-      this.litrosPlanta < 0
-    ) {
-      this.error.set('Ingresa una cantidad válida de litros recibidos en planta.');
-      return;
-    }
-    if (this.data()!.pendientesCalidad > 0) {
-      this.error.set('Completa los controles de calidad pendientes antes de cerrar.');
-      return;
-    }
-    if (Math.abs(this.variacion ?? 0) > 0.01 && !this.observacion.trim()) {
-      this.error.set('Explica la diferencia de litros en la observación del cierre.');
-      return;
-    }
-    this.guardando.set(true);
-    this.operacion
-      .cerrar(this.fecha, this.litrosPlanta, this.observacion.trim())
-      .pipe(finalize(() => this.guardando.set(false)))
-      .subscribe({
-        next: (cierre) => {
-          this.data.update((d) => (d ? { ...d, cierre } : d));
-          this.mensaje.set('Conciliación diaria cerrada y guardada.');
-          this.cargarActividad();
-        },
-        error: () =>
-          this.error.set(
-            'No se pudo cerrar la conciliación. Actualiza los datos y revisa los controles pendientes.',
-          ),
-      });
-  }
-  reabrir() {
-    if (this.guardando() || !this.cerrado) return;
-    this.error.set('');
-    this.mensaje.set('');
-    this.guardando.set(true);
-    this.operacion
-      .reabrir(this.fecha)
-      .pipe(finalize(() => this.guardando.set(false)))
-      .subscribe({
-        next: () => {
-          this.cargar();
-          this.cargarActividad();
-        },
-        error: () => this.error.set('No se pudo reabrir la conciliación.'),
-      });
+    if (!d) return;
+    const filas = [
+      ['Fecha', 'Ruta', 'Litros aceptados', 'Recepciones'],
+      ...d.rutas.map((r) => [d.fecha, r.nombre, r.litros, r.recepciones]),
+    ];
+    const csv = filas
+      .map((f) =>
+        f
+          .map(
+            (v) =>
+              '"' +
+              String(v)
+                // Inyección de fórmulas (OWASP CSV Injection): Excel ejecuta lo que empiece así.
+                .replace(/^[=+@\t\r-]/, "'$&")
+                .replace(/"/g, '""') +
+              '"',
+          )
+          .join(';'),
+      )
+      .join('\r\n');
+    const url = URL.createObjectURL(
+      new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' }),
+    );
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Huata_acopio_${d.fecha}.csv`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 }

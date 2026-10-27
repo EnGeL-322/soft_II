@@ -9,6 +9,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.ramiro.huata.common.BaseEntity;
+import org.ramiro.huata.rutas.Ruta;
 import org.ramiro.huata.usuarios.Usuario;
 
 @Entity
@@ -34,4 +35,9 @@ public class Acopiador extends BaseEntity {
     @ManyToOne
     @JoinColumn(name = "usuario_id")
     private Usuario usuario;
+
+    /** Ruta y zona habitual donde realiza el acopio. Sus proveedores se obtienen de esta ruta. */
+    @ManyToOne
+    @JoinColumn(name = "ruta_id")
+    private Ruta ruta;
 }

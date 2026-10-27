@@ -1,0 +1,116 @@
+<section class="provider-view-card" aria-label="Reportes de proveedores">
+  <div class="provider-analytics-head">
+    <div>
+      <div class="kicker">ANÁLISIS VISUAL</div>
+      <h3>Rendimiento de proveedores</h3>
+      <p>Indicadores del acopio registrado en el periodo elegido.</p>
+    </div>
+    <div class="provider-chart-search no-print">
+      <label for="reporte-texto">Analizar proveedor o ruta</label>
+      <div class="provider-chart-search-control">
+        <span aria-hidden="true">⌕</span>
+        <input id="reporte-texto" [ngModel]="texto()" (ngModelChange)="texto.set($event)" placeholder="Nombre, código o ruta…" />
+        <button type="button" (click)="texto.set('')">Todos</button>
+      </div>
+      <div class="tabs" role="group" aria-label="Periodo">
+        @for (p of periodos; track p) {
+          <button type="button" class="tab-btn" [class.active]="dias() === p" (click)="cambiarPeriodo(p)">
+            Últimos {{ p }} días
+          </button>
+        }
+      </div>
+    </div>
+  </div>
+
+  @if (error()) {
+    <p class="note red" role="alert">{{ error() }}</p>
+  }
+  @if (cargando()) {
+    <p class="note" role="status">Cargando recojos del periodo…</p>
+  }
+
+  <div class="provider-analytics-kpis">
+    <article class="provider-analytics-kpi">
+      <span>Proveedores</span><strong>{{ proveedores() }}</strong><small>con entregas en el periodo</small>
+    </article>
+    <article class="provider-analytics-kpi">
+      <span>Litros registrados</span><strong>{{ litros() | number: '1.1-1' }} L</strong><small>acopio digital</small>
+    </article>
+    <article class="provider-analytics-kpi">
+      <span>Calidad apta</span><strong>{{ calidadApta() | number: '1.1-1' }}%</strong><small>del día analizado</small>
+    </article>
+    <article class="provider-analytics-kpi">
+      <span>Observaciones</span><strong>{{ observaciones() }}</strong><small>observadas o rechazadas</small>
+    </article>
+  </div>
+
+  <div class="provider-selected-day-bar">
+    <div>
+      <span>ANÁLISIS DEL DÍA</span>
+      <input type="date" aria-label="Día de análisis" [ngModel]="dia()" (ngModelChange)="dia.set($event)" />
+    </div>
+    <small>Elige la fecha para el detalle de calidad, zonas y ranking.</small>
+  </div>
+
+  <div class="provider-analytics-grid provider-analytics-grid-v123">
+    <article class="provider-chart-card provider-chart-wide">
+      <div class="provider-chart-head">
+        <div><div class="kicker">VOLUMEN</div><h4>Evolución del acopio</h4></div>
+      </div>
+      <div class="provider-trend-chart">
+        <app-grafico-lineas [puntos]="serie()" etiquetaSerie="Litros" />
+      </div>
+    </article>
+
+    <article class="provider-chart-card provider-quality-compact-card">
+      <div class="provider-chart-head">
+        <div><div class="kicker">CALIDAD</div><h4>Distribución del día</h4></div>
+      </div>
+      <div class="provider-quality-visual provider-quality-visual-compact">
+        <div class="provider-quality-donut provider-quality-donut-compact"
+          [style.background]="'conic-gradient(#15916d ' + calidadApta() + '%, #eddfc3 0)'">
+          <strong>{{ calidadApta() | number: '1.1-1' }}%</strong>
+        </div>
+        <div class="provider-quality-chart-legend provider-quality-legend-compact">
+          @for (g of distribucion(); track g.nombre) {
+            <p>{{ g.nombre }} <b>{{ g.cantidad }}</b></p>
+          }
+        </div>
+      </div>
+    </article>
+
+    <article class="provider-chart-card provider-lab-card">
+      <div class="provider-chart-head">
+        <div><div class="kicker">ANÁLISIS DE LECHE</div><h4>Resultados del día</h4></div>
+      </div>
+      <div class="provider-lab-result">
+        @for (r of filasDia(); track r.id) {
+          <p>{{ r.productorNombre }} · <app-badge-estado [estado]="r.resultadoCalidad ?? 'PENDIENTE'" /></p>
+        } @empty {
+          <p>Sin controles en la fecha seleccionada.</p>
+        }
+      </div>
+    </article>
+
+    <article class="provider-chart-card provider-zone-daily-card">
+      <div class="provider-chart-head">
+        <div><div class="kicker">ZONAS</div><h4>Proveedores por ruta</h4></div>
+      </div>
+      <div class="provider-horizontal-chart provider-zone-chart-daily">
+        <app-grafico-barras [barras]="porZona()" />
+      </div>
+    </article>
+
+    <article class="provider-chart-card provider-ranking-daily-card">
+      <div class="provider-chart-head">
+        <div><div class="kicker">RANKING DEL DÍA</div><h4>Volumen entregado</h4></div>
+      </div>
+      <div class="provider-horizontal-chart">
+        <app-grafico-barras [barras]="ranking()" />
+      </div>
+    </article>
+  </div>
+  <p class="provider-chart-note">
+    Los gráficos usan los registros disponibles en el sistema. Lo que no existe en la evidencia no se inventa.
+  </p>
+</section>

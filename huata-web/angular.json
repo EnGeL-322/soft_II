@@ -2,7 +2,8 @@
   "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
   "version": 1,
   "cli": {
-    "packageManager": "npm"
+    "packageManager": "npm",
+    "analytics": "6a430ede-8763-462e-b1fb-0de3262481ee"
   },
   "newProjectRoot": "projects",
   "projects": {
@@ -32,7 +33,11 @@
             "styles": [
               "node_modules/leaflet/dist/leaflet.css",
               "src/styles.css",
-              "src/prototype-theme.css"
+              "src/prototype-theme.css",
+              "src/admin-theme.css",
+              "src/rutas-theme.css",
+              "src/simple-theme.css",
+              "src/pagos-print.css"
             ],
             "security": {
               "allowedHosts": []
@@ -40,7 +45,6 @@
           },
           "configurations": {
             "production": {
-              "optimization": { "scripts": true, "styles": true, "fonts": false },
               "budgets": [
                 {
                   "type": "initial",

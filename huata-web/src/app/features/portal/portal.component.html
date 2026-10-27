@@ -5,55 +5,67 @@
       <span class="brand-icon"><svg viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M16 3S7 13 7 19a9 9 0 0 0 18 0C25 13 16 3 16 3Z" stroke="currentColor" stroke-width="2"/><path d="M12 20h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
       <span><strong>Ecolácteos Huata</strong><small>Sistema de acopio · Panel público</small></span>
     </a>
-    <nav aria-label="Navegación principal"><a href="#zonas">Zonas</a><a href="#controles">Controles de calidad</a><a href="#consulta">Consulta de proveedor</a></nav>
+    <nav aria-label="Navegación principal"><a href="#zonas">Zonas</a><a href="#incidencias">Avisos de calidad</a><a href="#consulta">Consulta de proveedor</a></nav>
     <a class="public-button" routerLink="/login">Iniciar sesión</a>
   </div>
 </header>
 <main>
   <section class="hero">
     <div class="wrap hero-grid">
-      <div><p class="eyebrow">Control público de calidad</p><h1>Pureza de la leche por zona</h1>
-        <p class="hero-description">Consulta resultados de control, litros recibidos, agua detectada y estado de cada entrega. El panel muestra información demostrativa del prototipo y no atribuye incidencias a proveedores reales.</p>
-        <div class="hero-actions"><a class="public-button" routerLink="/login">Iniciar sesión</a><a class="public-button outline" href="#consulta">Consultar récord</a></div>
+      <div><p class="eyebrow">Control público de calidad</p><h1>Calidad de la leche por zona</h1>
+        <p class="hero-description">Qué zonas entregaron leche apta hoy y cuáles tuvieron observaciones o adulteración, según los controles registrados. Solo se publican controles reales; sin evidencia registrada, una zona simplemente no aparece.</p>
+        <div class="hero-actions"><a class="public-button" routerLink="/login">Iniciar sesión</a><a class="public-button outline" href="#consulta">Consultar mi historial</a></div>
       </div>
-      <aside class="price-card"><p class="eyebrow">Pago normal</p><strong>S/ 1.70 / L</strong><p>La leche observada puede aplicar tarifa reducida de S/ 1.30/L. La adulterada se retira del acopio.</p><small>Tarifas de referencia del prototipo.</small></aside>
+      <aside class="price-card"><p class="eyebrow">Pago normal</p><strong>S/ 1.70 / L</strong><p>La leche observada puede aplicar tarifa reducida de S/ 1.30/L. La primera mala calidad del ciclo reduce la tarifa de toda la semana.</p><small>Tarifas de referencia; consulta el valor vigente con administración.</small></aside>
     </div>
   </section>
-  <section class="summary" aria-label="Resumen de calidad">
+  <section class="summary" aria-label="Resumen de calidad de hoy">
     <div class="wrap metrics">
-      <div><span>Leche controlada</span><strong>{{ resumen.leche | number:'1.2-2' }} L</strong><small>En las {{ zonas.length }} zonas del panel demo</small></div>
-      <div><span>Agua detectada</span><strong>{{ resumen.agua | number:'1.2-2' }} L</strong><small>Valor estimado en registros demo</small></div>
-      <div><span>Pureza promedio</span><strong>{{ resumen.pureza | number:'1.1-1' }}%</strong><small>Promedio ponderado del panel</small></div>
-      <div><span>Controles</span><strong>{{ controles.length }}</strong><small>Aptos, observados y retirados</small></div>
+      <div><span>Controles de hoy</span><strong>{{ totalControles }}</strong><small>En {{ zonas().length }} zona(s) con actividad</small></div>
+      <div><span>Aptos</span><strong>{{ totalAceptadas }}</strong><small>Resultado ACEPTADA</small></div>
+      <div><span>Zonas con observación/incidencia</span><strong>{{ zonasConProblema }}</strong><small>De {{ zonas().length }} zonas del día</small></div>
+      <div><span>Avisos nombrados hoy</span><strong>{{ incidencias().length }}</strong><small>Incidencias de calidad confirmadas</small></div>
     </div>
   </section>
-  <section id="zonas" class="wrap zones-section" aria-label="Pureza por zona">
-    <div class="zone-grid">
-      @for (z of tarjetas; track z.zona) {
-        <article class="zone-card">
-          <div class="zone-heading"><div><p class="eyebrow">Zona</p><h2>{{ z.zona }}</h2></div><span class="status" [class.observado]="z.estado === 'Observado'" [class.retirado]="z.estado === 'Retirado'">{{ z.estado }}</span></div>
-          <div class="zone-body">
-            <div class="purity-ring" [style.background]="'conic-gradient(#539479 ' + z.pureza + '%, #deded6 0)'" [attr.aria-label]="'Pureza: ' + (z.pureza | number:'1.1-1') + '%' "><div><strong>{{ z.pureza | number:'1.1-1' }}%</strong><small>Pureza</small></div></div>
-            <dl class="zone-values"><div><dt>Leche</dt><dd>{{ z.leche | number:'1.1-1' }} L</dd></div><div><dt>Agua</dt><dd>{{ z.agua | number:'1.1-1' }} L</dd></div><div><dt>Controles</dt><dd>{{ z.controles }}</dd></div><div><dt>Último</dt><dd>{{ z.ultimo }}</dd></div></dl>
-          </div>
-          <div class="zone-counts"><span>✓ Aptos: <b>{{ z.aptos }}</b></span><span>! Observados: <b>{{ z.observados }}</b></span><span>× Retirados: <b>{{ z.retirados }}</b></span></div>
-        </article>
-      }
-    </div>
+  <section id="zonas" class="wrap zones-section" aria-label="Calidad por zona">
+    <div class="panel-heading"><div><p class="eyebrow">Hoy</p><h2>Estado de calidad por zona</h2><p>Verde = controles aptos. Ámbar = observación sin adulteración confirmada. Rojo = al menos una adulteración/rechazo hoy.</p></div></div>
+    @if (cargandoResumen()) {
+      <p class="empty">Cargando…</p>
+    } @else if (errorResumen()) {
+      <p class="query-error" role="alert">{{ errorResumen() }}</p>
+    } @else {
+      <div class="zone-grid">
+        @for (z of zonas(); track z.zona) {
+          <article class="zone-card">
+            <div class="zone-heading"><div><p class="eyebrow">Zona</p><h2>{{ z.zona }}</h2></div><span class="status" [class.observado]="z.estado === 'OBSERVADA'" [class.retirado]="z.estado === 'ADULTERACION'">{{ z.estado === 'APTA' ? 'Apta' : z.estado === 'OBSERVADA' ? 'Observada' : 'Adulteración' }}</span></div>
+            <div class="zone-counts"><span>✓ Aceptadas: <b>{{ z.aceptadas }}</b></span><span>! Observadas: <b>{{ z.observadas }}</b></span><span>× Rechazadas: <b>{{ z.rechazadas }}</b></span></div>
+            <dl class="zone-values"><div><dt>Controles del día</dt><dd>{{ z.controles }}</dd></div></dl>
+          </article>
+        } @empty {
+          <p class="empty">Todavía no hay controles de calidad registrados hoy.</p>
+        }
+      </div>
+    }
   </section>
-  <section id="controles" class="controls-panel">
-    <div class="panel-heading"><div><p class="eyebrow">Resultados recientes</p><h2>Controles de calidad de leche</h2><p>Filtra por zona o resultado para revisar las entregas demostrativas registradas.</p></div><span class="status observado">Datos demo</span></div>
-    <div class="filters"><label>Zona<select [(ngModel)]="zona" (ngModelChange)="pagina = 1"><option value="">Todas las zonas</option>@for (z of zonas; track z) {<option [value]="z">{{ z }}</option>}</select></label><label>Resultado<select [(ngModel)]="estado" (ngModelChange)="pagina = 1"><option value="">Todos</option><option>Apto</option><option>Observado</option><option>Retirado</option></select></label></div>
-    <div class="table-scroll" tabindex="0" role="region" aria-label="Tabla de controles de calidad">
-      <table><thead><tr><th>Fecha</th><th>Proveedor</th><th>Código</th><th>Zona</th><th class="numeric">Leche</th><th class="numeric">Agua detectada</th><th class="numeric">Pureza</th><th>Resultado</th></tr></thead>
-        <tbody>@for (r of visibles; track r.id) {<tr><td><b>{{ r.fecha }}</b></td><td>{{ r.proveedor }}</td><td><span class="code">{{ r.codigo }}</span></td><td>{{ r.zona }}</td><td class="numeric">{{ r.leche | number:'1.1-1' }} L</td><td class="numeric">{{ r.agua | number:'1.1-1' }} L</td><td class="numeric"><b>{{ r.pureza | number:'1.1-1' }}%</b></td><td><span class="status" [class.observado]="r.resultado === 'Observado'" [class.retirado]="r.resultado === 'Retirado'">{{ r.resultado }}</span></td></tr>} @empty {<tr><td colspan="8" class="empty">No hay controles que coincidan con estos filtros.</td></tr>}</tbody>
-      </table>
-    </div>
-    <div class="pagination"><div aria-live="polite"><strong>Mostrando {{ inicio }}–{{ fin }} de {{ filtrados.length }} controles</strong><small>Página {{ pagina }} de {{ paginas }}</small></div><div class="page-actions"><label>Mostrar <select [(ngModel)]="porPagina" (ngModelChange)="pagina = 1"><option [ngValue]="5">5</option><option [ngValue]="10">10</option><option [ngValue]="25">25</option></select></label><button aria-label="Primera página" [disabled]="pagina === 1" (click)="pagina = 1">«</button><button aria-label="Página anterior" [disabled]="pagina === 1" (click)="pagina = pagina - 1">‹</button>@for (n of numerosPagina; track n) {<button [class.active]="pagina === n" [attr.aria-current]="pagina === n ? 'page' : null" [attr.aria-label]="'Página ' + n" (click)="pagina = n">{{ n }}</button>}<button aria-label="Página siguiente" [disabled]="pagina === paginas" (click)="pagina = pagina + 1">›</button><button aria-label="Última página" [disabled]="pagina === paginas" (click)="pagina = paginas">»</button></div></div>
+  <section id="incidencias" class="controls-panel">
+    <div class="panel-heading"><div><p class="eyebrow">Aviso a la comunidad</p><h2>Proveedores con mala calidad hoy</h2><p>Incidencias de calidad confirmadas en el día. Solo se publica el código del proveedor, nunca su nombre completo ni otro dato personal.</p></div></div>
+    @if (!cargandoResumen() && !errorResumen()) {
+      <div class="table-scroll" tabindex="0" role="region" aria-label="Tabla de incidencias del día">
+        <table><thead><tr><th>Proveedor (código)</th><th>Zona</th><th>Tipo</th><th>Fecha</th></tr></thead>
+          <tbody>
+            @for (i of incidencias(); track i.productorCodigo + i.fecha) {
+              <tr><td><span class="code">{{ i.productorCodigo }}</span></td><td>{{ i.zona ?? '—' }}</td><td>{{ i.tipo }}</td><td>{{ i.fecha | date:'yyyy-MM-dd' }}</td></tr>
+            } @empty {
+              <tr><td colspan="4" class="empty">No se registraron incidencias de calidad hoy.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
   </section>
-  <section id="consulta" class="wrap consultation"><div><p class="eyebrow">Tu historial, a un paso</p><h2>Consulta de proveedor</h2><p>Ingresa tu código para consultar tu historial de calidad. Puedes probar los registros demostrativos con <b>DEMO-001</b>, <b>DEMO-003</b> o <b>DEMO-005</b>.</p></div><div class="query-card"><form (ngSubmit)="buscar()"><label for="codigo">Código de proveedor</label><div class="query-input"><input id="codigo" name="codigo" [(ngModel)]="codigo" placeholder="DEMO-001" autocomplete="off"/><button class="public-button" [disabled]="cargando()">{{ cargando() ? 'Consultando…' : 'Consultar' }}</button></div></form>
+  <section id="consulta" class="wrap consultation"><div><p class="eyebrow">Tu historial, a un paso</p><h2>Consulta de proveedor</h2><p>Ingresa tu código para consultar tu historial de calidad reciente.</p></div><div class="query-card"><form (ngSubmit)="buscar()"><label for="codigo">Código de proveedor</label><div class="query-input"><input id="codigo" name="codigo" [(ngModel)]="codigo" placeholder="Tu código" autocomplete="off"/><button class="public-button" [disabled]="cargando()">{{ cargando() ? 'Consultando…' : 'Consultar' }}</button></div></form>
     @if (error()) {<p class="query-error" role="alert">{{ error() }}</p>}
-    @if (resultado(); as r) {<div class="query-result" aria-live="polite"><div class="result-heading"><strong>{{ r.codigo }}</strong><app-badge-estado [estado]="r.estado" /></div><p>Zona: {{ r.zona ?? '—' }} @if (consultaDemo()) {<span class="status observado">Datos demo</span>}</p>@for (h of r.historial; track $index) {<div class="history-row"><span>{{ h.fecha | date:'yyyy-MM-dd' }}</span><app-badge-estado [estado]="h.resultado"/><b>{{ h.litros | number:'1.1-1' }} L</b></div>} @empty {<p>Sin controles de calidad registrados todavía.</p>}</div>}
+    @if (resultado(); as r) {<div class="query-result" aria-live="polite"><div class="result-heading"><strong>{{ r.codigo }}</strong><app-badge-estado [estado]="r.estado" /></div><p>Zona: {{ r.zona ?? '—' }}</p>@for (h of r.historial; track $index) {<div class="history-row"><span>{{ h.fecha | date:'yyyy-MM-dd' }}</span><app-badge-estado [estado]="h.resultado"/><b>{{ h.litros | number:'1.1-1' }} L</b></div>} @empty {<p>Sin controles de calidad registrados todavía.</p>}</div>}
   </div></section>
 </main>
-<footer><div class="wrap"><strong>Ecolácteos Huata</strong><span>Calidad visible para la comunidad · Panel demostrativo</span></div></footer>
+<footer><div class="wrap"><strong>Ecolácteos Huata</strong><span>Calidad visible para la comunidad</span></div></footer>

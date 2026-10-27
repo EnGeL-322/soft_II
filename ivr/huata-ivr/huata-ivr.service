@@ -1,0 +1,21 @@
+[Unit]
+Description=Huata IVR (logica de llamadas via ARI)
+After=network-online.target asterisk.service
+Wants=network-online.target
+Requires=asterisk.service
+
+[Service]
+User=huataivr
+Group=huataivr
+# HUATA_IVR_API_KEY y HUATA_ARI_PASSWORD (archivo con permisos 600, fuera del repositorio)
+EnvironmentFile=/etc/huata-ivr.env
+WorkingDirectory=/opt/huata-ivr
+ExecStart=/usr/bin/java -Xmx256m -jar /opt/huata-ivr/huata-ivr.jar --spring.config.location=file:/opt/huata-ivr/application.yml
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+ProtectSystem=full
+ReadWritePaths=/var/lib/huata-ivr
+
+[Install]
+WantedBy=multi-user.target

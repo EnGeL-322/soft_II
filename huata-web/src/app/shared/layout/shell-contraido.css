@@ -1,0 +1,56 @@
+.sidebar-collapse {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #a9c2b3;
+}
+.sidebar-collapse:hover {
+  background: #ffffff14;
+  color: white;
+}
+/* ---------- Menú contraído: solo iconos (el nombre aparece al pasar el mouse) ---------- */
+.sidebar-contraida .operation-sidebar {
+  padding: 14px 8px;
+  align-items: stretch;
+}
+.sidebar-contraida .sidebar-top {
+  flex-direction: column;
+}
+.sidebar-contraida .operation-brand {
+  padding: 0;
+}
+.sidebar-contraida .operation-brand strong,
+.sidebar-contraida .nav-text,
+.sidebar-contraida .menu-search,
+.sidebar-contraida .nav-group-title,
+.sidebar-contraida .menu-empty {
+  display: none;
+}
+.sidebar-contraida .nav-group {
+  padding-top: 8px;
+  border-top: 1px solid #ffffff1a;
+}
+.sidebar-contraida .nav-link,
+.sidebar-contraida .sidebar-footer a {
+  justify-content: center;
+  padding: 0;
+  min-height: 36px;
+}
+.sidebar-contraida .sidebar-footer {
+  padding: 10px 0 0;
+}
+
+.sidebar-contraida .nav-sub {
+  margin: 1px 0 4px;
+  padding-left: 0;
+  border-left: 0;
+}
+.sidebar-contraida .nav-sublink {
+  justify-content: center;
+  padding: 0;
+  min-height: 30px;
+}

@@ -43,9 +43,10 @@ public class ReporteEventosService {
                 r.getEstado().name(), "Recepción #" + r.getId())));
         controles.findAll().stream().filter(c -> c.isActivo()).forEach(c -> {
             var r = c.getRecojo();
-            eventos.add(new Evento("calidad-" + c.getId(), r.getFechaHora().atZone(LIMA).toLocalDate(), "Calidad",
-                    nombre(r.getProductor()), r.getProductor().getCodigo(),
-                    r.getRuta() == null ? zona(r.getProductor()) : r.getRuta().getZona(), null, null,
+            var p = c.proveedor();
+            eventos.add(new Evento("calidad-" + c.getId(), c.getFechaHora().atZone(LIMA).toLocalDate(), "Calidad",
+                    nombre(p), p.getCodigo(),
+                    r == null || r.getRuta() == null ? zona(p) : r.getRuta().getZona(), null, null,
                     c.getResultado().name(), c.getMotivoRechazo() != null ? c.getMotivoRechazo() : c.getRevisionVisual()));
         });
         liquidaciones.findAll().stream().filter(l -> l.isActivo()).forEach(l -> eventos.add(new Evento(

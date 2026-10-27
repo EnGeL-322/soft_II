@@ -1,12 +1,15 @@
 package org.ramiro.huata.usuarios;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import java.time.Instant;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import lombok.Getter;
@@ -43,4 +46,14 @@ public class Usuario extends BaseEntity {
             joinColumns = @JoinColumn(name = "usuario_id"),
             inverseJoinColumns = @JoinColumn(name = "rol_id"))
     private Set<Rol> roles = new LinkedHashSet<>();
+
+    /**
+     * Excepciones de esta persona respecto de sus roles (V46). EAGER por lo mismo que roles: entran
+     * en las autoridades de cada peticion (ver {@link Usuarios#permisosDe}).
+     */
+    @OneToMany(mappedBy = "usuario", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    private Set<UsuarioPermiso> permisosPersonalizados = new LinkedHashSet<>();
+
+    /** Se escribe con una consulta directa al iniciar sesion, sin tocar updated_at/updated_by. */
+    private Instant ultimoAcceso;
 }

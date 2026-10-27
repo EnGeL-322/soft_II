@@ -34,6 +34,8 @@ import org.ramiro.huata.recojo.RecojoRepository;
 import org.ramiro.huata.reportes.ReporteService;
 import org.ramiro.huata.reportes.ZonaResumen;
 import org.ramiro.huata.rutas.PlanRutaDia;
+import org.ramiro.huata.rutas.PuntoEstablecido;
+import org.ramiro.huata.rutas.PuntoEstablecidoRepository;
 import org.ramiro.huata.rutas.RutaService;
 import org.springframework.stereotype.Service;
 
@@ -47,7 +49,8 @@ import org.springframework.stereotype.Service;
 public class ExportacionService {
 
     public static final List<String> HOJAS_DISPONIBLES = List.of(
-            "Proveedores", "Recepciones", "HistorialCalidad", "Pagos", "ResumenZonas", "Rutas", "Quesos", "Configuracion", "Auditoria");
+            "Proveedores", "Recepciones", "HistorialCalidad", "Pagos", "ResumenZonas", "Rutas",
+            "PuntosEstablecidos", "Quesos", "Configuracion", "Auditoria");
 
     private final ProductorRepository productorRepository;
     private final RecojoRepository recojoRepository;
@@ -60,16 +63,10 @@ public class ExportacionService {
     private final ReporteService reporteService;
     private final AuditoriaService auditoriaService;
     private final RutaService rutaService;
+    private final PuntoEstablecidoRepository puntoEstablecidoRepository;
 
     public byte[] exportar(String hoja) {
-        var filas = filas(hoja);
-        byte[] archivo = generarXlsx(hoja, filas);
-        auditoriaService.registrar("Exportación", "Excel", "Hoja " + hoja);
-        return archivo;
-    }
-
-    private List<LinkedHashMap<String, Object>> filas(String hoja) {
-        return
+        List<LinkedHashMap<String, Object>> filas =
                 switch (hoja) {
                     case "Proveedores" -> proveedores();
                     case "Recepciones" -> recepciones();
@@ -77,25 +74,19 @@ public class ExportacionService {
                     case "Pagos" -> pagos();
                     case "ResumenZonas" -> resumenZonas();
                     case "Rutas" -> rutas();
+                    case "PuntosEstablecidos" -> puntosEstablecidos();
                     case "Quesos" -> quesos();
                     case "Configuracion" -> configuracion();
                     case "Auditoria" -> auditoria();
                     default -> throw new BusinessRuleException("Hoja desconocida: " + hoja);
                 };
+        byte[] archivo = generarXlsx(hoja, filas);
+        auditoriaService.registrar("Exportación", "Excel", "Hoja " + hoja);
+        return archivo;
     }
 
     private byte[] generarXlsx(String nombreHoja, List<LinkedHashMap<String, Object>> filas) {
         try (Workbook workbook = new XSSFWorkbook()) {
-            escribirHoja(workbook, nombreHoja, filas);
-            ByteArrayOutputStream salida = new ByteArrayOutputStream();
-            workbook.write(salida);
-            return salida.toByteArray();
-        } catch (IOException e) {
-            throw new UncheckedIOException("No se pudo generar el archivo Excel", e);
-        }
-    }
-
-    private void escribirHoja(Workbook workbook, String nombreHoja, List<LinkedHashMap<String, Object>> filas) {
             Sheet sheet = workbook.createSheet(nombreHoja);
             if (!filas.isEmpty()) {
                 List<String> columnas = new ArrayList<>(filas.get(0).keySet());
@@ -119,24 +110,12 @@ public class ExportacionService {
                     }
                 }
             }
-    }
-
-    @org.springframework.transaction.annotation.Transactional
-    public byte[] exportarLibro() {
-        try (Workbook workbook = new XSSFWorkbook()) {
-            for (var hoja : HOJAS_DISPONIBLES) escribirHoja(workbook, hoja, filas(hoja));
-            var salida = new ByteArrayOutputStream();
+            ByteArrayOutputStream salida = new ByteArrayOutputStream();
             workbook.write(salida);
-            auditoriaService.registrar("Exportación", "Excel", "Libro completo");
             return salida.toByteArray();
-        } catch (IOException e) { throw new UncheckedIOException("No se pudo generar el libro", e); }
-    }
-
-    @org.springframework.transaction.annotation.Transactional(readOnly = true)
-    public Map<String, List<LinkedHashMap<String, Object>>> exportarDatos() {
-        var datos = new LinkedHashMap<String, List<LinkedHashMap<String, Object>>>();
-        HOJAS_DISPONIBLES.forEach(hoja -> datos.put(hoja, filas(hoja)));
-        return datos;
+        } catch (IOException e) {
+            throw new UncheckedIOException("No se pudo generar el archivo Excel", e);
+        }
     }
 
     private List<LinkedHashMap<String, Object>> proveedores() {
@@ -151,6 +130,10 @@ public class ExportacionService {
         m.put("Ruta", p.getRuta() != null ? p.getRuta().getNombre() : "");
         m.put("Zona", p.getRuta() != null ? p.getRuta().getZona() : "");
         m.put("Estado", p.getEstado().name());
+        // Telefono y Usuario hacen que este mismo archivo se pueda volver a importar
+        // (ImportacionProveedoresService) sin perder esos datos.
+        m.put("Telefono", p.getTelefono() != null ? p.getTelefono() : "");
+        m.put("Usuario", p.getUsuario() != null ? p.getUsuario().getUsername() : "");
         return m;
     }
 
@@ -176,7 +159,7 @@ public class ExportacionService {
     private LinkedHashMap<String, Object> filaCalidad(ControlCalidad c) {
         LinkedHashMap<String, Object> m = new LinkedHashMap<>();
         m.put("Fecha", String.valueOf(c.getCreatedAt()));
-        m.put("Codigo_Proveedor", c.getRecojo().getProductor().getCodigo());
+        m.put("Codigo_Proveedor", c.proveedor().getCodigo());
         m.put("Resultado", c.getResultado().name());
         m.put("Densidad", c.getDensidad());
         m.put("Punto_Congelacion", c.getPuntoCongelacion());
@@ -231,6 +214,27 @@ public class ExportacionService {
                     return m;
                 })
                 .toList();
+    }
+
+    private List<LinkedHashMap<String, Object>> puntosEstablecidos() {
+        return puntoEstablecidoRepository.findByActivoTrueOrderByNombreAsc().stream()
+                .map(this::filaPuntoEstablecido)
+                .toList();
+    }
+
+    private LinkedHashMap<String, Object> filaPuntoEstablecido(PuntoEstablecido p) {
+        LinkedHashMap<String, Object> m = new LinkedHashMap<>();
+        m.put("Nombre", p.getNombre());
+        m.put("Ruta", p.getRuta().getNombre());
+        m.put("Zona", p.getRuta().getZona());
+        m.put("Latitud", p.getLatitud());
+        m.put("Longitud", p.getLongitud());
+        m.put("Acopiador", p.getAcopiador() != null ? p.getAcopiador().getNombres() + " " + p.getAcopiador().getApellidos() : "");
+        m.put("Proveedor", p.getProveedor() != null ? p.getProveedor().getCodigo() : "");
+        m.put("Observacion", p.getObservacion());
+        m.put("Creado_Por", p.getCreatedBy());
+        m.put("Fecha_Creacion", p.getCreatedAt() != null ? String.valueOf(p.getCreatedAt()) : "");
+        return m;
     }
 
     private List<LinkedHashMap<String, Object>> quesos() {

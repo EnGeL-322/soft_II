@@ -1,0 +1,209 @@
+<section class="page amigable">
+  <div class="page-head">
+    <div>
+      <div class="kicker">Producción</div>
+      <h1>Recetas y productos</h1>
+      <p>Aquí dices qué productos hace la planta y qué lleva cada uno.</p>
+    </div>
+  </div>
+
+
+  @if (error()) {
+    <div class="mensaje mensaje-error" role="alert">{{ error() }}</div>
+  }
+
+  <!-- ============================ PRODUCTOS ============================ -->
+  <section class="bloque">
+    <div class="bloque-cabecera">
+      <div>
+        <h2>Tus productos</h2>
+        <p>Cada tarjeta muestra qué lleva una unidad del producto.</p>
+      </div>
+      @if (puedeEscribir() && formularioProducto() == null) {
+        <button type="button" class="boton-grande" (click)="nuevoProducto()">
+          + Crear un producto nuevo
+        </button>
+      }
+    </div>
+
+    @if (formularioProducto() != null && puedeEscribir()) {
+      <div class="receta-backdrop" (click)="cancelarProducto()"></div>
+      <form class="panel-formulario producto-modal" (ngSubmit)="guardarProducto()">
+        <div class="modal-title"><h3>{{ formularioProducto() === 'nuevo' ? 'Nuevo producto' : 'Cambiar datos del producto' }}</h3><button type="button" (click)="cancelarProducto()" aria-label="Cerrar">×</button></div>
+        <div class="campos">
+          <div class="campo">
+            <label for="pr-nombre">¿Cómo se llama?</label>
+            <input
+              id="pr-nombre"
+              name="nombreProducto"
+              [(ngModel)]="nombreProducto"
+              maxlength="120"
+              placeholder="Ej. Yogur natural"
+              required
+              (keydown.enter)="siguienteCampo($event, 'pr-unidad')"
+            />
+          </div>
+          <div class="campo">
+            <label for="pr-unidad">¿Cómo se vende?</label>
+            <input
+              id="pr-unidad"
+              name="unidadVenta"
+              [(ngModel)]="unidadVenta"
+              maxlength="40"
+              list="formas-venta"
+              placeholder="unidad"
+              required
+              (keydown.enter)="siguienteCampo($event, 'pr-desc')"
+            />
+            <datalist id="formas-venta">
+              <option value="unidad"></option>
+              <option value="botella 1 L"></option>
+              <option value="kg"></option>
+              <option value="balde 4 kg"></option>
+              <option value="vaso"></option>
+            </datalist>
+            <small>Por ejemplo: unidad, botella 1 L, vaso.</small>
+          </div>
+          <div class="campo">
+            <span class="campo-etiqueta">Vencimiento</span>
+            <small>
+              @if (vidaUtilDias) {
+                Vence a los {{ vidaUtilDias }} días de producido.
+              } @else {
+                Sin configurar: no se podrá producir hasta definirlo.
+              }
+              Se configura en Configuración → Precios y calidad.
+            </small>
+          </div>
+          <div class="campo campo-ancho">
+            <label for="pr-desc">Descripción <span class="opcional">(opcional)</span></label>
+            <input
+              id="pr-desc"
+              name="descripcionProducto"
+              [(ngModel)]="descripcionProducto"
+              maxlength="500"
+              placeholder="Ej. Yogur batido sin azúcar"
+              (keydown.enter)="guardarProductoConEnter($event)"
+            />
+          </div>
+        </div>
+        <div class="botonera">
+          <button type="submit" class="boton-grande" [disabled]="guardandoProducto()">
+            {{ guardandoProducto() ? 'Guardando…' : 'Guardar producto' }}
+          </button>
+          <button type="button" class="boton-secundario" (click)="cancelarProducto()">
+            Cancelar
+          </button>
+        </div>
+      </form>
+    }
+
+    <div class="tarjetas">
+      @for (p of productos(); track p.id) {
+        <article class="tarjeta-producto" [class.inactivo]="!p.activo">
+          <header>
+            <h3>{{ p.nombre }}</h3>
+          </header>
+
+          @if (puedeEscribir()) {
+            <footer class="acciones-producto">
+              <button type="button" class="accion-icono" (click)="abrirReceta(p)" title="Editar receta" [attr.aria-label]="'Editar ' + p.nombre">✎</button>
+              <button type="button" class="accion-icono accion-pausa" (click)="cambiarEstadoProducto(p)" [title]="p.activo ? 'Pausar producción' : 'Reanudar producción'" [attr.aria-label]="p.activo ? 'Pausar ' + p.nombre : 'Reanudar ' + p.nombre">{{ p.activo ? 'Ⅱ' : '▶' }}</button>
+              <button type="button" class="accion-icono accion-eliminar" (click)="eliminarProducto(p)" title="Eliminar" [attr.aria-label]="'Eliminar ' + p.nombre">🗑</button>
+            </footer>
+          }
+        </article>
+      } @empty {
+        <p class="vacio">Todavía no hay productos. Crea el primero con el botón de arriba.</p>
+      }
+    </div>
+  </section>
+
+  <!-- ============================ EDITOR DE RECETA ============================ -->
+  @if (recetaDe(); as p) {
+    <div class="receta-backdrop" (click)="cerrarReceta()"></div>
+    <form class="bloque editor-receta receta-modal" id="editor-receta" (ngSubmit)="guardar()">
+      <div class="bloque-cabecera">
+        <div>
+          <h2>Receta de {{ p.nombre }}</h2>
+          <p>
+            Agrega los ingredientes para <b>1 {{ p.unidadVenta }}</b>. Al producir, el sistema multiplica las cantidades.
+          </p>
+        </div>
+        <button type="button" class="cerrar-modal" (click)="cerrarReceta()" aria-label="Cerrar receta">×</button>
+      </div>
+
+      <div class="insumos">
+        @for (item of items(); track $index; let i = $index) {
+          <div class="insumo-fila" [class.con-alerta]="repetida(i)">
+            <span class="insumo-numero" aria-hidden="true">{{ i + 1 }}</span>
+
+            <div class="insumo-campo">
+              <span class="insumo-etiqueta">Ingrediente</span>
+              <input [id]="'item-nombre-' + i" name="item-nombre-{{ i }}" [(ngModel)]="item.nombre" list="ingredientes-conocidos" placeholder="Ej. leche, sal, cuajo" (keydown.enter)="siguienteCampoReceta($event, 'item-cant-' + i)" />
+              <datalist id="ingredientes-conocidos">
+                @for (ingrediente of materiasPrimas(); track ingrediente.id) { <option [value]="ingrediente.nombre"></option> }
+              </datalist>
+              @if (repetida(i)) {
+                <small class="insumo-alerta">Ya está en la fila de arriba.</small>
+              }
+            </div>
+
+            <div class="insumo-campo">
+              <label [for]="'item-cant-' + i">Cantidad para 1 {{ p.unidadVenta }}</label>
+              <div class="insumo-con-unidad">
+                <input
+                  [id]="'item-cant-' + i"
+                  type="number"
+                  inputmode="decimal"
+                  step="0.0001"
+                  min="0"
+                  placeholder="0"
+                  [(ngModel)]="item.cantidadPorUnidad"
+                  name="item-cant-{{ i }}"
+                  (keydown.enter)="siguienteCampoReceta($event, 'item-unidad-' + i)"
+                />
+                <select [id]="'item-unidad-' + i" name="item-unidad-{{ i }}" [(ngModel)]="item.unidadMedida" (keydown.enter)="guardarFila($event)">
+                  <option value="GRAMO">gramos (g)</option>
+                  <option value="LITRO">litros (L)</option>
+                </select>
+              </div>
+              @if (item.cantidadPorUnidad && item.materiaPrimaId != null) {
+                <small class="insumo-ejemplo">
+                  Para 100 unidades: {{ cantidad(item.cantidadPorUnidad * 100) }}
+                  {{ item.unidadMedida === 'LITRO' ? 'litros' : 'g' }}
+                </small>
+              }
+            </div>
+
+            <div class="insumo-acciones">
+              <button type="button" class="insumo-nuevo" (click)="agregarItem()">+ Nuevo ingrediente</button>
+              <button
+                type="button"
+                class="insumo-quitar"
+                [disabled]="items().length === 1"
+                [attr.aria-label]="'Quitar ingrediente ' + (i + 1)"
+                (click)="quitarItem(i)"
+              >
+                ✕ Quitar
+              </button>
+            </div>
+          </div>
+        }
+
+        <button type="button" class="insumo-agregar" (click)="agregarItem()">
+          + Agregar ingrediente <small>Shift + Enter también agrega una fila</small>
+        </button>
+      </div>
+
+      <div class="botonera">
+        <button type="submit" class="boton-grande" [disabled]="guardando()">
+          {{ guardando() ? 'Guardando…' : 'Guardar receta' }}
+        </button>
+        <button type="button" class="boton-secundario" (click)="cerrarReceta()">Cancelar</button>
+      </div>
+    </form>
+  }
+
+
+</section>

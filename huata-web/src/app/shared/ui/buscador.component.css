@@ -1,0 +1,102 @@
+/* Buscador escribible. Se apoya en los tokens del tema (admin-theme.css) para que un buscador no
+   se distinga de un <input> normal salvo por la flecha y la lista. */
+.buscador {
+  position: relative;
+  width: 100%;
+}
+
+.buscador input {
+  width: 100%;
+  padding-right: 32px;
+}
+
+.buscador-flecha {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  transition: transform 0.15s;
+}
+
+.buscador.abierto .buscador-flecha {
+  transform: translateY(-50%) rotate(180deg);
+}
+
+.buscador-flecha:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Fija respecto a la ventana: la posición (arriba/abajo, ancho y alto máximo) la calcula el
+   componente, para que ningún contenedor con scroll la recorte -- en particular la regla global
+   .card{overflow:hidden} de prototype-theme.css, que con position:absolute la recortaba dentro de
+   tarjetas bajas. z-index alto a propósito para quedar por encima de modales (.prototype-modal usa
+   100, .noti-panel 150, el buscador global 240): un popover abierto por el usuario queda siempre
+   arriba. */
+.buscador-lista {
+  position: fixed;
+  z-index: 1000;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  overflow: auto;
+  overscroll-behavior: contain;
+  background: #fff;
+  border: 1.5px solid #9db9ad;
+  border-radius: 12px;
+  box-shadow: 0 14px 34px rgba(26, 68, 54, 0.2);
+}
+
+.buscador-lista.hacia-arriba {
+  box-shadow: 0 -14px 34px rgba(26, 68, 54, 0.2);
+}
+
+.buscador-lista li {
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1.3;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.buscador-lista li + li {
+  margin-top: 2px;
+}
+
+.buscador-lista li small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.buscador-lista li.resaltada {
+  background: #e6efe9;
+}
+
+.buscador-lista li.elegida {
+  font-weight: 700;
+  box-shadow: inset 3px 0 0 #437862;
+}
+
+.buscador-lista li.buscador-vacio {
+  cursor: default;
+  color: var(--muted);
+}
+
+.buscador-lista li.buscador-vacio:hover {
+  background: transparent;
+}

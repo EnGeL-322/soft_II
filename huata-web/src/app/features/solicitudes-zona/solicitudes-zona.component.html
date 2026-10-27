@@ -1,0 +1,65 @@
+<section class="page">
+  <div class="page-head">
+    <div>
+      <div class="kicker">Proveedores</div>
+      <h1>Solicitudes de cambio de zona</h1>
+      <p>El proveedor la envía desde la app; aprobarla sincroniza su zona, ruta y acopiador.</p>
+    </div>
+  </div>
+
+  @if (error()) { <div class="note" role="alert">{{ error() }}</div> }
+
+  <div class="card" style="margin-bottom:16px">
+    <div class="formgrid">
+      <label class="field">
+        <span>Estado</span>
+        <select [(ngModel)]="filtro" (change)="cargar()">
+          <option value="PENDIENTE">Pendientes</option>
+          <option value="APROBADA">Aprobadas</option>
+          <option value="RECHAZADA">Rechazadas</option>
+          <option value="">Todas</option>
+        </select>
+      </label>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="tablebox">
+      <table>
+        <thead>
+          <tr><th>Proveedor</th><th>Zona actual</th><th>Zona solicitada</th><th>Motivo</th><th>Fecha</th><th>Estado</th><th></th></tr>
+        </thead>
+        <tbody>
+          @for (s of pag.ver(solicitudes(), ''); track s.id) {
+            <tr>
+              <td>{{ s.productorNombre }}</td>
+              <td class="muted">{{ s.zonaActual || '—' }}</td>
+              <td>{{ s.zonaSolicitada }}</td>
+              <td class="muted">{{ s.motivo || '—' }}</td>
+              <td>{{ s.fechaSolicitud }}</td>
+              <td>{{ s.estado }}</td>
+              <td>
+                @if (s.estado === 'PENDIENTE' && puedeDecidir()) {
+                  <div class="actions">
+                    <button type="button" class="btn btn-primary" (click)="decidir(s.id, true)">Aprobar</button>
+                    <button type="button" class="btn btn-danger" (click)="decidir(s.id, false)">Rechazar</button>
+                  </div>
+                }
+              </td>
+            </tr>
+          }
+          @if (solicitudes().length === 0) {
+            <tr><td colspan="7" class="muted" style="text-align:center; padding:24px">Sin solicitudes.</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <app-paginador
+      [page]="pag.pagina(solicitudes().length)"
+      [size]="pag.tamano()"
+      [total]="solicitudes().length"
+      (pageChange)="pag.irA($event)"
+      (sizeChange)="pag.cambiarTamano($event)"
+    />
+  </div>
+</section>
