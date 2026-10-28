@@ -38,6 +38,7 @@
               "src/rutas-theme.css",
               "src/simple-theme.css",
               "src/tema-azul.css",
+              "src/produccion-ui.css",
               "src/pagos-print.css"
             ],
             "security": {

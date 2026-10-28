@@ -160,4 +160,80 @@ describe('BuscadorComponent', () => {
     expect(quitar).toHaveBeenCalledWith('scroll', expect.any(Function), true);
     quitar.mockRestore();
   });
+
+  // ---- Regresión: «escribo sal y siempre pone cuajo» (Compras, 2026-10-28) ----
+  describe('lo que reportó el cliente en Compras', () => {
+    const INSUMOS: OpcionBuscador[] = [{ valor: 9, etiqueta: 'cuajo', detalle: 'Para yogurt' }];
+
+    beforeEach(() => {
+      c.opciones = INSUMOS;
+    });
+
+    it('abrir la lista y LUEGO escribir filtra: «sal» no muestra «cuajo»', () => {
+      c.abrir(); // el foco abre la lista antes de teclear: así quedaba congelado el filtro
+      expect(c.filtradas()).toHaveLength(1);
+      c.alEscribir('sal');
+      expect(c.filtradas()).toEqual([]);
+    });
+
+    it('Enter con lo escrito sin coincidencias no elige nada', () => {
+      let recibido: unknown = 'sin-llamar';
+      c.registerOnChange((v) => (recibido = v));
+      c.abrir();
+      c.alEscribir('zal');
+      c.alTeclear(new KeyboardEvent('keydown', { key: 'Enter' }));
+      expect(recibido).toBe('sin-llamar');
+      expect(c.valor()).toBeUndefined();
+    });
+
+    it('la lista vacía puede explicar por qué no aparece', () => {
+      c.sinCoincidencias = (t) => `«${t}» no lo lleva ninguna receta`;
+      c.abrir();
+      c.alEscribir('sal');
+      fixture.detectChanges();
+      const vacio = fixture.nativeElement.ownerDocument.querySelector('.buscador-vacio');
+      expect(vacio?.textContent).toContain('«sal» no lo lleva ninguna receta');
+    });
+  });
+
+  it('las opciones que llegan después se ven: en la lista y en el texto del valor ya puesto', () => {
+    c.opciones = [];
+    c.writeValue(2); // el formulario llega con el valor antes que las opciones
+    c.abrir();
+    expect(c.texto()).toBe('');
+    c.opciones = OPCIONES;
+    expect(c.texto()).toBe('DEMO-002 · Luis Mamani');
+    expect(c.filtradas()).toHaveLength(3);
+  });
+
+  it('busca sin importar tildes', () => {
+    c.opciones = [{ valor: 1, etiqueta: 'Lúcuma' }, { valor: 2, etiqueta: 'Sal' }];
+    c.alEscribir('lucuma');
+    expect(c.filtradas().map((o) => o.valor)).toEqual([1]);
+  });
+
+  it('salir habiendo escrito el nombre exacto lo elige; a medias, no', () => {
+    let recibido: unknown = 'sin-llamar';
+    c.registerOnChange((v) => (recibido = v));
+    c.abrir();
+    c.alEscribir('demo-003 · rosa ramos');
+    c.alTeclear(new KeyboardEvent('keydown', { key: 'Tab' }));
+    expect(recibido).toBe(3);
+    expect(c.abierto()).toBe(false);
+
+    recibido = 'sin-llamar';
+    c.abrir();
+    c.alEscribir('demo-00');
+    c.alTeclear(new KeyboardEvent('keydown', { key: 'Tab' }));
+    expect(recibido).toBe('sin-llamar');
+    expect(c.valor()).toBe(3);
+  });
+
+  it('Escape cierra sin elegir aunque lo escrito sea exacto', () => {
+    c.abrir();
+    c.alEscribir('DEMO-001 · Ana Quispe');
+    c.alTeclear(new KeyboardEvent('keydown', { key: 'Escape' }));
+    expect(c.valor()).toBeUndefined();
+    expect(c.texto()).toBe('');
+  });
 });

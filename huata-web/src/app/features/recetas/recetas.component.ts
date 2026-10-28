@@ -29,21 +29,22 @@ import { buscarChoque, nombresIguales } from '../../core/util/nombres-parecidos'
 import { DialogoService } from '../../core/notificaciones/dialogo.service';
 import { NotificacionesService } from '../../core/notificaciones/notificaciones.service';
 import { recargarEnVivo } from '../../core/services/cambios-tiempo-real.service';
+import { IconoComponent } from '../../shared/ui/icono.component';
 
 
 /**
  * "Recetas y productos": qué fabrica la planta (queso, yogur...) y qué lleva cada producto.
  *
- * <p>Pensada para quien no conoce la jerga: cada producto es una tarjeta que dice en palabras qué
- * lleva ("6 litros de Leche fresca"), y la receta se cambia desde esa tarjeta con un editor que ya
- * trae la receta actual. Los ingredientes se escriben a mano: si ya existen se usan (con su unidad),
+ * <p>Pensada para quien no conoce la jerga: una tabla de productos donde cada fila dice en palabras
+ * qué lleva ("6 litros de Leche fresca"), y la receta se cambia desde esa fila en un panel lateral
+ * que ya trae la receta actual. Los ingredientes se escriben a mano: si ya existen se usan (con su unidad),
  * si se parecen a otro se pregunta, y si son nuevos se crean junto con la receta en una sola
  * operación del servidor. Compras será quien los ingrese al inventario cuando lleguen a planta.
  */
 @Component({
   selector: 'app-recetas',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, IconoComponent],
   templateUrl: './recetas.component.html',
   styleUrl: './recetas.component.css',
 })
@@ -107,6 +108,28 @@ export class RecetasComponent implements OnInit {
   descripcionProducto = '';
   /** Cuántos días dura desde que se produce; vacío = sin vencimiento. */
   vidaUtilDias: number | null = null;
+
+  /** Formas de venta frecuentes, como atajo al escribir "Se vende por". */
+  readonly formasVenta = ['unidad', 'kg', 'botella 1 L', 'vaso', 'balde 4 kg'];
+
+  /** Busca por nombre, sin tildes ni mayúsculas. */
+  readonly busqueda = signal('');
+  readonly productosVisibles = computed(() => {
+    const q = sinTildes(this.busqueda());
+    return q ? this.productos().filter((p) => sinTildes(p.nombre).includes(q)) : this.productos();
+  });
+
+  /** Los números de arriba: cuántos se producen, cuántos no tienen receta y cuántos están pausados. */
+  readonly resumen = computed(() => {
+    const productos = this.productos();
+    const recetas = this.recetas();
+    const activos = productos.filter((p) => p.activo);
+    return {
+      activos: activos.length,
+      pausados: productos.length - activos.length,
+      sinReceta: activos.filter((p) => !recetaVigente(recetas, p.id, this.hoy)).length,
+    };
+  });
 
   // ---- Editor de receta ----
   /** Producto cuya receta se está escribiendo; null = editor cerrado. */
@@ -533,4 +556,8 @@ function enfocar(id: string): void {
 function hoy(): string {
   const d = new Date();
   return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+}
+
+function sinTildes(texto: string): string {
+  return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 }

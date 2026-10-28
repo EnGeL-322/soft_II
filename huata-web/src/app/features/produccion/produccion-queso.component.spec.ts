@@ -154,6 +154,53 @@ describe('Producción: cuánto se puede producir y qué se descuenta', () => {
     expect(c.costoPorUnidad()).toBe(25);
   });
 
+  it('cada tarjeta de producto dice cuánto alcanza o por qué no se puede', () => {
+    const c = crear();
+    c.productos.set([
+      { id: 1, nombre: 'Queso fresco', unidadVenta: 'unidad', activo: true },
+      { id: 2, nombre: 'Yogurt', unidadVenta: 'botella 1 L', activo: true },
+      { id: 3, nombre: 'Manjar', unidadVenta: 'unidad', activo: true },
+      { id: 4, nombre: 'Paria', unidadVenta: 'unidad', activo: true },
+    ]);
+    c.capacidades.set(
+      new Map([
+        [1, CAPACIDAD],
+        [2, { ...CAPACIDAD, unidadVenta: 'botella 1 L', maximoProducible: 0 }],
+        [3, { ...CAPACIDAD, tieneReceta: false, items: [] }],
+      ]),
+    );
+    expect(c.tarjetas().map((t) => [t.texto, t.tono])).toEqual([
+      ['Alcanza para 15 unidades', 'ok'],
+      ['No alcanza para producir', 'falta'],
+      ['Sin receta', 'falta'],
+      ['Mirando el almacén…', 'cargando'],
+    ]);
+  });
+
+  it('la tabla del almacén muestra lo que se usa y lo que queda solo con una cantidad escrita', () => {
+    const c = crear();
+    expect(c.filasInsumos().map((f) => [f.usa, f.queda])).toEqual([
+      [null, null],
+      [null, null],
+    ]);
+    c.cantidad = 10;
+    expect(c.filasInsumos().map((f) => [f.item.materiaPrimaNombre, f.estado, f.usa, f.queda])).toEqual([
+      ['Leche fresca', 'alcanza', 100, 900],
+      ['Sal', 'limita', 0.5, 0.25],
+    ]);
+  });
+
+  it('al guardar, el formulario queda abierto y limpio para la siguiente producción', () => {
+    const c = crear();
+    c.panelAbierto.set(true);
+    c.cantidad = 15;
+    c.guardar();
+    expect(c.panelAbierto()).toBe(true);
+    expect(c.ultimoGuardado()?.codigo).toBe('L2026-0001');
+    expect(c.productoId).toBeNull();
+    expect(c.cantidad).toBeNull();
+  });
+
   it('dice "unidades" en plural y respeta otras formas de venta', () => {
     const c = crear();
     expect(c.unidadVenta(15)).toBe('unidades');

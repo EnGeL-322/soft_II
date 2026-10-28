@@ -1,244 +1,253 @@
-<section class="page">
-  <div class="page-head">
-    <div>
-      <div class="kicker">Compras</div>
-      <h1>Compras</h1>
-      <p>Registra compras de insumos y materias primas para actualizar el inventario.</p>
+<section class="page pd">
+  <header class="pd-head">
+    <div class="pd-head-texto">
+      <span class="pd-migas">Producción</span>
+      <h1 class="pd-titulo">Compras</h1>
+      <p class="pd-subtitulo">Cada compra entra sola al inventario.</p>
     </div>
     @if (puedeEscribir()) {
-      <div class="actions no-print">
-        <button
-          class="btn btn-primary"
-          type="button"
-          [disabled]="guardando()"
-          (click)="formularioAbierto.set(!formularioAbierto())"
-        >
-          {{ formularioAbierto() ? 'Cancelar' : '+ Registrar compra' }}
+      <div class="pd-head-acciones no-print">
+        <button class="pd-btn pd-btn-primario" type="button" (click)="abrirFormulario()">
+          <app-icono nombre="agregar" [tamano]="18" /> Registrar compra
         </button>
       </div>
     }
+  </header>
+
+  <div class="pd-kpis">
+    <div class="pd-kpi">
+      <span class="pd-kpi-icono"><app-icono nombre="compras" [tamano]="20" /></span>
+      <div><span class="pd-kpi-etiqueta">Compras registradas</span><span class="pd-kpi-valor">{{ resumen().total }}</span></div>
+    </div>
+    <div class="pd-kpi">
+      <span class="pd-kpi-icono"><app-icono nombre="precio" [tamano]="20" /></span>
+      <div><span class="pd-kpi-etiqueta">Monto en esta página</span><span class="pd-kpi-valor"><small>S/</small> {{ resumen().monto | number: '1.2-2' }}</span></div>
+    </div>
+    <div class="pd-kpi">
+      <span class="pd-kpi-icono"><app-icono nombre="proveedores" [tamano]="20" /></span>
+      <div><span class="pd-kpi-etiqueta">Proveedores de insumos</span><span class="pd-kpi-valor">{{ proveedores().length }}</span></div>
+    </div>
+    <div class="pd-kpi">
+      <span class="pd-kpi-icono"><app-icono nombre="inventario" [tamano]="20" /></span>
+      <div><span class="pd-kpi-etiqueta">Insumos que se compran</span><span class="pd-kpi-valor">{{ insumosComprables().length }}</span></div>
+    </div>
   </div>
 
-  @if (error()) {
-    <div class="note" role="alert">{{ error() }}</div>
+  @if (error() && !formularioAbierto()) {
+    <div class="pd-alerta" data-tono="falta" role="alert"><span>{{ error() }}</span></div>
   }
 
-  @if (puedeEscribir() && formularioAbierto()) {
-    <details class="module-extra">
-      <summary>Agregar un proveedor de insumos</summary>
-      <div class="card" style="margin-bottom: 16px">
-        <div class="table-title">
-          <div>
-            <h3>Proveedor de compra</h3>
-            <p>Insumos/materia prima — distinto del proveedor de leche.</p>
-          </div>
-        </div>
-        <div class="form-grid">
-          <div class="field">
-            <label for="pc-nombre">Nombre</label
-            ><input
-              id="pc-nombre"
-              [(ngModel)]="nombreProveedor"
-              name="pcNombre"
-              placeholder="Insumos Andinos SAC"
-            />
-          </div>
-          <div class="field">
-            <label for="pc-contacto">Contacto</label
-            ><input id="pc-contacto" [(ngModel)]="contactoProveedor" name="pcContacto" />
-          </div>
-        </div>
-        <div class="actions" style="margin-top: 8px">
-          <button type="button" class="btn btn-soft" (click)="crearProveedor()">
-            Añadir proveedor
-          </button>
-        </div>
-      </div>
-    </details>
-
-    <form class="card" style="margin-bottom: 16px" (ngSubmit)="registrarCompra()">
-      <div class="table-title">
-        <div><h3>Nueva compra</h3></div>
-      </div>
-      <div class="form-grid">
-        <div class="field">
-          <label for="c-prov">Proveedor</label>
-          <app-buscador
-            [opciones]="opcProveedoresCompra()"
-            [(ngModel)]="proveedorCompraId"
-            name="proveedor"
-            etiqueta="Proveedor de compra"
-            placeholder="Buscar proveedor…"
-          />
-        </div>
-        <div class="field">
-          <label for="c-fecha">Fecha</label
-          ><input id="c-fecha" type="date" [(ngModel)]="fecha" name="fecha" required />
-        </div>
-        <div class="field">
-          <label for="c-doc">Documento</label
-          ><input id="c-doc" [(ngModel)]="documento" name="documento" placeholder="F001-000123" />
-        </div>
-      </div>
-
-      <div class="insumos">
-        <div class="insumos-cabecera">
-          <div>
-            <h3>Materia prima comprada</h3>
-            <p>
-              Una fila por cada insumo de la factura o boleta.
-              @if (recetas()) {
-                Solo aparecen los que lleva alguna receta.
-              }
-            </p>
-          </div>
-        </div>
-
-        @for (item of items(); track $index; let i = $index) {
-          <div class="insumo-fila tres-campos">
-            <span class="insumo-numero" aria-hidden="true">{{ i + 1 }}</span>
-
-            <div class="insumo-campo">
-              <span class="insumo-etiqueta">Materia prima</span>
-              <app-buscador
-                [opciones]="opcMateriasPrimas()"
-                [(ngModel)]="item.materiaPrimaId"
-                name="item-mp-{{ i }}"
-                etiqueta="Materia prima {{ i + 1 }}"
-                placeholder="Escribe para buscar (leche, cuajo, sal…)"
-              />
-            </div>
-
-            <div class="insumo-campo">
-              <label [for]="'item-cant-' + i">Cantidad comprada</label>
-              <div class="insumo-con-unidad">
-                <input
-                  [id]="'item-cant-' + i"
-                  type="number"
-                  inputmode="decimal"
-                  step="0.01"
-                  min="0"
-                  placeholder="0"
-                  [(ngModel)]="item.cantidad"
-                  name="item-cant-{{ i }}"
-                />
-                <span class="insumo-unidad">{{ unidadDe(item.materiaPrimaId) }}</span>
-              </div>
-            </div>
-
-            <div class="insumo-campo">
-              <label [for]="'item-costo-' + i"
-                >Precio por cada
-                {{
-                  unidadDe(item.materiaPrimaId) === '—' ? 'unidad' : unidadDe(item.materiaPrimaId)
-                }}</label
-              >
-              <div class="insumo-con-unidad">
-                <input
-                  [id]="'item-costo-' + i"
-                  type="number"
-                  inputmode="decimal"
-                  step="0.01"
-                  min="0"
-                  placeholder="0.00"
-                  [(ngModel)]="item.costoUnitario"
-                  name="item-costo-{{ i }}"
-                />
-                <span class="insumo-unidad">S/</span>
-              </div>
-              @if (subtotal(item) > 0) {
-                <small class="insumo-ejemplo"
-                  >Subtotal: S/ {{ subtotal(item) | number: '1.2-2' }}</small
-                >
-              }
-            </div>
-
-            <button
-              type="button"
-              class="insumo-quitar"
-              [disabled]="items().length === 1"
-              [attr.aria-label]="'Quitar materia prima ' + (i + 1)"
-              (click)="quitarItem(i)"
-            >
-              ✕ Quitar
-            </button>
-          </div>
-        }
-
-        <button type="button" class="insumo-agregar" (click)="agregarItem()">
-          + Añadir otra materia prima
-        </button>
-
-        <div class="insumos-total">
-          <span>Total de la compra</span>
-          <strong>S/ {{ totalCompra() | number: '1.2-2' }}</strong>
-        </div>
-      </div>
-
-      <div class="actions" style="margin-top: 16px">
-        <button type="submit" class="btn btn-primary" [disabled]="guardando()">
-          {{ guardando() ? 'Guardando…' : 'Registrar compra' }}
-        </button>
-      </div>
-    </form>
-  }
-
-  <div class="card">
-    <div class="table-title">
-      <div><h3>Compras registradas</h3></div>
+  <!-- ============================ LISTADO ============================ -->
+  <section class="pd-card" aria-labelledby="titulo-compras">
+    <div class="pd-card-head">
+      <h2 class="pd-card-titulo" id="titulo-compras">Compras registradas</h2>
     </div>
-    <div class="tablebox">
-      <table>
+    <div class="pd-tabla-wrap">
+      <table class="pd-tabla">
         <thead>
           <tr>
             <th>Fecha</th>
             <th>Proveedor</th>
+            <th>Qué se compró</th>
             <th>Documento</th>
+            <th>Estado</th>
             <th class="num">Total</th>
             @if (puedeEscribir()) {
-              <th class="no-print"></th>
+              <th class="acciones no-print"><span class="sr-only">Acciones</span></th>
             }
           </tr>
         </thead>
         <tbody>
           @for (c of compras()?.content; track c.id) {
-            <tr [class.muted]="!c.activo">
+            <tr [class.anulado]="!c.activo">
               <td>{{ c.fecha }}</td>
+              <td class="pd-fuerte">{{ c.proveedorCompraNombre }}</td>
+              <td style="white-space: normal">{{ detalle(c) || '—' }}</td>
+              <td class="pd-muted">{{ c.documento || '—' }}</td>
               <td>
-                {{ c.proveedorCompraNombre }}
-                @if (!c.activo) {
-                  <span class="badge badge-rojo" [title]="c.motivoAnulacion || ''">Anulada</span>
+                @if (c.activo) {
+                  <span class="pd-chip" data-tono="ok">En almacén</span>
+                } @else {
+                  <span class="pd-chip" data-tono="falta" [title]="c.motivoAnulacion || ''">Anulada</span>
                 }
               </td>
-              <td class="muted">{{ c.documento || '—' }}</td>
-              <td class="num" [style.text-decoration]="c.activo ? null : 'line-through'">S/ {{ c.total | number: '1.2-2' }}</td>
+              <td class="num pd-fuerte"><span class="tachado">S/ {{ c.total | number: '1.2-2' }}</span></td>
               @if (puedeEscribir()) {
-                <td class="no-print" style="text-align: right">
+                <td class="acciones no-print">
                   @if (c.activo) {
-                    <button type="button" class="btn btn-sm btn-soft" (click)="anular(c)">Anular</button>
+                    <button type="button" class="pd-btn pd-btn-sm pd-btn-peligro" (click)="anular(c)">Anular</button>
                   }
                 </td>
               }
             </tr>
           }
-          @if (compras()?.content?.length === 0 && !cargando()) {
-            <tr>
-              <td [attr.colspan]="puedeEscribir() ? 5 : 4" class="muted" style="text-align: center; padding: 24px">
-                Sin compras registradas.
-              </td>
-            </tr>
-          }
         </tbody>
       </table>
+      @if (compras()?.content?.length === 0 && !cargando()) {
+        <div class="pd-vacio">
+          <strong>Sin compras registradas</strong>
+          @if (puedeEscribir()) {
+            Usa «Registrar compra» para la primera.
+          }
+        </div>
+      }
     </div>
     @if (compras(); as pg) {
-      <app-paginador
-        [page]="pg.page"
-        [size]="size"
-        [total]="pg.totalElements"
-        (pageChange)="cambiarPagina($event)"
-        (sizeChange)="cambiarTamano($event)"
-      />
+      <div class="pd-paginador">
+        <app-paginador
+          [page]="pg.page"
+          [size]="size"
+          [total]="pg.totalElements"
+          (pageChange)="cambiarPagina($event)"
+          (sizeChange)="cambiarTamano($event)"
+        />
+      </div>
     }
-  </div>
+  </section>
+
+  <!-- ============================ NUEVA COMPRA (panel lateral) ============================ -->
+  @if (puedeEscribir() && formularioAbierto()) {
+    <div class="pd-fondo" (click)="cerrarFormulario()"></div>
+    <form class="pd-panel" role="dialog" aria-modal="true" aria-labelledby="titulo-nueva-compra" (ngSubmit)="registrarCompra()">
+      <div class="pd-ventana-head">
+        <div>
+          <h2 id="titulo-nueva-compra">Registrar compra</h2>
+          <p>Una fila por cada insumo de la factura o boleta.</p>
+        </div>
+        <button type="button" class="pd-cerrar" (click)="cerrarFormulario()" aria-label="Cerrar">×</button>
+      </div>
+
+      <div class="pd-ventana-body">
+        @if (error()) {
+          <div class="pd-alerta" data-tono="falta" role="alert"><span>{{ error() }}</span></div>
+        }
+
+        <div class="pd-grid pd-grid-3">
+          <div class="pd-campo cp-proveedor">
+            <label for="c-prov">Proveedor</label>
+            <app-buscador
+              [opciones]="opcProveedoresCompra()"
+              [(ngModel)]="proveedorCompraId"
+              name="proveedor"
+              etiqueta="Proveedor de compra"
+              placeholder="Buscar proveedor…"
+            />
+            <button type="button" class="pd-btn pd-btn-sm pd-btn-texto" style="align-self: flex-start" (click)="nuevoProveedorAbierto.set(!nuevoProveedorAbierto())">
+              {{ nuevoProveedorAbierto() ? 'Cancelar proveedor nuevo' : '+ Proveedor nuevo' }}
+            </button>
+          </div>
+          <div class="pd-campo">
+            <label for="c-fecha">Fecha</label>
+            <input id="c-fecha" type="date" [(ngModel)]="fecha" name="fecha" [max]="hoy" required />
+          </div>
+          <div class="pd-campo">
+            <label for="c-doc">Documento</label>
+            <input id="c-doc" [(ngModel)]="documento" name="documento" placeholder="F001-000123" />
+          </div>
+        </div>
+
+        @if (nuevoProveedorAbierto()) {
+          <div class="pd-fila" style="grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; align-items: end">
+            <div class="pd-campo">
+              <label for="pc-nombre">Nombre del proveedor</label>
+              <input id="pc-nombre" [(ngModel)]="nombreProveedor" name="pcNombre" placeholder="Insumos Andinos SAC" />
+            </div>
+            <div class="pd-campo">
+              <label for="pc-contacto">Contacto <span class="pd-muted">(opcional)</span></label>
+              <input id="pc-contacto" [(ngModel)]="contactoProveedor" name="pcContacto" />
+            </div>
+            <button type="button" class="pd-btn" (click)="crearProveedor()" [disabled]="!nombreProveedor.trim()">Agregar</button>
+          </div>
+        }
+
+        <div>
+          <p class="pd-etiqueta" style="margin: 0 0 8px">
+            Insumos comprados
+            @if (recetas()) {
+              <span class="pd-muted" style="font-weight: 400">· solo los que lleva alguna receta.</span>
+              <a routerLink="/recetas" style="font-weight: 600">¿Falta uno? Agrégalo a una receta</a>
+            }
+          </p>
+          <div class="pd-filas">
+            @for (item of items(); track $index; let i = $index) {
+              @let falla = problema(i);
+              @let aviso = falla ? null : avisoPrecio(item);
+              <div class="pd-fila cp-fila" [class.con-error]="falla">
+                <div class="pd-campo">
+                  <span class="pd-etiqueta">Insumo</span>
+                  <app-buscador
+                    [opciones]="opcMateriasPrimas()"
+                    [ngModel]="item.materiaPrimaId"
+                    (ngModelChange)="alElegirInsumo(item, $event)"
+                    [sinCoincidencias]="porQueNoAparece"
+                    name="item-mp-{{ i }}"
+                    etiqueta="Insumo {{ i + 1 }}"
+                    placeholder="Escribe para buscar"
+                  />
+                </div>
+                <div class="pd-campo">
+                  <label [for]="'item-cant-' + i">Cantidad</label>
+                  <div class="pd-con-unidad">
+                    <input
+                      [id]="'item-cant-' + i"
+                      type="number"
+                      inputmode="decimal"
+                      step="0.01"
+                      min="0"
+                      placeholder="0"
+                      [(ngModel)]="item.cantidad"
+                      name="item-cant-{{ i }}"
+                    />
+                    <span class="pd-unidad">{{ unidadDe(item.materiaPrimaId) }}</span>
+                  </div>
+                </div>
+                <div class="pd-campo">
+                  <label [for]="'item-costo-' + i">Precio por {{ unidadDe(item.materiaPrimaId) === '—' ? 'unidad' : unidadDe(item.materiaPrimaId) }}</label>
+                  <div class="pd-con-unidad antes">
+                    <input
+                      [id]="'item-costo-' + i"
+                      type="number"
+                      inputmode="decimal"
+                      step="0.01"
+                      min="0"
+                      placeholder="0.00"
+                      [(ngModel)]="item.costoUnitario"
+                      name="item-costo-{{ i }}"
+                    />
+                    <span class="pd-unidad">S/</span>
+                  </div>
+                </div>
+                <div class="pd-campo cp-subtotal">
+                  <span class="pd-etiqueta">Subtotal</span>
+                  <span class="pd-fuerte">S/ {{ subtotal(item) | number: '1.2-2' }}</span>
+                </div>
+                <button
+                  type="button"
+                  class="pd-btn pd-btn-icono pd-btn-peligro cp-quitar"
+                  [attr.aria-label]="items().length === 1 ? 'Vaciar la fila' : 'Quitar insumo ' + (i + 1)"
+                  (click)="quitarItem(i)"
+                >
+                  ✕
+                </button>
+                @if (falla) {
+                  <p class="cp-mensaje falta" role="alert">{{ falla }}</p>
+                } @else if (aviso) {
+                  <p class="cp-mensaje aviso">⚠ {{ aviso }}</p>
+                }
+              </div>
+            }
+            <button type="button" class="pd-agregar" (click)="agregarItem()">+ Agregar otro insumo</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="pd-ventana-foot">
+        <span class="pd-foot-info pd-total">Total <strong>S/ {{ totalCompra() | number: '1.2-2' }}</strong></span>
+        <button type="button" class="pd-btn" (click)="cerrarFormulario()">Cancelar</button>
+        <button type="submit" class="pd-btn pd-btn-primario" [disabled]="guardando()">
+          {{ guardando() ? 'Guardando…' : 'Registrar compra' }}
+        </button>
+      </div>
+    </form>
+  }
 </section>

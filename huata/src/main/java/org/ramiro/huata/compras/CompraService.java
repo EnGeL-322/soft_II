@@ -75,6 +75,12 @@ public class CompraService {
                     .findById(itemReq.materiaPrimaId())
                     .filter(MateriaPrima::isActivo)
                     .orElseThrow(() -> NotFoundException.of("Materia prima", itemReq.materiaPrimaId()));
+            // La leche entra al almacen al recibir rutas o entregas directas, con su liquidacion al
+            // proveedor: comprarla aqui la contaria dos veces. La web ya no la ofrece; esto cubre la API.
+            if (materiaPrima.isLecheAcopio()) {
+                throw new BusinessRuleException(
+                        "La leche no se compra: entra al almacén al recibir las rutas o una entrega directa.");
+            }
 
             CompraItem item = new CompraItem();
             item.setCompra(guardada);

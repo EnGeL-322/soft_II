@@ -1,571 +1,588 @@
-<section class="page amigable produccion-simple">
-  <div class="page-head">
-    <div>
-      <div class="kicker">Producción</div>
+<section class="page pd">
+  <!-- ================================================================ ENCABEZADO -->
+  <header class="pd-head">
+    <div class="pd-head-texto">
+      <span class="pd-migas">Producción</span>
       @switch (pestana()) {
         @case ('registrar') {
-          <h1>Registrar producción</h1>
-          <p>Registra lo que se produjo hoy.</p>
+          <h1 class="pd-titulo">Registrar producción</h1>
+          <p class="pd-subtitulo">Elige el producto, di cuántas hiciste y guarda.</p>
         }
         @case ('reportes') {
-          <h1>Reportes de producción</h1>
-          <p>Ventas, rendimiento del acopio e ingresos del ciclo.</p>
+          <h1 class="pd-titulo">Reportes de producción</h1>
+          <p class="pd-subtitulo">Ventas, rendimiento del acopio e ingresos del ciclo.</p>
         }
         @default {
-          <h1>Historial de producción</h1>
-          <p>Consulta los lotes producidos, su costo y lo que queda en stock.</p>
+          <h1 class="pd-titulo">Historial de producción</h1>
+          <p class="pd-subtitulo">Lotes producidos, su costo y lo que queda para vender.</p>
         }
       }
     </div>
-  </div>
+    <nav class="pd-tabs no-print" aria-label="Secciones de producción">
+      @if (puedeRegistrar()) {
+        <a class="pd-tab" routerLink="/produccion-queso" [queryParams]="{ vista: 'registrar' }" [attr.aria-selected]="pestana() === 'registrar'">
+          <app-icono nombre="agregar" [tamano]="16" /> Registrar
+        </a>
+      }
+      <a class="pd-tab" routerLink="/produccion-queso" [queryParams]="{ vista: 'historial' }" [attr.aria-selected]="pestana() === 'historial'">
+        <app-icono nombre="historial" [tamano]="16" /> Historial
+      </a>
+      @if (puedeVerReporte()) {
+        <a class="pd-tab" routerLink="/produccion-queso" [queryParams]="{ vista: 'reportes' }" [attr.aria-selected]="pestana() === 'reportes'">
+          <app-icono nombre="reportes" [tamano]="16" /> Reportes
+        </a>
+      }
+    </nav>
+  </header>
+
+  <!-- ================================================================ INDICADORES -->
+  @if (pestana() !== 'reportes') {
+    <div class="pd-kpis">
+      <div class="pd-kpi">
+        <span class="pd-kpi-icono"><app-icono nombre="produccion" [tamano]="20" /></span>
+        <div>
+          <span class="pd-kpi-etiqueta">Producido hoy</span>
+          <span class="pd-kpi-valor">{{ producidoHoy() }} <small>u</small></span>
+        </div>
+      </div>
+      <div class="pd-kpi" [attr.data-tono]="lecheDisponible() === 0 ? 'aviso' : null">
+        <span class="pd-kpi-icono"><app-icono nombre="acopio" [tamano]="20" /></span>
+        <div>
+          <span class="pd-kpi-etiqueta">Leche en almacén</span>
+          <span class="pd-kpi-valor">{{ lecheDisponible() != null ? (lecheDisponible() | number: '1.0-0') : '—' }} <small>L</small></span>
+        </div>
+      </div>
+      <div class="pd-kpi" data-tono="ok">
+        <span class="pd-kpi-icono"><app-icono nombre="inventario" [tamano]="20" /></span>
+        <div>
+          <span class="pd-kpi-etiqueta">Listo para vender</span>
+          <span class="pd-kpi-valor">{{ stockTotal() }} <small>u</small></span>
+        </div>
+      </div>
+      <div class="pd-kpi">
+        <span class="pd-kpi-icono"><app-icono nombre="historial" [tamano]="20" /></span>
+        <div>
+          <span class="pd-kpi-etiqueta">Lotes registrados</span>
+          <span class="pd-kpi-valor">{{ lotes().length }}</span>
+        </div>
+      </div>
+    </div>
+  }
 
   @if (error()) {
-    <div class="mensaje mensaje-error" role="alert">{{ error() }}</div>
+    <div class="pd-alerta" data-tono="falta" role="alert"><span>{{ error() }}</span></div>
   }
 
   <!-- ================================================================ REGISTRAR -->
   @if (pestana() === 'registrar' && puedeRegistrar()) {
-    @if (!panelAbierto()) {
-      <div class="botonera accion-principal no-print">
-        <button type="button" class="boton-grande" (click)="abrirRegistro()">
-          + Registrar producción
-        </button>
-        <a
-          class="btn btn-soft"
-          routerLink="/produccion-queso"
-          [queryParams]="{ vista: 'historial' }"
-        >
-          Ver historial de producción
-        </a>
+    @if (ultimoGuardado(); as g) {
+      <div class="pd-alerta" data-tono="ok" role="status">
+        <span>
+          <b>Guardado {{ g.codigo }}:</b> {{ g.unidadesProducidas }} {{ g.productoNombre }}
+          @if (g.fechaVencimiento) {
+            · vence el {{ g.fechaVencimiento }}
+          }
+          · ya está para vender.
+        </span>
       </div>
     }
 
-    @if (panelAbierto()) {
-      <section class="bloque panel-registro" aria-labelledby="titulo-registro">
-        <div class="bloque-cabecera">
-          <h2 id="titulo-registro">Registrar producción</h2>
-          <button type="button" class="boton-texto" (click)="cerrarRegistro()">Cancelar</button>
+    @if (!panelAbierto()) {
+      <div class="pd-card">
+        <div class="pd-vacio">
+          <strong>¿Produjiste algo hoy?</strong>
+          <button type="button" class="pd-btn pd-btn-primario pd-btn-lg" (click)="abrirRegistro()">
+            <app-icono nombre="agregar" [tamano]="18" /> Registrar producción
+          </button>
         </div>
-
-        <!-- 1. Producto -->
-        <div class="campo">
-          <span class="campo-etiqueta">1. ¿Qué vas a producir?</span>
-          <app-buscador
-            [opciones]="opcProductos()"
-            [ngModel]="productoId"
-            (ngModelChange)="elegirProducto($event)"
-            name="producto"
-            etiqueta="Producto"
-            placeholder="Escribe el producto"
-          />
-        </div>
-
-        @if (cargandoCapacidad()) {
-          <p class="vacio" role="status">Mirando el almacén…</p>
-        }
-
-        @if (capacidad(); as c) {
-          @if (!c.tieneReceta) {
-            <div class="mensaje mensaje-aviso aviso-accion">
-              <span>⚠ {{ c.productoNombre }} no tiene receta.</span>
-              @if (puedeVerRecetas()) {
-                <a routerLink="/recetas">Ir a Recetas</a>
-              }
+      </div>
+    } @else {
+      <div class="pq-layout">
+        <section class="pd-card" aria-labelledby="titulo-registro">
+          <div class="pd-card-head">
+            <div>
+              <h2 class="pd-card-titulo" id="titulo-registro">Nueva producción</h2>
+              <p class="pd-card-sub">Lo que se descuenta del almacén sale de la receta.</p>
             </div>
-          } @else {
-            @if (!c.recetaLlevaLeche) {
-              <div class="mensaje mensaje-aviso aviso-accion">
-                <span>⚠ La receta no dice cuánta leche lleva.</span>
-                @if (puedeVerRecetas()) {
-                  <a routerLink="/recetas">Completar receta</a>
+          </div>
+
+          <div class="pd-card-body pq-pasos">
+            <!-- 1. Producto -->
+            <div class="pq-paso">
+              <h3 class="pq-paso-titulo" id="pq-elegir"><span class="pq-paso-num">1</span> ¿Qué produjiste?</h3>
+              @if (!productos().length) {
+                <p class="pd-muted" role="status">Cargando productos…</p>
+              }
+              <div class="pd-opciones" role="radiogroup" aria-labelledby="pq-elegir">
+                @for (t of tarjetas(); track t.producto.id) {
+                  <button
+                    type="button"
+                    role="radio"
+                    class="pd-opcion"
+                    [attr.aria-checked]="productoId === t.producto.id"
+                    (click)="elegirProducto(t.producto.id)"
+                  >
+                    <span class="pd-opcion-nombre">{{ t.producto.nombre }}</span>
+                    <span class="pd-chip" [attr.data-tono]="t.tono === 'cargando' ? null : t.tono">{{ t.texto }}</span>
+                  </button>
                 }
               </div>
-            }
-
-            <!-- Cuánto alcanza -->
-            <div
-              class="capacidad"
-              [class.capacidad-cero]="c.maximoProducible === 0"
-              aria-live="polite"
-            >
-              @if (c.maximoProducible) {
-                <span class="capacidad-texto">
-                  {{
-                    limitante()?.esLeche
-                      ? 'Con la leche disponible puedes producir'
-                      : 'Puedes producir hasta'
-                  }}
-                </span>
-                <strong class="capacidad-numero">{{ c.maximoProducible }}</strong>
-                <span class="capacidad-texto">{{ unidadVenta(c.maximoProducible) }}</span>
-              } @else {
-                <strong class="capacidad-texto">✗ Con lo que hay no alcanza para producir.</strong>
-              }
             </div>
-            @if (limitante(); as l) {
-              <p class="limitante">
-                <span class="estado estado-limita">⚠ Limita {{ l.materiaPrimaNombre }}</span>
-                alcanza para {{ l.alcanzaPara }}
-              </p>
+
+            @if (cargandoCapacidad()) {
+              <p class="pd-muted" role="status">Mirando el almacén…</p>
             }
 
-            <ul class="insumos-estado">
-              @for (i of c.items; track i.materiaPrimaId) {
-                <li [class]="'insumo-' + estadoInsumo(i)">
-                  <span class="insumo-icono" aria-hidden="true">{{
-                    estadoInsumo(i) === 'alcanza' ? '✓' : estadoInsumo(i) === 'limita' ? '⚠' : '✗'
-                  }}</span>
-                  <span class="insumo-nombre">{{ i.materiaPrimaNombre }}</span>
-                  <span class="insumo-dato">
-                    hay <b>{{ i.stockActual | number: '1.0-3' }} {{ unidad(i) }}</b> · 1 lleva
-                    {{ i.cantidadPorUnidad | number: '1.0-4' }} {{ unidad(i) }}
+            @if (capacidad(); as c) {
+              @if (!c.tieneReceta) {
+                <div class="pd-alerta" data-tono="aviso">
+                  <span>{{ c.productoNombre }} todavía no tiene receta.</span>
+                  @if (puedeVerRecetas()) {
+                    <a routerLink="/recetas">Crear la receta</a>
+                  }
+                </div>
+              } @else {
+                @if (!c.recetaLlevaLeche) {
+                  <div class="pd-alerta" data-tono="aviso">
+                    <span>La receta no dice cuánta leche lleva.</span>
+                    @if (puedeVerRecetas()) {
+                      <a routerLink="/recetas">Completar la receta</a>
+                    }
+                  </div>
+                }
+
+                <!-- 2. Cantidades -->
+                <div class="pq-paso">
+                  <h3 class="pq-paso-titulo"><span class="pq-paso-num">2</span> ¿Cuántas?</h3>
+                  <div class="pd-grid pd-grid-2">
+                    <div class="pd-campo">
+                      <label for="pq-cantidad">Pusiste a producir</label>
+                      <div class="pq-max">
+                        <input
+                          id="pq-cantidad"
+                          class="pd-input-grande"
+                          type="number"
+                          inputmode="numeric"
+                          step="1"
+                          min="1"
+                          [max]="c.maximoProducible ?? null"
+                          name="cantidad"
+                          [(ngModel)]="cantidad"
+                          placeholder="0"
+                          aria-describedby="pq-alcanza"
+                          [attr.aria-invalid]="excedeMaximo() ? 'true' : null"
+                        />
+                        @if (c.maximoProducible) {
+                          <button type="button" class="pd-btn" (click)="usarMaximo()">Máx. {{ c.maximoProducible }}</button>
+                        }
+                      </div>
+                    </div>
+                    <div class="pd-campo">
+                      <label for="pq-salieron">Salieron <span class="pd-muted">(si fueron menos)</span></label>
+                      <input
+                        id="pq-salieron"
+                        class="pd-input-grande"
+                        type="number"
+                        inputmode="numeric"
+                        step="1"
+                        min="1"
+                        name="salieron"
+                        [(ngModel)]="salieron"
+                        [placeholder]="cantidad ? '' + cantidad : '0'"
+                      />
+                    </div>
+                  </div>
+                  <span id="pq-alcanza" class="pd-ayuda" [class.falta]="excedeMaximo() || !c.maximoProducible">
+                    @if (!c.maximoProducible) {
+                      Con lo que hay en el almacén no alcanza para producir.
+                    } @else if (excedeMaximo()) {
+                      No alcanza: el máximo es {{ c.maximoProducible }}.
+                    } @else {
+                      Alcanza para {{ c.maximoProducible }} {{ unidadVenta(c.maximoProducible) }}{{ limitante() ? '. El límite lo pone ' + limitante()!.materiaPrimaNombre : '' }}.
+                    }
                   </span>
-                  <span
-                    class="estado"
-                    [class.estado-ok]="estadoInsumo(i) === 'alcanza'"
-                    [class.estado-limita]="estadoInsumo(i) === 'limita'"
-                    [class.estado-falta]="estadoInsumo(i) === 'falta'"
-                  >
-                    {{ estadoInsumo(i) === 'falta' ? 'Falta' : 'Para ' + i.alcanzaPara }}
-                  </span>
+                </div>
+
+                <!-- 3. Almacén -->
+                @if (c.items.length) {
+                  <div class="pq-paso">
+                    <h3 class="pq-paso-titulo"><span class="pq-paso-num">3</span> Se usa del almacén</h3>
+                    <div class="pd-card pd-tabla-wrap">
+                      <table class="pd-tabla pd-tabla-compacta">
+                        <thead>
+                          <tr>
+                            <th>Insumo</th>
+                            <th class="num">Hay</th>
+                            <th class="num">Se usa</th>
+                            <th class="num">Queda</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          @for (f of filasInsumos(); track f.item.materiaPrimaId) {
+                            <tr [attr.data-estado]="f.estado">
+                              <td>
+                                <span class="pq-estado-insumo" aria-hidden="true">{{ f.estado === 'alcanza' ? '✓' : f.estado === 'limita' ? '!' : '✕' }}</span>
+                                <span class="pd-fuerte">{{ f.item.materiaPrimaNombre }}</span>
+                                @if (f.estado === 'falta') {
+                                  @if (!f.item.esLeche && puedeVerCompras() && compraSugerida(f.item); as sug) {
+                                    <a class="pd-btn pd-btn-sm pd-btn-texto" routerLink="/compras" [queryParams]="sug">Comprar</a>
+                                  } @else if (f.item.esLeche) {
+                                    <span class="pd-sub">Entra al recibir las rutas</span>
+                                  }
+                                }
+                              </td>
+                              <td class="num">{{ f.item.stockActual | number: '1.0-3' }} {{ unidad(f.item) }}</td>
+                              <td class="num">{{ f.usa != null ? (f.usa | number: '1.0-3') + ' ' + unidad(f.item) : '—' }}</td>
+                              <td class="num">{{ f.queda != null ? (f.queda | number: '1.0-3') + ' ' + unidad(f.item) : '—' }}</td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                }
+
+                <!-- Resumen del lote -->
+                <dl class="pd-resumen">
+                  <div>
+                    <dt>Vence</dt>
+                    <dd>
+                      @if (vencimientoPrevisto(); as v) {
+                        {{ v }}
+                      } @else {
+                        <span class="pd-ayuda falta">Sin configurar</span>
+                        @if (puedeVerConfiguracion()) {
+                          <a routerLink="/reglas-leche">Configurar</a>
+                        }
+                      }
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Costo aprox.</dt>
+                    <dd>{{ costoEstimado() != null ? 'S/ ' + (costoEstimado() | number: '1.2-2') : '—' }}</dd>
+                  </div>
+                  <div>
+                    <dt>Costo por unidad</dt>
+                    <dd>{{ costoPorUnidad() != null ? 'S/ ' + (costoPorUnidad() | number: '1.2-2') : '—' }}</dd>
+                  </div>
+                  <div>
+                    <dt>A cargo</dt>
+                    <dd>{{ responsable || '—' }}</dd>
+                  </div>
+                </dl>
+
+                <details class="pd-plegable" [open]="!!quesosReparados || !!quesosRecorte">
+                  <summary>¿Salieron quesos mal?</summary>
+                  <div class="pd-plegable-body pd-grid pd-grid-3">
+                    <div class="pd-campo">
+                      <label for="pq-reparados">Reconstruidos</label>
+                      <input id="pq-reparados" type="number" min="0" step="1" name="quesosReparados" [(ngModel)]="quesosReparados" placeholder="0" />
+                    </div>
+                    <div class="pd-campo">
+                      <label for="pq-recorte">Recorte (unidades)</label>
+                      <input id="pq-recorte" type="number" min="0" step="1" name="quesosRecorte" [(ngModel)]="quesosRecorte" placeholder="0" />
+                    </div>
+                    <div class="pd-campo">
+                      <label for="pq-recorte-kg">Recorte (kg)</label>
+                      <input id="pq-recorte-kg" type="number" min="0" step="0.01" name="recorteKg" [(ngModel)]="recorteKg" placeholder="0" />
+                    </div>
+                  </div>
+                </details>
+
+                <details class="pd-plegable">
+                  <summary>Fecha, responsable, vencimiento y personal</summary>
+                  <div class="pd-plegable-body">
+                    <div class="pd-grid pd-grid-2">
+                      <div class="pd-campo">
+                        <label for="pq-resp">¿Quién estuvo a cargo?</label>
+                        <input id="pq-resp" name="responsable" [(ngModel)]="responsable" />
+                      </div>
+                      <div class="pd-campo">
+                        <label for="pq-fecha">Fecha de producción</label>
+                        <input id="pq-fecha" type="date" name="fecha" [(ngModel)]="fecha" (change)="cargarCapacidad(); cargarTarjetas()" />
+                      </div>
+                      <div class="pd-campo">
+                        <label for="pq-vence">Otra fecha de vencimiento</label>
+                        <input id="pq-vence" type="date" name="fechaVencimiento" [(ngModel)]="fechaVencimiento" [min]="fecha" />
+                      </div>
+                      <div class="pd-campo">
+                        <label for="pq-origen">Leche usada</label>
+                        <select id="pq-origen" name="origen" [(ngModel)]="origenLeche">
+                          <option value="ACOPIO_DEL_DIA">Del acopio de hoy</option>
+                          <option value="STOCK_CAMARA">Guardada en cámara</option>
+                        </select>
+                      </div>
+                      <div class="pd-campo pd-campo-ancho">
+                        <label for="pq-obs">Notas</label>
+                        <input id="pq-obs" name="observaciones" [(ngModel)]="observaciones" />
+                      </div>
+                    </div>
+
+                    @if (trabajadores().length) {
+                      <p class="pd-etiqueta" style="margin-top: 18px">Quiénes trabajaron</p>
+                      <div class="pd-filas">
+                        @for (f of manoObraFilas(); track $index; let i = $index) {
+                          <div class="pd-fila" style="grid-template-columns: minmax(0, 1fr) 160px 36px">
+                            <app-buscador
+                              [opciones]="opcTrabajadores()"
+                              [(ngModel)]="f.trabajadorId"
+                              name="trabajador-{{ i }}"
+                              etiqueta="Persona {{ i + 1 }}"
+                              placeholder="Nombre"
+                            />
+                            <div class="pd-campo">
+                              <div class="pd-con-unidad antes">
+                                <input
+                                  type="number"
+                                  inputmode="decimal"
+                                  step="0.01"
+                                  min="0"
+                                  placeholder="0.00"
+                                  [(ngModel)]="f.monto"
+                                  name="monto-{{ i }}"
+                                  [attr.aria-label]="'Pago de la persona ' + (i + 1)"
+                                />
+                                <span class="pd-unidad">S/</span>
+                              </div>
+                            </div>
+                            <button type="button" class="pd-btn pd-btn-icono pd-btn-peligro" (click)="quitarManoObra(i)" [attr.aria-label]="'Quitar persona ' + (i + 1)">✕</button>
+                          </div>
+                        }
+                        <button type="button" class="pd-agregar" (click)="agregarManoObra()">+ Agregar persona</button>
+                      </div>
+                    }
+                  </div>
+                </details>
+              }
+            }
+          </div>
+
+          @if (productoId) {
+            <div class="pd-card-foot fijo">
+              <span class="pd-foot-info">
+                @if (faltantes().length) {
+                  Para guardar: {{ faltantes().join(' · ') }}
+                } @else {
+                  Todo listo.
+                }
+              </span>
+              <button type="button" class="pd-btn" (click)="limpiar()">Empezar de nuevo</button>
+              <button type="button" class="pd-btn pd-btn-primario pd-btn-lg" [disabled]="!puedeGuardar()" (click)="guardar()">
+                {{ guardando() ? 'Guardando…' : 'Guardar producción' }}
+              </button>
+            </div>
+          }
+        </section>
+
+        <!-- Lateral: lo de hoy -->
+        <aside class="pd-card" aria-labelledby="titulo-hoy">
+          <div class="pd-card-head">
+            <h2 class="pd-card-titulo" id="titulo-hoy">Hoy se produjo</h2>
+            <a class="pd-btn pd-btn-sm pd-btn-texto" routerLink="/produccion-queso" [queryParams]="{ vista: 'historial' }">Ver todo</a>
+          </div>
+          @if (lotesDeHoy().length) {
+            <ul class="pq-hoy">
+              @for (l of lotesDeHoy(); track l.id) {
+                <li>
+                  <div>
+                    <strong>{{ l.productoNombre }}</strong>
+                    <small>{{ l.codigo }} · {{ l.litrosDestinados | number: '1.0-1' }} L</small>
+                  </div>
+                  <div class="pq-hoy-num">
+                    {{ l.unidadesProducidas }}
+                    <small style="display: block; font-weight: 500">quedan {{ l.stock }}</small>
+                  </div>
                 </li>
               }
             </ul>
-
-            @if (insumosQueFaltan().length) {
-              <div class="mensaje mensaje-aviso aviso-accion">
-                <span
-                  >✗ Falta {{ insumosQueFaltan()[0].materiaPrimaNombre
-                  }}{{
-                    insumosQueFaltan().length > 1
-                      ? ' y ' + (insumosQueFaltan().length - 1) + ' más'
-                      : ''
-                  }}.</span
-                >
-                @if (puedeVerCompras() && compraSugerida(); as sug) {
-                  <a routerLink="/compras" [queryParams]="sug">Comprar {{ insumoPorComprar()?.materiaPrimaNombre }}</a>
-                } @else if (faltaLeche()) {
-                  <span class="muted">La leche entra al recibir las rutas o una entrega directa en planta.</span>
-                }
-              </div>
-            }
-
-            <!-- 2. Cantidad -->
-            <div class="campo campo-destacado cantidad-produccion">
-              <label for="pq-cantidad">2. ¿Cuántas vas a producir?</label>
-              <div class="cantidad-fila">
-                <input
-                  id="pq-cantidad"
-                  type="number"
-                  inputmode="numeric"
-                  step="1"
-                  min="1"
-                  [max]="c.maximoProducible ?? null"
-                  name="cantidad"
-                  [(ngModel)]="cantidad"
-                  placeholder="Ej. 15"
-                />
-                @if (c.maximoProducible) {
-                  <button type="button" class="boton-secundario" (click)="usarMaximo()">
-                    Máximo {{ c.maximoProducible }}
-                  </button>
-                }
-              </div>
-              @if (excedeMaximo()) {
-                <small class="texto-falta" role="alert"
-                  >✗ No alcanza: el máximo es {{ c.maximoProducible }}.</small
-                >
-              }
-            </div>
-
-            <!-- 3. Lo que se descuenta -->
-            @if (consumoPrevisto().length) {
-              <div class="descuento" aria-live="polite">
-                <span class="campo-etiqueta">3. Se descontará del almacén</span>
-                <ul>
-                  @for (p of consumoPrevisto(); track p.item.materiaPrimaId) {
-                    <li [class.texto-falta]="p.queda < 0">
-                      <b>{{ p.descontar | number: '1.0-3' }} {{ unidad(p.item) }}</b>
-                      de {{ p.item.materiaPrimaNombre }}
-                      <small>· quedan {{ p.queda | number: '1.0-3' }}</small>
-                    </li>
-                  }
-                </ul>
-                @if (costoEstimado() != null) {
-                  <small class="costo-aprox">
-                    Costo aprox. S/ {{ costoEstimado() | number: '1.2-2' }}
-                    @if (costoPorUnidad() != null) {
-                      (S/ {{ costoPorUnidad() | number: '1.2-2' }} c/u)
-                    }
-                  </small>
-                }
-              </div>
-            }
-
-            <!-- Vencimiento: siempre a la vista, sale de Configuración -->
-            <div class="vence-linea" [class.texto-falta]="!vencimientoPrevisto()">
-              @if (vencimientoPrevisto(); as v) {
-                <span>Vence el <b>{{ v }}</b>{{ !fechaVencimiento && vidaUtilElegida() ? ' (a los ' + vidaUtilElegida() + ' días)' : '' }}.</span>
-              } @else {
-                <span>✗ Falta configurar cuántos días dura este producto.</span>
-                @if (puedeVerConfiguracion()) {
-                  <a routerLink="/reglas-leche">Configurar vencimiento</a>
-                }
-              }
-            </div>
-
-            <!-- Quesos que salieron mal: reconstruidos y recorte -->
-            <details class="opcionales salieron-mal" [open]="!!quesosReparados || !!quesosRecorte">
-              <summary>¿Salieron quesos mal?</summary>
-              <p class="ayuda-mal">
-                Anota cuántos de los que salieron tuvieron que <b>reconstruirse</b> (se arreglaron y se venden) y
-                cuántos quedaron como <b>recorte</b>. Quedan registrados en el lote para ver qué tandas salen mal.
-              </p>
-              <div class="campos">
-                <div class="campo">
-                  <label for="pq-reparados">Reconstruidos</label>
-                  <input
-                    id="pq-reparados"
-                    type="number"
-                    min="0"
-                    step="1"
-                    name="quesosReparados"
-                    [(ngModel)]="quesosReparados"
-                    placeholder="0"
-                  />
-                </div>
-                <div class="campo">
-                  <label for="pq-recorte">Recorte (unidades)</label>
-                  <input
-                    id="pq-recorte"
-                    type="number"
-                    min="0"
-                    step="1"
-                    name="quesosRecorte"
-                    [(ngModel)]="quesosRecorte"
-                    placeholder="0"
-                  />
-                </div>
-                <div class="campo">
-                  <label for="pq-recorte-kg">Recorte (kg)</label>
-                  <input
-                    id="pq-recorte-kg"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    name="recorteKg"
-                    [(ngModel)]="recorteKg"
-                    placeholder="0"
-                  />
-                </div>
-              </div>
-            </details>
-
-            <!-- Todo lo demás, plegado -->
-            <details class="opcionales">
-              <summary>Más detalles</summary>
-              <div class="campos">
-                <div class="campo">
-                  <label for="pq-resp">¿Quién estuvo a cargo?</label>
-                  <input id="pq-resp" name="responsable" [(ngModel)]="responsable" />
-                </div>
-                <div class="campo">
-                  <label for="pq-salieron"
-                    >¿Salieron menos? <span class="opcional">(opcional)</span></label
-                  >
-                  <input
-                    id="pq-salieron"
-                    type="number"
-                    inputmode="numeric"
-                    step="1"
-                    min="1"
-                    name="salieron"
-                    [(ngModel)]="salieron"
-                    [placeholder]="cantidad ? 'Salieron ' + cantidad : 'Ej. 14'"
-                  />
-                  <small>Se descuenta lo puesto a producir; se guarda lo que salió.</small>
-                </div>
-                <div class="campo">
-                  <label for="pq-fecha">Fecha</label>
-                  <input
-                    id="pq-fecha"
-                    type="date"
-                    name="fecha"
-                    [(ngModel)]="fecha"
-                    (change)="cargarCapacidad()"
-                  />
-                </div>
-                <div class="campo">
-                  <label for="pq-vence">Cambiar vencimiento</label>
-                  <input
-                    id="pq-vence"
-                    type="date"
-                    name="fechaVencimiento"
-                    [(ngModel)]="fechaVencimiento"
-                    [min]="fecha"
-                  />
-                  <small>Solo si este lote vence en otra fecha.</small>
-                </div>
-                <div class="campo">
-                  <label for="pq-origen">Leche</label>
-                  <select id="pq-origen" name="origen" [(ngModel)]="origenLeche">
-                    <option value="ACOPIO_DEL_DIA">Del acopio de hoy</option>
-                    <option value="STOCK_CAMARA">Guardada en cámara</option>
-                  </select>
-                </div>
-                <div class="campo">
-                  <label for="pq-obs">Notas</label>
-                  <input id="pq-obs" name="observaciones" [(ngModel)]="observaciones" />
-                </div>
-              </div>
-
-              @if (trabajadores().length) {
-                <span class="campo-etiqueta" style="display: block; margin-top: 16px"
-                  >Quiénes trabajaron</span
-                >
-                <div class="insumos">
-                  @for (f of manoObraFilas(); track $index; let i = $index) {
-                    <div class="insumo-fila">
-                      <div class="insumo-campo">
-                        <app-buscador
-                          [opciones]="opcTrabajadores()"
-                          [(ngModel)]="f.trabajadorId"
-                          name="trabajador-{{ i }}"
-                          etiqueta="Persona {{ i + 1 }}"
-                          placeholder="Nombre"
-                        />
-                      </div>
-                      <div class="insumo-campo">
-                        <div class="insumo-con-unidad">
-                          <input
-                            type="number"
-                            inputmode="decimal"
-                            step="0.01"
-                            min="0"
-                            placeholder="Pago"
-                            [(ngModel)]="f.monto"
-                            name="monto-{{ i }}"
-                            [attr.aria-label]="'Pago de la persona ' + (i + 1)"
-                          />
-                          <span class="insumo-unidad">S/</span>
-                        </div>
-                      </div>
-                      <button type="button" class="insumo-quitar" (click)="quitarManoObra(i)">
-                        ✕
-                      </button>
-                    </div>
-                  }
-                  <button type="button" class="insumo-agregar" (click)="agregarManoObra()">
-                    + Persona
-                  </button>
-                </div>
-              }
-            </details>
+          } @else {
+            <p class="pd-vacio">Todavía no se registró nada hoy.</p>
           }
-        }
-
-        @if (productoId && faltantes().length) {
-          <p class="vacio">Para guardar: {{ faltantes().join(' · ') }}</p>
-        }
-        <div class="botonera">
-          <button
-            type="button"
-            class="boton-grande"
-            [disabled]="!puedeGuardar()"
-            (click)="guardar()"
-          >
-            {{ guardando() ? 'Guardando…' : 'Guardar producción' }}
-          </button>
-          <button type="button" class="boton-secundario" (click)="cerrarRegistro()">
-            Cancelar
-          </button>
-        </div>
-      </section>
+        </aside>
+      </div>
     }
   }
 
   <!-- ================================================================ HISTORIAL -->
   @if (pestana() === 'historial') {
-    @if (!puedeRegistrar()) {
-      <p class="ayuda-nota">
-        Solo consulta: la producción la registran Secretaría y Productor de queso.
-      </p>
-    }
-    <div class="card">
-      <div class="table-title">
-        <div><h3>Lotes producidos</h3></div>
+    <section class="pd-card" aria-labelledby="titulo-historial">
+      <div class="pd-toolbar">
+        <div>
+          <h2 class="pd-card-titulo" id="titulo-historial">Lotes producidos</h2>
+          @if (!puedeRegistrar()) {
+            <p class="pd-card-sub">Solo consulta: la producción la registran Secretaría y Producción.</p>
+          }
+        </div>
+        <label class="pd-buscar pd-campo">
+          <app-icono nombre="buscar" [tamano]="16" />
+          <input
+            type="search"
+            placeholder="Buscar producto, lote o responsable"
+            aria-label="Buscar en el historial"
+            [ngModel]="filtroHistorial()"
+            (ngModelChange)="filtroHistorial.set($event); pagLotes.irA(0)"
+          />
+        </label>
       </div>
-      <div class="tablebox">
-        <table>
+      <div class="pd-tabla-wrap">
+        <table class="pd-tabla">
           <thead>
             <tr>
-              <th>Fecha</th>
+              <th>Lote</th>
               <th>Producto</th>
               <th class="num">Hechas</th>
               <th class="num">Para vender</th>
+              <th>Estado</th>
               <th class="num">Costo c/u</th>
-              <th class="no-print"></th>
+              <th class="acciones no-print"><span class="sr-only">Acciones</span></th>
             </tr>
           </thead>
           <tbody>
-            @for (l of pagLotes.ver(lotes(), ''); track l.id) {
-              <tr>
-                <td>{{ l.fecha }}</td>
-                <td>{{ l.productoNombre }}</td>
-                <td class="num">{{ l.unidadesProducidas }}</td>
-                <td class="num">{{ l.stock }}</td>
-                <td class="num">
-                  {{ l.costoUnitario != null ? 'S/ ' + (l.costoUnitario | number: '1.2-2') : '—' }}
+            @for (l of pagLotes.ver(lotesFiltrados(), ''); track l.id) {
+              @let est = estadoLote(l);
+              <tr [class.seleccionado]="loteAbiertoId() === l.id">
+                <td>
+                  <span class="pd-fuerte">{{ l.codigo }}</span>
+                  <span class="pd-sub">{{ l.fecha }}</span>
                 </td>
-                <td class="no-print">
-                  <button
-                    type="button"
-                    class="boton-texto"
-                    [attr.aria-expanded]="loteAbiertoId() === l.id"
-                    (click)="alternarDetalle(l)"
-                  >
-                    {{ loteAbiertoId() === l.id ? 'Cerrar' : 'Más' }}
+                <td>
+                  <span class="pd-fuerte">{{ l.productoNombre }}</span>
+                  <span class="pd-sub">{{ l.litrosDestinados | number: '1.0-1' }} L de leche</span>
+                </td>
+                <td class="num">{{ l.unidadesProducidas }}</td>
+                <td class="num pd-fuerte">{{ l.stock }}</td>
+                <td><span class="pd-chip" [attr.data-tono]="est.tono === 'neutro' ? null : est.tono">{{ est.texto }}</span></td>
+                <td class="num">{{ l.costoUnitario != null ? 'S/ ' + (l.costoUnitario | number: '1.2-2') : '—' }}</td>
+                <td class="acciones no-print">
+                  <button type="button" class="pd-btn pd-btn-sm" [attr.aria-expanded]="loteAbiertoId() === l.id" (click)="alternarDetalle(l)">
+                    {{ loteAbiertoId() === l.id ? 'Cerrar' : 'Detalle' }}
                   </button>
                 </td>
               </tr>
               @if (loteAbiertoId() === l.id) {
-                <tr class="fila-detalle">
-                  <td colspan="6">
-                    <dl class="detalle-lote">
-                      <div>
-                        <dt>Lote</dt>
-                        <dd>{{ l.codigo }}</dd>
-                      </div>
-                      <div>
-                        <dt>Leche</dt>
-                        <dd>{{ l.litrosDestinados | number: '1.0-1' }} L</dd>
-                      </div>
-                      <div>
-                        <dt>Merma</dt>
-                        <dd>{{ l.merma ?? '—' }}</dd>
-                      </div>
-                      <div>
-                        <dt>Reconstruidos</dt>
-                        <dd>{{ l.quesosReparados ?? '—' }}</dd>
-                      </div>
-                      <div>
-                        <dt>Recorte</dt>
-                        <dd>
-                          {{ l.quesosRecorte ?? '—'
-                          }}{{ l.recorteKg != null ? ' (' + l.recorteKg + ' kg)' : '' }}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt>Costo total</dt>
-                        <dd>
-                          {{
-                            l.costoTotal != null ? 'S/ ' + (l.costoTotal | number: '1.2-2') : '—'
-                          }}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt>Vence</dt>
-                        <dd>{{ l.fechaVencimiento ?? '—' }}</dd>
-                      </div>
-                      <div>
-                        <dt>A cargo</dt>
-                        <dd>{{ l.responsable }}</dd>
-                      </div>
+                <tr class="detalle">
+                  <td colspan="7">
+                    <dl class="pd-resumen">
+                      <div><dt>Puesto a producir</dt><dd>{{ l.cantidadObjetivo ?? l.unidadesProducidas }}</dd></div>
+                      <div><dt>Merma</dt><dd>{{ l.merma ?? '—' }}</dd></div>
+                      <div><dt>Reconstruidos</dt><dd>{{ l.quesosReparados ?? '—' }}</dd></div>
+                      <div><dt>Recorte</dt><dd>{{ l.quesosRecorte ?? '—' }}{{ l.recorteKg != null ? ' (' + l.recorteKg + ' kg)' : '' }}</dd></div>
+                      <div><dt>Vendidas</dt><dd>{{ l.unidadesVendidas }}</dd></div>
+                      <div><dt>Costo total</dt><dd>{{ l.costoTotal != null ? 'S/ ' + (l.costoTotal | number: '1.2-2') : '—' }}</dd></div>
+                      <div><dt>Vence</dt><dd>{{ l.fechaVencimiento ?? '—' }}</dd></div>
+                      <div><dt>A cargo</dt><dd>{{ l.responsable }}</dd></div>
+                      @if (l.observaciones) {
+                        <div><dt>Notas</dt><dd>{{ l.observaciones }}</dd></div>
+                      }
                     </dl>
-                    @if (puedeAnular(l)) {
-                      <button type="button" class="boton-texto texto-falta" (click)="anularLote(l)">
-                        Anular este lote
-                      </button>
-                    } @else if (puedeRegistrar()) {
-                      <small class="muted">Ya salieron unidades de este lote: para anularlo, anula primero esas ventas.</small>
-                    }
+                    <div style="margin-top: 14px">
+                      @if (puedeAnular(l)) {
+                        <button type="button" class="pd-btn pd-btn-sm pd-btn-peligro" (click)="anularLote(l)">Anular este lote</button>
+                      } @else if (puedeRegistrar()) {
+                        <span class="pd-ayuda">Ya salieron unidades de este lote: para anularlo, anula primero esas ventas.</span>
+                      }
+                    </div>
                   </td>
                 </tr>
               }
             }
-            @if (lotes().length === 0 && !cargando()) {
-              <tr>
-                <td colspan="6" class="muted" style="text-align: center; padding: 24px">
-                  Todavía no hay producciones.
-                </td>
-              </tr>
-            }
           </tbody>
         </table>
+        @if (lotesFiltrados().length === 0 && !cargando()) {
+          <div class="pd-vacio">
+            <strong>{{ filtroHistorial() ? 'Nada coincide con la búsqueda' : 'Todavía no hay producciones' }}</strong>
+            {{ filtroHistorial() ? 'Prueba con otro nombre o código de lote.' : 'Lo que registres aparecerá aquí.' }}
+          </div>
+        }
       </div>
-      <app-paginador
-        [page]="pagLotes.pagina(lotes().length)"
-        [size]="pagLotes.tamano()"
-        [total]="lotes().length"
-        (pageChange)="pagLotes.irA($event)"
-        (sizeChange)="pagLotes.cambiarTamano($event)"
-      />
-    </div>
+      <div class="pd-paginador">
+        <app-paginador
+          [page]="pagLotes.pagina(lotesFiltrados().length)"
+          [size]="pagLotes.tamano()"
+          [total]="lotesFiltrados().length"
+          (pageChange)="pagLotes.irA($event)"
+          (sizeChange)="pagLotes.cambiarTamano($event)"
+        />
+      </div>
+    </section>
   }
 
   <!-- ================================================================ REPORTES -->
   @if (pestana() === 'reportes' && puedeVerReporte()) {
-    <div class="card" style="margin-bottom: 16px">
-      <div class="table-title">
+    <section class="pd-card">
+      <div class="pd-toolbar">
         <div>
-          <h3>Reporte semanal de queso</h3>
-          <p>Ventas, rendimiento del acopio e ingresos del ciclo, como el cuaderno de la Unidad.</p>
+          <h2 class="pd-card-titulo">Reporte semanal</h2>
+          <p class="pd-card-sub">Sin fechas, toma el ciclo jueves a miércoles vigente.</p>
         </div>
-      </div>
-      <div class="form-grid">
-        <div class="field">
-          <label for="rq-desde">Desde</label>
-          <input id="rq-desde" type="date" [(ngModel)]="reporteDesde" name="reporteDesde" />
+        <div class="pq-filtros no-print">
+          <div class="pd-campo">
+            <label for="rq-desde">Desde</label>
+            <input id="rq-desde" type="date" [(ngModel)]="reporteDesde" name="reporteDesde" />
+          </div>
+          <div class="pd-campo">
+            <label for="rq-hasta">Hasta</label>
+            <input id="rq-hasta" type="date" [(ngModel)]="reporteHasta" name="reporteHasta" />
+          </div>
+          <button type="button" class="pd-btn" (click)="cargarReporte()" [disabled]="cargandoReporte()">
+            {{ cargandoReporte() ? 'Calculando…' : 'Ver reporte' }}
+          </button>
+          <button type="button" class="pd-btn pd-btn-primario" (click)="descargarReporteExcel()" [disabled]="descargandoReporte()">
+            {{ descargandoReporte() ? 'Generando…' : 'Descargar Excel' }}
+          </button>
         </div>
-        <div class="field">
-          <label for="rq-hasta">Hasta</label>
-          <input id="rq-hasta" type="date" [(ngModel)]="reporteHasta" name="reporteHasta" />
-        </div>
-      </div>
-      <div class="actions no-print">
-        <button
-          type="button"
-          class="btn btn-soft"
-          (click)="cargarReporte()"
-          [disabled]="cargandoReporte()"
-        >
-          {{ cargandoReporte() ? 'Calculando…' : 'Ver reporte' }}
-        </button>
-        <button
-          type="button"
-          class="btn btn-primary"
-          (click)="descargarReporteExcel()"
-          [disabled]="descargandoReporte()"
-        >
-          {{ descargandoReporte() ? 'Generando…' : 'Descargar Excel' }}
-        </button>
       </div>
       @if (errorReporte()) {
-        <p class="note" role="alert">{{ errorReporte() }}</p>
+        <div class="pd-card-body"><div class="pd-alerta" data-tono="falta" role="alert"><span>{{ errorReporte() }}</span></div></div>
       }
+      @if (!reporte() && cargandoReporte()) {
+        <p class="pd-vacio">Calculando el reporte…</p>
+      }
+    </section>
 
-      @if (reporte(); as rep) {
-        <p class="muted" style="margin-top: 12px">Ciclo {{ rep.desde }} al {{ rep.hasta }}.</p>
-
-        <div class="table-title" style="margin-top: 12px">
-          <div><h3>Reporte de venta de quesos</h3></div>
+    @if (reporte(); as rep) {
+      <div class="pd-kpis">
+        <div class="pd-kpi">
+          <span class="pd-kpi-icono"><app-icono nombre="produccion" [tamano]="20" /></span>
+          <div><span class="pd-kpi-etiqueta">Producidos</span><span class="pd-kpi-valor">{{ rep.totalProducidos }}</span></div>
         </div>
-        <div class="tablebox">
-          <table>
+        <div class="pd-kpi">
+          <span class="pd-kpi-icono"><app-icono nombre="ventas" [tamano]="20" /></span>
+          <div><span class="pd-kpi-etiqueta">Vendidos</span><span class="pd-kpi-valor">{{ rep.totalVendidos }}</span></div>
+        </div>
+        <div class="pd-kpi" data-tono="ok">
+          <span class="pd-kpi-icono"><app-icono nombre="precio" [tamano]="20" /></span>
+          <div><span class="pd-kpi-etiqueta">Ingresos</span><span class="pd-kpi-valor"><small>S/</small> {{ rep.totalIngresos | number: '1.2-2' }}</span></div>
+        </div>
+        <div class="pd-kpi" [attr.data-tono]="rep.totalSaldo < 0 ? 'falta' : 'ok'">
+          <span class="pd-kpi-icono"><app-icono nombre="contabilidad" [tamano]="20" /></span>
+          <div><span class="pd-kpi-etiqueta">Saldo del ciclo</span><span class="pd-kpi-valor"><small>S/</small> {{ rep.totalSaldo | number: '1.2-2' }}</span></div>
+        </div>
+      </div>
+
+      <section class="pd-card">
+        <div class="pd-card-head">
+          <div>
+            <h2 class="pd-card-titulo">Venta de quesos</h2>
+            <p class="pd-card-sub">Ciclo {{ rep.desde }} al {{ rep.hasta }}</p>
+          </div>
+        </div>
+        <div class="pd-tabla-wrap">
+          <table class="pd-tabla">
             <thead>
               <tr>
                 <th>Día</th>
                 <th>Fecha</th>
-                <th class="num">Quesos producidos</th>
-                <th class="num">Quesos despachados</th>
-                <th class="num">Quesos vendidos</th>
+                <th class="num">Producidos</th>
+                <th class="num">Despachados</th>
+                <th class="num">Vendidos</th>
                 <th class="num">Diferencia</th>
               </tr>
             </thead>
             <tbody>
               @for (d of rep.ventaPorDia; track d.fecha) {
                 <tr>
-                  <td>{{ d.dia }}</td>
+                  <td class="pd-fuerte">{{ d.dia }}</td>
                   <td>{{ d.fecha }}</td>
                   <td class="num">{{ d.producidos }}</td>
                   <td class="num">{{ d.despachados }}</td>
@@ -573,61 +590,56 @@
                   <td class="num">{{ d.diferencia }}</td>
                 </tr>
               }
-              <tr>
-                <td colspan="2"><strong>Total</strong></td>
-                <td class="num">
-                  <strong>{{ rep.totalProducidos }}</strong>
-                </td>
-                <td class="num">
-                  <strong>{{ rep.totalDespachados }}</strong>
-                </td>
-                <td class="num">
-                  <strong>{{ rep.totalVendidos }}</strong>
-                </td>
-                <td class="num">
-                  <strong>{{ rep.totalDiferencia }}</strong>
-                </td>
-              </tr>
             </tbody>
+            <tfoot>
+              <tr>
+                <td colspan="2">Total</td>
+                <td class="num">{{ rep.totalProducidos }}</td>
+                <td class="num">{{ rep.totalDespachados }}</td>
+                <td class="num">{{ rep.totalVendidos }}</td>
+                <td class="num">{{ rep.totalDiferencia }}</td>
+              </tr>
+            </tfoot>
           </table>
         </div>
-        <p class="muted">
-          Total de quesos en descuento: <strong>{{ rep.totalQuesosEnDescuento }}</strong> · Total en
-          almacén (stock real, kardex): <strong>{{ rep.stockAlmacen }}</strong>
-        </p>
-
-        <div class="table-title" style="margin-top: 16px">
-          <div><h3>Reporte de rendimiento</h3></div>
+        <div class="pd-card-foot">
+          <span class="pd-foot-info">
+            En descuento: <b>{{ rep.totalQuesosEnDescuento }}</b> · En almacén (kardex): <b>{{ rep.stockAlmacen }}</b>
+          </span>
         </div>
-        <div class="tablebox">
-          <table>
+      </section>
+
+      <section class="pd-card">
+        <div class="pd-card-head"><h2 class="pd-card-titulo">Rendimiento del acopio</h2></div>
+        <div class="pd-tabla-wrap">
+          <table class="pd-tabla">
             <thead>
               <tr>
-                <th>Zonas</th>
+                <th>Zona</th>
                 @for (d of rep.rendimientoPorDia; track d.fecha) {
-                  <th class="num">{{ d.dia }} {{ d.fecha }}</th>
+                  <th class="num">{{ d.dia }}<span class="pd-sub" style="text-transform: none">{{ d.fecha }}</span></th>
                 }
               </tr>
             </thead>
             <tbody>
               @for (z of rep.zonas; track z; let iz = $index) {
                 <tr>
-                  <td>{{ z }}</td>
+                  <td class="pd-fuerte">{{ z }}</td>
                   @for (d of rep.rendimientoPorDia; track d.fecha) {
                     <td class="num">{{ d.litrosPorZona[iz] | number: '1.0-1' }}</td>
                   }
                 </tr>
               }
+            </tbody>
+            <tfoot>
               <tr>
-                <td><strong>Total acopio</strong></td>
+                <td>Total acopio (L)</td>
                 @for (d of rep.rendimientoPorDia; track d.fecha) {
-                  <td class="num">
-                    <strong>{{ d.totalAcopio | number: '1.0-1' }}</strong>
-                  </td>
+                  <td class="num">{{ d.totalAcopio | number: '1.0-1' }}</td>
                 }
               </tr>
               <tr>
-                <td>Cantidad de producción</td>
+                <td>Producción</td>
                 @for (d of rep.rendimientoPorDia; track d.fecha) {
                   <td class="num">{{ d.produccion }}</td>
                 }
@@ -638,85 +650,83 @@
                   <td class="num">{{ d.rendimiento | number: '1.2-2' }}</td>
                 }
               </tr>
-            </tbody>
+            </tfoot>
           </table>
         </div>
+      </section>
 
-        <div class="table-title" style="margin-top: 16px">
-          <div><h3>Registro de ventas</h3></div>
-        </div>
-        <div class="tablebox">
-          <table>
-            <thead>
-              <tr>
-                <th>Fecha</th>
-                <th>Día</th>
-                <th class="num">Ingresos</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (d of rep.registroPorDia; track d.fecha) {
+      <div class="pd-grid pd-grid-2">
+        <section class="pd-card">
+          <div class="pd-card-head"><h2 class="pd-card-titulo">Ingresos por día</h2></div>
+          <div class="pd-tabla-wrap">
+            <table class="pd-tabla pd-tabla-compacta">
+              <thead>
                 <tr>
-                  <td>{{ d.fecha }}</td>
-                  <td>{{ d.dia }}</td>
-                  <td class="num">S/ {{ d.ingresos | number: '1.2-2' }}</td>
+                  <th>Fecha</th>
+                  <th>Día</th>
+                  <th class="num">Ingresos</th>
                 </tr>
-              }
-              <tr>
-                <td colspan="2"><strong>Total de ingresos</strong></td>
-                <td class="num">
-                  <strong>S/ {{ rep.totalIngresos | number: '1.2-2' }}</strong>
-                </td>
-              </tr>
-              <tr>
-                <td colspan="2">Pago a los proveedores de leche</td>
-                <td class="num">S/ {{ rep.totalPagoProveedoresLeche | number: '1.2-2' }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div class="tablebox" style="margin-top: 8px">
-          <table>
-            <thead>
-              <tr>
-                <th>Fecha</th>
-                <th>Documento</th>
-                <th>Descripción</th>
-                <th class="num">Monto</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (e of rep.egresos; track $index) {
+              </thead>
+              <tbody>
+                @for (d of rep.registroPorDia; track d.fecha) {
+                  <tr>
+                    <td>{{ d.fecha }}</td>
+                    <td>{{ d.dia }}</td>
+                    <td class="num">S/ {{ d.ingresos | number: '1.2-2' }}</td>
+                  </tr>
+                }
+              </tbody>
+              <tfoot>
                 <tr>
-                  <td>{{ e.fecha }}</td>
-                  <td>{{ e.documento ?? '—' }}</td>
-                  <td>{{ e.descripcion }}</td>
-                  <td class="num">S/ {{ e.monto | number: '1.2-2' }}</td>
+                  <td colspan="2">Total de ingresos</td>
+                  <td class="num">S/ {{ rep.totalIngresos | number: '1.2-2' }}</td>
                 </tr>
-              }
-              @if (rep.egresos.length === 0) {
                 <tr>
-                  <td colspan="4" class="muted" style="text-align: center">
-                    Sin compras registradas en este ciclo.
-                  </td>
+                  <td colspan="2">Pago a proveedores de leche</td>
+                  <td class="num">S/ {{ rep.totalPagoProveedoresLeche | number: '1.2-2' }}</td>
                 </tr>
-              }
-              <tr>
-                <td colspan="3"><strong>Total de egresos</strong></td>
-                <td class="num">
-                  <strong>S/ {{ rep.totalEgresos | number: '1.2-2' }}</strong>
-                </td>
-              </tr>
-              <tr>
-                <td colspan="3"><strong>Total de saldo</strong></td>
-                <td class="num">
-                  <strong>S/ {{ rep.totalSaldo | number: '1.2-2' }}</strong>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      }
-    </div>
+              </tfoot>
+            </table>
+          </div>
+        </section>
+
+        <section class="pd-card">
+          <div class="pd-card-head"><h2 class="pd-card-titulo">Egresos (compras)</h2></div>
+          <div class="pd-tabla-wrap">
+            <table class="pd-tabla pd-tabla-compacta">
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Detalle</th>
+                  <th class="num">Monto</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (e of rep.egresos; track $index) {
+                  <tr>
+                    <td>{{ e.fecha }}</td>
+                    <td style="white-space: normal">{{ e.descripcion }}<span class="pd-sub">{{ e.documento ?? 'Sin documento' }}</span></td>
+                    <td class="num">S/ {{ e.monto | number: '1.2-2' }}</td>
+                  </tr>
+                }
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colspan="2">Total de egresos</td>
+                  <td class="num">S/ {{ rep.totalEgresos | number: '1.2-2' }}</td>
+                </tr>
+                <tr>
+                  <td colspan="2">Saldo</td>
+                  <td class="num">S/ {{ rep.totalSaldo | number: '1.2-2' }}</td>
+                </tr>
+              </tfoot>
+            </table>
+            @if (rep.egresos.length === 0) {
+              <p class="pd-vacio">Sin compras en este ciclo.</p>
+            }
+          </div>
+        </section>
+      </div>
+    }
   }
 </section>

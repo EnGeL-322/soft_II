@@ -1,157 +1,222 @@
-<section class="page amigable">
-  <div class="page-head">
-    <div>
-      <div class="kicker">Producción</div>
-      <h1>Recetas y productos</h1>
-      <p>Aquí dices qué productos hace la planta y qué lleva cada uno.</p>
+<section class="page pd">
+  <header class="pd-head">
+    <div class="pd-head-texto">
+      <span class="pd-migas">Producción</span>
+      <h1 class="pd-titulo">Recetas y productos</h1>
+      <p class="pd-subtitulo">Qué hace la planta y qué lleva cada producto.</p>
+    </div>
+    @if (puedeEscribir()) {
+      <div class="pd-head-acciones">
+        <button type="button" class="pd-btn pd-btn-primario" (click)="nuevoProducto()">
+          <app-icono nombre="agregar" [tamano]="18" /> Nuevo producto
+        </button>
+      </div>
+    }
+  </header>
+
+  <div class="pd-kpis">
+    <div class="pd-kpi" data-tono="ok">
+      <span class="pd-kpi-icono"><app-icono nombre="produccion" [tamano]="20" /></span>
+      <div><span class="pd-kpi-etiqueta">Se producen</span><span class="pd-kpi-valor">{{ resumen().activos }}</span></div>
+    </div>
+    <div class="pd-kpi" [attr.data-tono]="resumen().sinReceta ? 'aviso' : null">
+      <span class="pd-kpi-icono"><app-icono nombre="recetas" [tamano]="20" /></span>
+      <div><span class="pd-kpi-etiqueta">Sin receta</span><span class="pd-kpi-valor">{{ resumen().sinReceta }}</span></div>
+    </div>
+    <div class="pd-kpi">
+      <span class="pd-kpi-icono"><app-icono nombre="pausa" [tamano]="20" /></span>
+      <div><span class="pd-kpi-etiqueta">Pausados</span><span class="pd-kpi-valor">{{ resumen().pausados }}</span></div>
+    </div>
+    <div class="pd-kpi">
+      <span class="pd-kpi-icono"><app-icono nombre="inventario" [tamano]="20" /></span>
+      <div><span class="pd-kpi-etiqueta">Insumos</span><span class="pd-kpi-valor">{{ activas().length }}</span></div>
     </div>
   </div>
 
-
   @if (error() && formularioProducto() == null) {
-    <div class="mensaje mensaje-error" role="alert">{{ error() }}</div>
+    <div class="pd-alerta" data-tono="falta" role="alert"><span>{{ error() }}</span></div>
   }
 
   <!-- ============================ PRODUCTOS ============================ -->
-  <section class="bloque">
-    <div class="bloque-cabecera">
-      <div>
-        <h2>Tus productos</h2>
-        <p>
-          Cada tarjeta tiene sus botones: <b>Editar receta</b>, <b>Pausar</b> (deja de producirse sin
-          perder nada) y <b>Eliminar</b> (solo si nunca se produjo).
-        </p>
-      </div>
-      @if (puedeEscribir() && formularioProducto() == null) {
-        <button type="button" class="boton-grande" (click)="nuevoProducto()">
-          + Crear un producto nuevo
-        </button>
+  <section class="pd-card" aria-labelledby="titulo-productos">
+    <div class="pd-toolbar">
+      <h2 class="pd-card-titulo" id="titulo-productos">Productos</h2>
+      <label class="pd-buscar pd-campo">
+        <app-icono nombre="buscar" [tamano]="16" />
+        <input type="search" placeholder="Buscar producto" aria-label="Buscar producto" [ngModel]="busqueda()" (ngModelChange)="busqueda.set($event)" />
+      </label>
+    </div>
+    <div class="pd-tabla-wrap">
+      <table class="pd-tabla">
+        <thead>
+          <tr>
+            <th>Producto</th>
+            <th>Receta (para 1)</th>
+            <th>Estado</th>
+            @if (puedeEscribir()) {
+              <th class="acciones"><span class="sr-only">Acciones</span></th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          @for (p of productosVisibles(); track p.id) {
+            @let r = recetaActual(p);
+            <tr [class.anulado]="!p.activo">
+              <td>
+                <span class="pd-fuerte">{{ p.nombre }}</span>
+                <span class="pd-sub">Se vende por {{ p.unidadVenta }}{{ p.vidaUtilDias ? ' · dura ' + p.vidaUtilDias + ' días' : '' }}</span>
+              </td>
+              <td class="rc-receta">
+                @if (r) {
+                  <span>{{ ingredientes(r).join(' · ') }}</span>
+                } @else {
+                  <span class="pd-chip" data-tono="aviso">Sin receta</span>
+                }
+                @if (recetaFutura(p); as f) {
+                  <span class="pd-sub">Cambia desde el {{ f.vigenteDesde }}</span>
+                }
+              </td>
+              <td>
+                <span class="pd-chip" [attr.data-tono]="p.activo ? 'ok' : null">{{ p.activo ? 'Se produce' : 'Pausado' }}</span>
+              </td>
+              @if (puedeEscribir()) {
+                <td class="acciones">
+                  <div class="rc-acciones">
+                    <button type="button" class="pd-btn pd-btn-sm pd-btn-primario" (click)="abrirReceta(p)" [attr.aria-label]="(r ? 'Editar receta de ' : 'Crear receta de ') + p.nombre">
+                      {{ r ? 'Receta' : 'Crear receta' }}
+                    </button>
+                    <button type="button" class="pd-btn pd-btn-sm" (click)="editarProducto(p)" [attr.aria-label]="'Cambiar datos de ' + p.nombre">Datos</button>
+                    <button type="button" class="pd-btn pd-btn-sm" (click)="cambiarEstadoProducto(p)" [attr.aria-label]="(p.activo ? 'Pausar ' : 'Reanudar ') + p.nombre">
+                      {{ p.activo ? 'Pausar' : 'Reanudar' }}
+                    </button>
+                    <button
+                      type="button"
+                      class="pd-btn pd-btn-sm pd-btn-icono pd-btn-peligro"
+                      (click)="eliminarProducto(p)"
+                      [disabled]="!sePuedeEliminar(p)"
+                      [attr.aria-label]="'Eliminar ' + p.nombre"
+                      [title]="sePuedeEliminar(p) ? 'Eliminar' : 'Tiene ' + p.lotesRegistrados + ' producción(es) registradas: usa Pausar'"
+                    >
+                      <app-icono nombre="eliminar" [tamano]="16" />
+                    </button>
+                  </div>
+                </td>
+              }
+            </tr>
+          }
+        </tbody>
+      </table>
+      @if (productosVisibles().length === 0) {
+        <div class="pd-vacio">
+          @if (busqueda()) {
+            <strong>Ningún producto coincide</strong>
+            Prueba con otro nombre.
+          } @else {
+            <strong>Todavía no hay productos</strong>
+            Crea el primero con «Nuevo producto».
+          }
+        </div>
       }
     </div>
+    @if (puedeEscribir()) {
+      <div class="pd-card-foot">
+        <span class="pd-foot-info">Un producto con producciones no se elimina: se pausa y conserva su historial.</span>
+      </div>
+    }
+  </section>
 
-    @if (formularioProducto() != null && puedeEscribir()) {
-      <div class="receta-backdrop" (click)="cancelarProducto()"></div>
-      <form class="panel-formulario producto-modal" (ngSubmit)="guardarProducto()">
-        <div class="modal-title"><h3>{{ formularioProducto() === 'nuevo' ? 'Nuevo producto' : 'Cambiar datos del producto' }}</h3><button type="button" (click)="cancelarProducto()" aria-label="Cerrar">×</button></div>
+  <!-- ============================ PRODUCTO (modal) ============================ -->
+  @if (formularioProducto() != null && puedeEscribir()) {
+    <div class="pd-fondo" (click)="cancelarProducto()"></div>
+    <form class="pd-modal" role="dialog" aria-modal="true" aria-labelledby="titulo-producto" (ngSubmit)="guardarProducto()">
+      <div class="pd-ventana-head">
+        <div>
+          <h2 id="titulo-producto">{{ formularioProducto() === 'nuevo' ? 'Nuevo producto' : 'Datos del producto' }}</h2>
+          <p>Después podrás escribir su receta.</p>
+        </div>
+        <button type="button" class="pd-cerrar" (click)="cancelarProducto()" aria-label="Cerrar">×</button>
+      </div>
+      <div class="pd-ventana-body">
         @if (error()) {
-          <div class="mensaje mensaje-error" role="alert">{{ error() }}</div>
+          <div class="pd-alerta" data-tono="falta" role="alert"><span>{{ error() }}</span></div>
         }
-        <div class="campos">
-          <div class="campo">
-            <label for="pr-nombre">¿Cómo se llama?</label>
-            <input
-              id="pr-nombre"
-              name="nombreProducto"
-              [(ngModel)]="nombreProducto"
-              maxlength="120"
-              placeholder="Ej. Yogur natural"
-              required
-              [attr.aria-invalid]="choqueProducto() ? 'true' : null"
-              aria-describedby="pr-nombre-choque"
-              (keydown.enter)="siguienteCampo($event, 'pr-unidad')"
-            />
-            @if (choqueProducto(); as c) {
-              <div class="choque-nombre" id="pr-nombre-choque" role="alert">
-                <span class="chip chip-error">{{ c.igual ? 'Ya existe' : 'Casi igual a otro' }}</span>
+        <div class="pd-campo">
+          <label for="pr-nombre">Nombre</label>
+          <input
+            id="pr-nombre"
+            name="nombreProducto"
+            [(ngModel)]="nombreProducto"
+            maxlength="120"
+            placeholder="Ej. Yogurt natural"
+            required
+            [attr.aria-invalid]="choqueProducto() ? 'true' : null"
+            aria-describedby="pr-nombre-choque"
+            (keydown.enter)="siguienteCampo($event, 'pr-unidad')"
+          />
+          @if (choqueProducto(); as c) {
+            <div class="pd-alerta" data-tono="falta" id="pr-nombre-choque" role="alert">
+              <span>
                 @if (c.igual) {
                   Ya hay un producto llamado <b>«{{ c.producto.nombre }}»</b>{{ c.producto.activo ? '' : ' (pausado)' }}.
                 } @else {
-                  Se parece demasiado a <b>«{{ c.producto.nombre }}»</b>{{ c.producto.activo ? '' : ' (pausado)' }}.
-                  Si es otro producto, ponle un nombre que se distinga (por ejemplo, con el sabor o el tamaño).
+                  Se parece demasiado a <b>«{{ c.producto.nombre }}»</b>{{ c.producto.activo ? '' : ' (pausado)' }}. Si es otro, distínguelo (sabor, tamaño).
                 }
-                <button type="button" class="enlace" (click)="irAProducto(c.producto)">Usar «{{ c.producto.nombre }}»</button>
-              </div>
-            }
-          </div>
-          <div class="campo">
-            <label for="pr-unidad">¿Cómo se vende?</label>
-            <input
-              id="pr-unidad"
-              name="unidadVenta"
-              [(ngModel)]="unidadVenta"
-              maxlength="40"
-              list="formas-venta"
-              placeholder="unidad"
-              required
-              (keydown.enter)="siguienteCampo($event, 'pr-desc')"
-            />
-            <datalist id="formas-venta">
-              <option value="unidad"></option>
-              <option value="botella 1 L"></option>
-              <option value="kg"></option>
-              <option value="balde 4 kg"></option>
-              <option value="vaso"></option>
-            </datalist>
-            <small>Por ejemplo: unidad, botella 1 L, vaso.</small>
-          </div>
-          <div class="campo">
-            <span class="campo-etiqueta">Vencimiento</span>
-            <small>
-              @if (vidaUtilDias) {
-                Vence a los {{ vidaUtilDias }} días de producido.
-              } @else {
-                Sin configurar: no se podrá producir hasta definirlo.
-              }
-              Se configura en Configuración → Precios y calidad.
-            </small>
-          </div>
-          <div class="campo campo-ancho">
-            <label for="pr-desc">Descripción <span class="opcional">(opcional)</span></label>
-            <input
-              id="pr-desc"
-              name="descripcionProducto"
-              [(ngModel)]="descripcionProducto"
-              maxlength="500"
-              placeholder="Ej. Yogur batido sin azúcar"
-              (keydown.enter)="guardarProductoConEnter($event)"
-            />
-          </div>
-        </div>
-        <div class="botonera">
-          <button type="submit" class="boton-grande" [disabled]="guardandoProducto() || choqueProducto()">
-            {{ guardandoProducto() ? 'Guardando…' : 'Guardar producto' }}
-          </button>
-          <button type="button" class="boton-secundario" (click)="cancelarProducto()">
-            Cancelar
-          </button>
-        </div>
-      </form>
-    }
-
-    <div class="tarjetas">
-      @for (p of productos(); track p.id) {
-        <article class="tarjeta-producto" [class.inactivo]="!p.activo">
-          <header>
-            <h3>{{ p.nombre }}</h3>
-            <span class="estado-producto" [class.pausado]="!p.activo">{{ p.activo ? 'Se produce' : 'Pausado' }}</span>
-          </header>
-          <p class="producto-detalle">Se vende por {{ p.unidadVenta }}</p>
-
-          @if (puedeEscribir()) {
-            <footer class="acciones-producto">
-              <button type="button" class="accion" (click)="abrirReceta(p)" [attr.aria-label]="'Editar receta de ' + p.nombre">✎ Editar receta</button>
-              <button type="button" class="accion accion-pausa" (click)="cambiarEstadoProducto(p)" [attr.aria-label]="(p.activo ? 'Pausar ' : 'Reanudar ') + p.nombre">{{ p.activo ? 'Ⅱ Pausar' : '▶ Reanudar' }}</button>
-              <button type="button" class="accion accion-eliminar" (click)="eliminarProducto(p)" [disabled]="!sePuedeEliminar(p)" [attr.aria-label]="'Eliminar ' + p.nombre" [attr.aria-describedby]="sePuedeEliminar(p) ? null : 'no-eliminar-' + p.id">🗑 Eliminar</button>
-            </footer>
-            @if (!sePuedeEliminar(p)) {
-              <p class="nota-eliminar" [id]="'no-eliminar-' + p.id">
-                No se puede eliminar: ya {{ p.lotesRegistrados === 1 ? 'tiene 1 producción registrada' : 'tiene ' + p.lotesRegistrados + ' producciones registradas' }}
-                y ese historial se guarda. Si ya no lo hacen, usa <b>Pausar</b>.
-              </p>
-            }
+              </span>
+              <button type="button" class="pd-btn pd-btn-sm" (click)="irAProducto(c.producto)">Usar «{{ c.producto.nombre }}»</button>
+            </div>
           }
-        </article>
-      } @empty {
-        <p class="vacio">Todavía no hay productos. Crea el primero con el botón de arriba.</p>
-      }
-    </div>
-  </section>
+        </div>
+        <div class="pd-campo">
+          <label for="pr-unidad">Se vende por</label>
+          <input
+            id="pr-unidad"
+            name="unidadVenta"
+            [(ngModel)]="unidadVenta"
+            maxlength="40"
+            placeholder="unidad"
+            required
+            (keydown.enter)="siguienteCampo($event, 'pr-desc')"
+          />
+          <div class="pd-sugerencias" role="group" aria-label="Formas de venta frecuentes">
+            @for (u of formasVenta; track u) {
+              <button type="button" [class.activo]="unidadVenta === u" (click)="unidadVenta = u">{{ u }}</button>
+            }
+          </div>
+        </div>
+        <div class="pd-campo">
+          <label for="pr-desc">Descripción <span class="pd-muted">(opcional)</span></label>
+          <input
+            id="pr-desc"
+            name="descripcionProducto"
+            [(ngModel)]="descripcionProducto"
+            maxlength="500"
+            placeholder="Ej. Yogurt batido sin azúcar"
+            (keydown.enter)="guardarProductoConEnter($event)"
+          />
+        </div>
+        <p class="pd-ayuda">
+          @if (vidaUtilDias) {
+            Vence a los {{ vidaUtilDias }} días de producido.
+          } @else {
+            Falta configurar cuántos días dura: sin eso no se puede producir.
+          }
+          Se cambia en Configuración → Precios y calidad.
+        </p>
+      </div>
+      <div class="pd-ventana-foot">
+        <button type="button" class="pd-btn" (click)="cancelarProducto()">Cancelar</button>
+        <button type="submit" class="pd-btn pd-btn-primario" [disabled]="guardandoProducto() || choqueProducto()">
+          {{ guardandoProducto() ? 'Guardando…' : 'Guardar producto' }}
+        </button>
+      </div>
+    </form>
+  }
 
-  <!-- ============================ EDITOR DE RECETA ============================ -->
+  <!-- ============================ RECETA (panel lateral) ============================ -->
   @if (recetaDe(); as p) {
-    <div class="receta-backdrop" (click)="cerrarReceta()"></div>
+    <div class="pd-fondo" (click)="cerrarReceta()"></div>
     <form
-      class="bloque editor-receta receta-modal"
+      class="pd-panel"
       id="editor-receta"
       role="dialog"
       aria-modal="true"
@@ -159,172 +224,166 @@
       (ngSubmit)="guardar()"
       novalidate
     >
-      <div class="bloque-cabecera">
+      <div class="pd-ventana-head">
         <div>
           <h2 id="titulo-receta">Receta de {{ p.nombre }}</h2>
-          <p>
-            Escribe qué lleva <b>1 {{ p.unidadVenta }}</b>. Al producir, el sistema multiplica las cantidades.
-          </p>
+          <p>Cantidades para <b>1 {{ p.unidadVenta }}</b>. Al producir, el sistema las multiplica.</p>
         </div>
-        <button type="button" class="cerrar-modal" (click)="cerrarReceta()" [disabled]="guardando()" aria-label="Cerrar receta">×</button>
+        <button type="button" class="pd-cerrar" (click)="cerrarReceta()" [disabled]="guardando()" aria-label="Cerrar receta">×</button>
       </div>
 
-      @if (errorReceta()) {
-        <div class="mensaje mensaje-error" role="alert">{{ errorReceta() }}</div>
-      }
-
-      <datalist id="ingredientes-conocidos">
-        @for (m of activas(); track m.id) {
-          <option [value]="m.nombre">{{ unidad(m.unidadMedida) }}</option>
+      <div class="pd-ventana-body">
+        @if (errorReceta()) {
+          <div class="pd-alerta" data-tono="falta" role="alert"><span>{{ errorReceta() }}</span></div>
         }
-      </datalist>
 
-      <ol class="ingredientes" aria-label="Ingredientes">
-        @for (fila of filas(); track $index; let i = $index) {
-          @let est = estado(i);
-          @let falla = intentoGuardar() || analisis()[i]?.inmediato ? problema(i) : null;
-          <li class="ingrediente" [class.con-error]="falla" [attr.data-estado]="est.tipo">
-            <span class="ingrediente-numero" aria-hidden="true">{{ i + 1 }}</span>
+        <datalist id="ingredientes-conocidos">
+          @for (m of activas(); track m.id) {
+            <option [value]="m.nombre">{{ unidad(m.unidadMedida) }}</option>
+          }
+        </datalist>
 
-            <div class="ingrediente-nombre">
-              <label [for]="'item-nombre-' + i">Ingrediente</label>
-              <input
-                [id]="'item-nombre-' + i"
-                [name]="'item-nombre-' + i"
-                [ngModel]="fila.nombre"
-                (ngModelChange)="cambiarFila(i, { nombre: $event })"
-                list="ingredientes-conocidos"
-                autocomplete="off"
-                maxlength="120"
-                placeholder="Ej. leche, sal, cuajo"
-                [attr.aria-invalid]="falla ? 'true' : null"
-                [attr.aria-describedby]="'item-estado-' + i"
-                (keydown.enter)="siguienteCampoReceta($event, 'item-cant-' + i)"
-              />
-              <div class="ingrediente-estado" [id]="'item-estado-' + i" aria-live="polite">
-                @switch (est.tipo) {
-                  @case ('existente') {
-                    @if (est.tipo === 'existente') {
-                      <span class="chip chip-ok">✓ En inventario</span>
-                      <span>Hay {{ stockDe(est.materia) }}</span>
-                    }
-                  }
-                  @case ('nuevo') {
-                    @if (est.tipo === 'nuevo') {
-                      @if (est.parecido; as parecido) {
-                        <span class="chip chip-error">Casi igual a «{{ parecido.nombre }}»</span>
-                        <button type="button" class="enlace" (click)="usarParecido(i, parecido)">
-                          Usar «{{ parecido.nombre }}»{{ parecido.activo === false ? ' (se reactivará)' : '' }}
-                        </button>
-                      } @else {
-                        <span class="chip chip-nuevo">Nuevo</span>
-                        <span>Se agregará al inventario al guardar.</span>
-                      }
-                    }
-                  }
-                  @case ('baja') {
-                    <span class="chip chip-error">Dado de baja</span>
-                    <button type="button" class="enlace" (click)="volverAUsar(i)">Volver a usarlo</button>
-                  }
-                  @case ('reactivar') {
-                    <span class="chip chip-nuevo">Se reactivará</span>
-                    <span>Estaba dado de baja: vuelve al inventario con su historial al guardar.</span>
-                  }
-                }
-              </div>
-            </div>
+        <ol class="pd-filas rc-ingredientes" aria-label="Ingredientes">
+          @for (fila of filas(); track $index; let i = $index) {
+            @let est = estado(i);
+            @let falla = intentoGuardar() || analisis()[i]?.inmediato ? problema(i) : null;
+            <li class="pd-fila rc-ingrediente" [class.con-error]="falla" [attr.data-estado]="est.tipo">
+              <span class="rc-numero" aria-hidden="true">{{ i + 1 }}</span>
 
-            <div class="ingrediente-cantidad">
-              <label [for]="'item-cant-' + i">Para 1 {{ p.unidadVenta }}</label>
-              <div class="cantidad-con-unidad">
+              <div class="pd-campo">
+                <label [for]="'item-nombre-' + i">Ingrediente</label>
                 <input
-                  [id]="'item-cant-' + i"
-                  [name]="'item-cant-' + i"
-                  type="number"
-                  inputmode="decimal"
-                  step="any"
-                  min="0"
-                  placeholder="0"
-                  [ngModel]="fila.cantidad"
-                  (ngModelChange)="cambiarFila(i, { cantidad: $event })"
+                  [id]="'item-nombre-' + i"
+                  [name]="'item-nombre-' + i"
+                  [ngModel]="fila.nombre"
+                  (ngModelChange)="cambiarFila(i, { nombre: $event })"
+                  list="ingredientes-conocidos"
+                  autocomplete="off"
+                  maxlength="120"
+                  placeholder="Ej. leche, sal, cuajo"
                   [attr.aria-invalid]="falla ? 'true' : null"
-                  (keydown.enter)="siguienteFila($event, i)"
+                  [attr.aria-describedby]="'item-estado-' + i"
+                  (keydown.enter)="siguienteCampoReceta($event, 'item-cant-' + i)"
                 />
-                @switch (est.tipo) {
-                  @case ('existente') {
-                    @if (est.tipo === 'existente') {
-                      <span class="unidad-fija" title="La unidad la define el inventario">{{ unidad(est.materia.unidadMedida) }}</span>
-                    }
-                  }
-                  @case ('baja') {
-                    @if (est.tipo === 'baja') {
-                      <span class="unidad-fija">{{ unidad(est.unidad) }}</span>
-                    }
-                  }
-                  @case ('reactivar') {
-                    @if (est.tipo === 'reactivar') {
-                      <span class="unidad-fija">{{ unidad(est.unidad) }}</span>
-                    }
-                  }
-                  @default {
-                    <select
-                      [id]="'item-unidad-' + i"
-                      [name]="'item-unidad-' + i"
-                      [ngModel]="fila.unidad"
-                      (ngModelChange)="cambiarFila(i, { unidad: $event })"
-                      aria-label="Unidad del ingrediente nuevo"
-                    >
-                      @for (u of unidades; track u.valor) {
-                        <option [value]="u.valor">{{ u.texto }}</option>
+                <div class="rc-estado" [id]="'item-estado-' + i" aria-live="polite">
+                  @switch (est.tipo) {
+                    @case ('existente') {
+                      @if (est.tipo === 'existente') {
+                        <span class="pd-chip" data-tono="ok">En inventario</span>
+                        <span>Hay {{ stockDe(est.materia) }}</span>
                       }
-                    </select>
+                    }
+                    @case ('nuevo') {
+                      @if (est.tipo === 'nuevo') {
+                        @if (est.parecido; as parecido) {
+                          <span class="pd-chip" data-tono="falta">Casi igual a «{{ parecido.nombre }}»</span>
+                          <button type="button" class="pd-btn pd-btn-sm pd-btn-texto" (click)="usarParecido(i, parecido)">
+                            Usar «{{ parecido.nombre }}»{{ parecido.activo === false ? ' (se reactivará)' : '' }}
+                          </button>
+                        } @else {
+                          <span class="pd-chip" data-tono="info">Nuevo</span>
+                          <span>Se agregará al inventario.</span>
+                        }
+                      }
+                    }
+                    @case ('baja') {
+                      <span class="pd-chip" data-tono="falta">Dado de baja</span>
+                      <button type="button" class="pd-btn pd-btn-sm pd-btn-texto" (click)="volverAUsar(i)">Volver a usarlo</button>
+                    }
+                    @case ('reactivar') {
+                      <span class="pd-chip" data-tono="info">Se reactivará</span>
+                    }
                   }
+                </div>
+              </div>
+
+              <div class="pd-campo">
+                <label [for]="'item-cant-' + i">Para 1 {{ p.unidadVenta }}</label>
+                <div class="pd-con-unidad">
+                  <input
+                    [id]="'item-cant-' + i"
+                    [name]="'item-cant-' + i"
+                    type="number"
+                    inputmode="decimal"
+                    step="any"
+                    min="0"
+                    placeholder="0"
+                    [ngModel]="fila.cantidad"
+                    (ngModelChange)="cambiarFila(i, { cantidad: $event })"
+                    [attr.aria-invalid]="falla ? 'true' : null"
+                    (keydown.enter)="siguienteFila($event, i)"
+                  />
+                  @switch (est.tipo) {
+                    @case ('existente') {
+                      @if (est.tipo === 'existente') {
+                        <span class="pd-unidad" title="La unidad la define el inventario">{{ unidad(est.materia.unidadMedida) }}</span>
+                      }
+                    }
+                    @case ('baja') {
+                      @if (est.tipo === 'baja') {
+                        <span class="pd-unidad">{{ unidad(est.unidad) }}</span>
+                      }
+                    }
+                    @case ('reactivar') {
+                      @if (est.tipo === 'reactivar') {
+                        <span class="pd-unidad">{{ unidad(est.unidad) }}</span>
+                      }
+                    }
+                    @default {
+                      <select
+                        class="rc-unidad"
+                        [id]="'item-unidad-' + i"
+                        [name]="'item-unidad-' + i"
+                        [ngModel]="fila.unidad"
+                        (ngModelChange)="cambiarFila(i, { unidad: $event })"
+                        aria-label="Unidad del ingrediente nuevo"
+                      >
+                        @for (u of unidades; track u.valor) {
+                          <option [value]="u.valor">{{ u.texto }}</option>
+                        }
+                      </select>
+                    }
+                  }
+                </div>
+                @if (fila.cantidad && fila.cantidad > 0 && est.tipo !== 'vacia') {
+                  <span class="pd-ayuda">Para 100: {{ cantidad(fila.cantidad * 100) }} {{ unidadDeFila(i) }}</span>
                 }
               </div>
-              @if (fila.cantidad && fila.cantidad > 0 && est.tipo !== 'vacia') {
-                <small class="ingrediente-ejemplo">
-                  Para 100: {{ cantidad(fila.cantidad * 100) }}
-                  {{ unidadDeFila(i) }}
-                </small>
+
+              <button
+                type="button"
+                class="pd-btn pd-btn-icono pd-btn-peligro rc-quitar"
+                [disabled]="guardando()"
+                [attr.aria-label]="'Quitar ingrediente ' + (i + 1)"
+                title="Quitar"
+                (click)="quitarItem(i)"
+              >
+                ✕
+              </button>
+
+              @if (falla) {
+                <p class="rc-problema" role="alert">{{ falla }}</p>
               }
-            </div>
+            </li>
+          }
+        </ol>
 
-            <button
-              type="button"
-              class="ingrediente-quitar"
-              [disabled]="guardando()"
-              [attr.aria-label]="'Quitar ingrediente ' + (i + 1)"
-              title="Quitar"
-              (click)="quitarItem(i)"
-            >
-              ✕
-            </button>
+        <button type="button" class="pd-agregar" (click)="agregarItem()" [disabled]="guardando()">+ Agregar ingrediente</button>
+      </div>
 
-            @if (falla) {
-              <p class="ingrediente-problema" role="alert">{{ falla }}</p>
-            }
-          </li>
-        }
-      </ol>
-
-      <button type="button" class="insumo-agregar" (click)="agregarItem()" [disabled]="guardando()">
-        + Agregar ingrediente
-      </button>
-
-      <div class="botonera botonera-receta">
-        <span class="resumen-receta">
+      <div class="pd-ventana-foot">
+        <span class="pd-foot-info">
           {{ resumenReceta().usados }} {{ resumenReceta().usados === 1 ? 'ingrediente' : 'ingredientes' }}
           @if (resumenReceta().nuevos) {
             · {{ resumenReceta().nuevos }} {{ resumenReceta().nuevos === 1 ? 'nuevo' : 'nuevos' }}
           }
-          <small>Ctrl + Enter guarda · Esc cierra</small>
+          <span class="rc-atajo">Ctrl + Enter guarda · Esc cierra</span>
         </span>
-        <button type="button" class="boton-secundario" (click)="cerrarReceta()" [disabled]="guardando()">Cancelar</button>
-        <button type="submit" class="boton-grande" [disabled]="guardando()">
+        <button type="button" class="pd-btn" (click)="cerrarReceta()" [disabled]="guardando()">Cancelar</button>
+        <button type="submit" class="pd-btn pd-btn-primario" [disabled]="guardando()">
           {{ guardando() ? 'Guardando…' : 'Guardar receta' }}
         </button>
       </div>
     </form>
   }
-
 </section>

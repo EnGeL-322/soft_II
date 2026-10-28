@@ -4,7 +4,7 @@ import { Component, DestroyRef, OnInit, computed, signal, inject } from '@angula
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { finalize } from 'rxjs';
+import { catchError, finalize, forkJoin, of } from 'rxjs';
 import { PERMISO } from '../../core/config/navegacion';
 import { etiquetaUnidad } from '../../core/config/unidades';
 import {
@@ -26,6 +26,7 @@ import {
 } from '../../core/services/reporte-queso.service';
 import { PaginacionLocal } from '../../shared/ui/paginacion-local';
 import { PaginadorComponent } from '../../shared/ui/paginador.component';
+import { IconoComponent } from '../../shared/ui/icono.component';
 import { NotificacionesService } from '../../core/notificaciones/notificaciones.service';
 import { DialogoService } from '../../core/notificaciones/dialogo.service';
 import { mensajeDeError } from '../../core/notificaciones/mensaje-error';
@@ -46,25 +47,61 @@ export interface ConsumoPrevisto {
   queda: number;
 }
 
+/** Una fila de la tabla "Del almacén": lo que hay y, con una cantidad escrita, lo que se usa. */
+export interface FilaInsumo {
+  item: CapacidadItem;
+  estado: EstadoInsumo;
+  usa: number | null;
+  queda: number | null;
+}
+
+/** Lo que dice la tarjeta de cada producto antes de elegirlo. */
+export interface TarjetaProducto {
+  producto: Producto;
+  texto: string;
+  tono: 'ok' | 'aviso' | 'falta' | 'cargando';
+}
+
 /** Vistas que abre el menú lateral (`?vista=`), en el mismo orden que sus subitems. */
 type Pestana = 'registrar' | 'historial' | 'reportes';
 
 /** Cuántas producciones se ven sin pedir "Ver todas". */
 
 /**
- * "Producción": un solo botón principal. Al registrar se elige el producto, el sistema dice cuánto se
- * puede producir con lo que hay (receta vs almacén) y qué insumo limita, se confirma la cantidad y se
- * guarda. Lo que se descuenta lo calcula el servidor con la receta (no se escribe a mano); aquí solo
- * se muestra antes de guardar. Los reportes van en su propia pestaña.
+ * "Producción": se toca la tarjeta del producto (cada una ya dice cuánto alcanza), se escribe cuántas
+ * se pusieron y cuántas salieron, y se guarda. Lo que se descuenta lo calcula el servidor con la
+ * receta (no se escribe a mano); aquí solo se muestra en una tabla antes de guardar. Al guardar, el
+ * formulario queda listo para la siguiente producción y lo de hoy se ve debajo. Los reportes van en
+ * su propia pestaña.
  */
 @Component({
   selector: 'app-produccion-queso',
   standalone: true,
-  imports: [PaginadorComponent, FormsModule, DecimalPipe, BuscadorComponent, RouterLink],
+  imports: [PaginadorComponent, FormsModule, DecimalPipe, BuscadorComponent, RouterLink, IconoComponent],
   templateUrl: './produccion-queso.component.html',
   styles: `
-    .vence-linea { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; margin: 12px 0 4px; font-size: 14px; }
-    .ayuda-mal { margin: 4px 0 10px; color: var(--muted); font-size: 13px; }
+    .pq-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+    .pq-pasos { display: flex; flex-direction: column; gap: 22px; }
+    .pq-paso { display: flex; flex-direction: column; gap: 10px; }
+    .pq-paso-titulo { display: flex; align-items: center; gap: 10px; margin: 0; font-size: 15px; font-weight: 700; color: var(--marino, var(--text)); }
+    .pq-paso-num { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--azul, var(--green)); color: #fff; font-size: 13px; }
+    .pq-max { display: flex; gap: 8px; }
+    .pq-max input { flex: 1; min-width: 0; }
+    .pq-estado-insumo { font-weight: 700; display: inline-block; width: 18px; }
+    tr[data-estado='alcanza'] .pq-estado-insumo { color: var(--ok); }
+    tr[data-estado='limita'] td { background: var(--warn-bg) !important; }
+    tr[data-estado='limita'] .pq-estado-insumo { color: var(--warn); }
+    tr[data-estado='falta'] td { background: var(--err-bg) !important; }
+    tr[data-estado='falta'] .pq-estado-insumo { color: var(--err); }
+    .pq-hoy { list-style: none; margin: 0; padding: 0; }
+    .pq-hoy li { display: flex; justify-content: space-between; gap: 12px; padding: 12px 20px; border-bottom: 1px solid #e3eaf3; }
+    .pq-hoy li:last-child { border-bottom: 0; }
+    .pq-hoy strong { display: block; color: var(--marino, var(--text)); }
+    .pq-hoy small { color: var(--muted); }
+    .pq-hoy .pq-hoy-num { text-align: right; font-weight: 700; font-size: 18px; color: var(--marino, var(--text)); }
+    .pq-filtros { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+    .pq-filtros .pd-campo { width: 180px; }
+    @media (max-width: 1100px) { .pq-layout { grid-template-columns: 1fr; } }
   `,
 })
 export class ProduccionQuesoComponent implements OnInit {
@@ -72,6 +109,7 @@ export class ProduccionQuesoComponent implements OnInit {
   private readonly _enVivo = recargarEnVivo(['produccion', 'ventas', 'inventario'], () => {
     this.cargarLotes();
     this.cargarLeche();
+    if (this.panelAbierto()) this.cargarTarjetas();
     if (this.pestana() === 'reportes') this.cargarReporte();
   });
   protected readonly notificaciones = inject(NotificacionesService);
@@ -97,6 +135,10 @@ export class ProduccionQuesoComponent implements OnInit {
   readonly cargandoCapacidad = signal(false);
   readonly guardando = signal(false);
   readonly manoObraFilas = signal<FilaManoObra[]>([]);
+  /** Cuánto alcanza de cada producto, para sus tarjetas. Sin entrada = todavía cargando. */
+  readonly capacidades = signal<ReadonlyMap<number, CapacidadProduccion | null>>(new Map());
+  /** El último lote guardado: se muestra arriba del formulario ya limpio. */
+  readonly ultimoGuardado = signal<LoteQueso | null>(null);
   private versionCapacidad = 0;
 
   productoId: number | null = null;
@@ -128,6 +170,21 @@ export class ProduccionQuesoComponent implements OnInit {
   readonly opcTrabajadores = computed<OpcionBuscador[]>(() =>
     this.trabajadores().map((t) => ({ valor: t.id, etiqueta: t.nombre })),
   );
+
+  readonly tarjetas = computed<TarjetaProducto[]>(() =>
+    this.productos().map((producto) => ({ producto, ...estadoTarjeta(this.capacidades().get(producto.id)) })),
+  );
+  readonly lotesDeHoy = computed(() => this.lotes().filter((l) => l.fecha === hoy()));
+
+  /** Historial: busca por producto, código de lote o responsable. */
+  readonly filtroHistorial = signal('');
+  readonly lotesFiltrados = computed(() => {
+    const q = normalizar(this.filtroHistorial());
+    if (!q) return this.lotes();
+    return this.lotes().filter((l) =>
+      normalizar(`${l.productoNombre} ${l.codigo} ${l.responsable}`).includes(q),
+    );
+  });
 
   readonly stockTotal = computed(() => this.lotes().reduce((a, l) => a + l.stock, 0));
   readonly producidoHoy = computed(() =>
@@ -218,10 +275,13 @@ export class ProduccionQuesoComponent implements OnInit {
       this.produccion.productos().subscribe({
         next: (p) => {
           this.productos.set(p);
+          this.cargarTarjetas();
           if (this.productoId == null && p.length === 1) this.elegirProducto(p[0].id);
         },
         error: () => this.error.set('No se pudo cargar el catálogo de productos.'),
       });
+    } else {
+      this.cargarTarjetas();
     }
     if (!this.trabajadores().length && this.auth.puede(PERMISO.produccionRead)) {
       this.produccion.trabajadores().subscribe({ next: (t) => this.trabajadores.set(t), error: () => {} });
@@ -234,7 +294,22 @@ export class ProduccionQuesoComponent implements OnInit {
 
   cerrarRegistro(): void {
     this.panelAbierto.set(false);
+    this.ultimoGuardado.set(null);
     this.limpiar();
+  }
+
+  /**
+   * Una consulta de capacidad por producto: son pocos y cada tarjeta dice cuánto alcanza sin tener que
+   * elegirlo. Si una falla, su tarjeta queda sin número y el producto se puede elegir igual.
+   */
+  cargarTarjetas(): void {
+    const productos = this.productos();
+    if (!productos.length) return;
+    forkJoin(
+      productos.map((p) =>
+        this.produccion.capacidad(p.id, this.fecha).pipe(catchError(() => of(null))),
+      ),
+    ).subscribe((caps) => this.capacidades.set(new Map(productos.map((p, i) => [p.id, caps[i]]))));
   }
 
   limpiar(): void {
@@ -253,6 +328,8 @@ export class ProduccionQuesoComponent implements OnInit {
   // ---------------------------------------------------------------- Paso 1: producto y cuánto alcanza
 
   elegirProducto(id: number | null): void {
+    if (id != null && id === this.productoId) return;
+    this.ultimoGuardado.set(null);
     this.productoId = id;
     this.cantidad = null;
     this.salieron = null;
@@ -329,8 +406,9 @@ export class ProduccionQuesoComponent implements OnInit {
    * Lo que hay que comprar para la cantidad escrita (o para una unidad), redondeado hacia arriba a
    * 3 decimales. Abre Compras con el insumo y la cantidad ya puestos.
    */
-  compraSugerida(): { materiaPrimaId: number; cantidad: number } | null {
-    const i = this.insumoPorComprar();
+  compraSugerida(
+    i: CapacidadItem | null = this.insumoPorComprar(),
+  ): { materiaPrimaId: number; cantidad: number } | null {
     if (!i) return null;
     const pedido = this.cantidad && this.cantidad > 0 ? this.cantidad : 1;
     const falta = i.cantidadPorUnidad * pedido - Math.max(0, i.stockActual);
@@ -356,6 +434,17 @@ export class ProduccionQuesoComponent implements OnInit {
       const descontar = redondear(item.cantidadPorUnidad * cantidad);
       return { item, descontar, queda: redondear(item.stockActual - descontar) };
     });
+  }
+
+  /** La tabla "Del almacén": cada insumo con su estado y, si ya hay cantidad, cuánto usa y cuánto queda. */
+  filasInsumos(): FilaInsumo[] {
+    const previsto = this.consumoPrevisto();
+    return (this.capacidad()?.items ?? []).map((item, i) => ({
+      item,
+      estado: this.estadoInsumo(item),
+      usa: previsto[i]?.descontar ?? null,
+      queda: previsto[i]?.queda ?? null,
+    }));
   }
 
   /** Costo aproximado con el costo de referencia de cada insumo; null si alguno no lo tiene. */
@@ -465,10 +554,12 @@ export class ProduccionQuesoComponent implements OnInit {
           this.notificaciones.exito(
             `Listo: ${lote.unidadesProducidas} de ${lote.productoNombre} guardados para vender (${lote.codigo}).`,
           );
-          this.panelAbierto.set(false);
+          // El formulario queda abierto y limpio para la siguiente producción del día.
+          this.ultimoGuardado.set(lote);
           this.limpiar();
           this.cargarLotes();
           this.cargarLeche();
+          this.cargarTarjetas();
           window.scrollTo({ top: 0, behavior: 'smooth' });
         },
         error: (e) => {
@@ -487,6 +578,18 @@ export class ProduccionQuesoComponent implements OnInit {
     const d = new Date(this.fecha + 'T12:00:00');
     d.setDate(d.getDate() + dias);
     return d.toISOString().slice(0, 10);
+  }
+
+  /** Chip del historial: agotado, vencido, vence pronto (3 días o menos) o disponible. */
+  estadoLote(lote: LoteQueso): { texto: string; tono: 'ok' | 'aviso' | 'falta' | 'neutro' } {
+    if (lote.stock <= 0) return { texto: 'Agotado', tono: 'neutro' };
+    if (lote.fechaVencimiento) {
+      const dias = diasEntre(hoy(), lote.fechaVencimiento);
+      if (dias < 0) return { texto: 'Vencido', tono: 'falta' };
+      if (dias === 0) return { texto: 'Vence hoy', tono: 'aviso' };
+      if (dias <= 3) return { texto: `Vence en ${dias} d`, tono: 'aviso' };
+    }
+    return { texto: 'Disponible', tono: 'ok' };
   }
 
   alternarDetalle(lote: LoteQueso): void {
@@ -569,9 +672,30 @@ export class ProduccionQuesoComponent implements OnInit {
   }
 }
 
+/** Texto y color de la tarjeta de un producto según cuánto alcanza. */
+function estadoTarjeta(c: CapacidadProduccion | null | undefined): Omit<TarjetaProducto, 'producto'> {
+  if (c === undefined) return { texto: 'Mirando el almacén…', tono: 'cargando' };
+  if (c === null) return { texto: 'Tócalo para ver cuánto alcanza', tono: 'aviso' };
+  if (!c.tieneReceta) return { texto: 'Sin receta', tono: 'falta' };
+  if (!c.recetaLlevaLeche) return { texto: 'La receta no dice cuánta leche lleva', tono: 'falta' };
+  if (!c.maximoProducible) return { texto: 'No alcanza para producir', tono: 'falta' };
+  const unidad = c.unidadVenta && c.unidadVenta !== 'unidad' ? c.unidadVenta : 'unidades';
+  return { texto: `Alcanza para ${c.maximoProducible} ${unidad}`, tono: 'ok' };
+}
+
 /** Tres decimales: lo que se lee en una balanza, sin arrastrar el error del punto flotante. */
 function redondear(n: number): number {
   return Math.round(n * 1000) / 1000;
+}
+
+/** Días de una fecha ISO a otra (negativo si la segunda ya pasó). */
+function diasEntre(desde: string, hasta: string): number {
+  return Math.round((Date.parse(hasta + 'T12:00:00') - Date.parse(desde + 'T12:00:00')) / 86400000);
+}
+
+/** Sin tildes ni mayúsculas, para buscar "yogur" y encontrar "Yogúr". */
+function normalizar(texto: string): string {
+  return texto.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 }
 
 /** ISO local, no UTC: con toISOString() la fecha se corre un día según la zona horaria. */

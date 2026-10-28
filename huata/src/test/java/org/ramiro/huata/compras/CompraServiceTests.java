@@ -124,4 +124,29 @@ class CompraServiceTests {
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("fecha futura");
     }
+
+    @Test
+    void laLecheDelAcopioNoSeCompra() {
+        MateriaPrima leche = materiaPrimaRepository.findAll().stream()
+                .filter(MateriaPrima::isLecheAcopio)
+                .findFirst()
+                .orElseGet(() -> {
+                    MateriaPrima nueva = new MateriaPrima();
+                    nueva.setNombre("Leche fresca");
+                    nueva.setUnidadMedida(UnidadMedida.LITRO);
+                    nueva.setLecheAcopio(true);
+                    return materiaPrimaRepository.save(nueva);
+                });
+        BigDecimal antes = inventarioService.saldoMateriaPrima(leche.getId());
+
+        assertThatThrownBy(() -> compraService.registrar(new CompraRequest(
+                        proveedor.getId(),
+                        HOY,
+                        null,
+                        null,
+                        List.of(new CompraItemRequest(leche.getId(), BigDecimal.TEN, BigDecimal.ONE)))))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("La leche no se compra");
+        assertThat(inventarioService.saldoMateriaPrima(leche.getId())).isEqualByComparingTo(antes);
+    }
 }

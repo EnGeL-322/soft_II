@@ -122,7 +122,9 @@ const ANCHO_MINIMO = 260;
               }
             </li>
           } @empty {
-            <li class="buscador-vacio">Sin coincidencias para «{{ texto() }}»</li>
+            <li class="buscador-vacio" role="status">
+              {{ sinCoincidencias ? sinCoincidencias(texto()) : 'Sin coincidencias para «' + texto() + '»' }}
+            </li>
           }
         </ul>
       }
@@ -131,8 +133,20 @@ const ANCHO_MINIMO = 260;
   styleUrl: './buscador.component.css',
 })
 export class BuscadorComponent implements ControlValueAccessor, OnDestroy {
-  @Input({ required: true }) opciones: OpcionBuscador[] = [];
+  /**
+   * Señal y no campo: la lista filtrada y el texto mostrado dependen de ella, y las opciones suelen
+   * llegar DESPUÉS del valor (un formulario que se abre con el insumo ya puesto).
+   */
+  private readonly _opciones = signal<OpcionBuscador[]>([]);
+  @Input({ required: true }) set opciones(v: OpcionBuscador[] | null | undefined) {
+    this._opciones.set(v ?? []);
+  }
+  get opciones(): OpcionBuscador[] {
+    return this._opciones();
+  }
   @Input() placeholder = 'Buscar…';
+  /** Texto de la lista vacía según lo escrito: la pantalla puede explicar POR QUÉ no aparece. */
+  @Input() sinCoincidencias?: (texto: string) => string;
   /** Etiqueta accesible cuando el campo no tiene un <label> asociado. */
   @Input() etiqueta = '';
   @Input() set disabled(v: boolean) {
@@ -143,7 +157,11 @@ export class BuscadorComponent implements ControlValueAccessor, OnDestroy {
 
   readonly listaId = `buscador-${Math.random().toString(36).slice(2, 9)}`;
   readonly valor = signal<unknown>(undefined);
-  readonly texto = signal('');
+  /** Lo tecleado. Solo cuenta mientras se está filtrando. */
+  private readonly escrito = signal('');
+  /** Mientras se filtra, el campo muestra lo tecleado; si no, la etiqueta de lo elegido. */
+  private readonly filtrando = signal(false);
+  readonly texto = computed(() => (this.filtrando() ? this.escrito() : this.etiquetaDe(this.valor())));
   readonly abierto = signal(false);
   readonly resaltada = signal(0);
   readonly deshabilitado = signal(false);
@@ -165,15 +183,17 @@ export class BuscadorComponent implements ControlValueAccessor, OnDestroy {
   };
   private escuchando = false;
 
-  /** Lo tecleado solo filtra mientras la lista está abierta; cerrada, el campo muestra lo elegido. */
-  private filtrando = false;
-
+  /**
+   * Todo lo que se lee aquí es señal. Antes `filtrando` era un campo común y el texto solo se leía
+   * cuando era verdadero: al abrir la lista (filtrando = false) el computed quedaba sin dependencias
+   * y no se recalculaba nunca más. Escribir «sal» seguía mostrando todas las opciones y Enter
+   * elegía la primera («cuajo»). Ver la prueba de regresión en buscador.component.spec.ts.
+   */
   readonly filtradas = computed(() => {
-    const q = this.filtrando ? this.texto().trim().toLocaleLowerCase('es') : '';
-    if (!q) return this.opciones;
-    return this.opciones.filter((o) =>
-      `${o.etiqueta} ${o.detalle ?? ''}`.toLocaleLowerCase('es').includes(q),
-    );
+    const opciones = this._opciones();
+    const q = this.filtrando() ? normalizar(this.escrito()) : '';
+    if (!q) return opciones;
+    return opciones.filter((o) => normalizar(`${o.etiqueta} ${o.detalle ?? ''}`).includes(q));
   });
 
   private alCambiar: (v: unknown) => void = () => {};
@@ -183,7 +203,7 @@ export class BuscadorComponent implements ControlValueAccessor, OnDestroy {
 
   writeValue(v: unknown): void {
     this.valor.set(v);
-    this.texto.set(this.etiquetaDe(v));
+    this.filtrando.set(false);
   }
 
   registerOnChange(fn: (v: unknown) => void): void {
@@ -201,15 +221,15 @@ export class BuscadorComponent implements ControlValueAccessor, OnDestroy {
   // ---- Interacción ----
 
   alEscribir(v: string): void {
-    this.filtrando = true;
-    this.texto.set(v);
+    this.filtrando.set(true);
+    this.escrito.set(v);
     this.resaltada.set(0);
     this.mostrarLista();
   }
 
   abrir(): void {
     if (this.deshabilitado()) return;
-    this.filtrando = false;
+    this.filtrando.set(false);
     this.mostrarLista();
     this.resaltada.set(Math.max(0, this.filtradas().findIndex((o) => o.valor === this.valor())));
   }
@@ -223,19 +243,26 @@ export class BuscadorComponent implements ControlValueAccessor, OnDestroy {
     }
   }
 
-  /** Al cerrar se restaura el texto de lo elegido: escribir a medias no cambia la selección. */
+  /**
+   * Al cerrar se restaura lo elegido: escribir a medias no cambia la selección. La única excepción
+   * es haber escrito EXACTAMENTE el nombre de una opción (sin importar tildes ni mayúsculas): eso
+   * no es escribir a medias, y salir con Tab o un clic afuera la elige.
+   */
   cerrar(): void {
+    const exacta = this.filtrando() ? this.opcionExacta() : null;
+    if (exacta) {
+      this.elegir(exacta);
+      return;
+    }
     this.abierto.set(false);
     this.dejarDeEscuchar();
-    this.filtrando = false;
-    this.texto.set(this.etiquetaDe(this.valor()));
+    this.filtrando.set(false);
     this.alTocar();
   }
 
   elegir(o: OpcionBuscador): void {
     this.valor.set(o.valor);
-    this.texto.set(o.etiqueta);
-    this.filtrando = false;
+    this.filtrando.set(false);
     this.abierto.set(false);
     this.dejarDeEscuchar();
     this.alCambiar(o.valor);
@@ -265,8 +292,14 @@ export class BuscadorComponent implements ControlValueAccessor, OnDestroy {
       case 'Escape':
         if (this.abierto()) {
           evento.preventDefault();
-          this.cerrar();
+          this.abierto.set(false);
+          this.dejarDeEscuchar();
+          this.filtrando.set(false);
         }
+        break;
+      case 'Tab':
+        // Sin esto la lista quedaba abierta encima del campo siguiente.
+        if (this.abierto()) this.cerrar();
         break;
       default:
         break;
@@ -335,6 +368,24 @@ export class BuscadorComponent implements ControlValueAccessor, OnDestroy {
   }
 
   private etiquetaDe(v: unknown): string {
-    return this.opciones.find((o) => o.valor === v)?.etiqueta ?? '';
+    return this._opciones().find((o) => o.valor === v)?.etiqueta ?? '';
   }
+
+  /** La única opción cuyo nombre es exactamente lo escrito, o null. */
+  private opcionExacta(): OpcionBuscador | null {
+    const q = normalizar(this.escrito());
+    if (!q) return null;
+    const iguales = this._opciones().filter((o) => normalizar(o.etiqueta) === q);
+    return iguales.length === 1 ? iguales[0] : null;
+  }
+}
+
+/** Sin tildes, sin mayúsculas y sin espacios de sobra: «Lúcuma» se encuentra escribiendo «lucuma». */
+function normalizar(texto: string): string {
+  return texto
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase('es')
+    .replace(/\s+/g, ' ')
+    .trim();
 }

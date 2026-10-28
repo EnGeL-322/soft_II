@@ -808,6 +808,59 @@ El flujo acopio → almacén → receta → lote → venta ya descontaba y coste
 - **La venta se hace por producto**, no por lote: sale primero lo que vence antes y, si un lote no alcanza, se completa con el siguiente (`POST /quesos/ventas/por-producto`). Cada lote tocado queda como una venta propia para conservar su costo. Web y app.
 - **Quesos reconstruidos**: al registrar producción, sección "¿Salieron quesos mal?" con Reconstruidos y Recorte (unidades y kg). Quedan en el lote; siguen contando en el stock y se venden al precio del producto.
 
+### Registrar compra: «escribo sal y siempre pone cuajo» (2026-10-28) — resuelta
+Reporte del cliente: al escribir un insumo que ninguna receta lleva («sal», «zal»), el campo se limpiaba
+y terminaba eligiendo «cuajo», el único insumo comprable. El filtro por recetas sigue igual (el cliente
+está de acuerdo); lo que estaba mal era el comportamiento.
+- **Causa raíz, en el buscador compartido** (`shared/ui/buscador.component.ts`, lo usan 12 pantallas): la
+  lista filtrada era un `computed` que solo leía el texto cuando `filtrando` era verdadero, y `filtrando`
+  era un campo común, no una señal. Al hacer foco se calculaba con `filtrando = false`, quedaba **sin
+  dependencias** y no se recalculaba nunca más. Escribir no filtraba, Enter elegía la primera opción y al
+  salir se borraba lo escrito. Lo mismo pasaba con `opciones`: si llegaban tarde, no se veían. Ahora todo
+  es señal. Además: filtra sin tildes, Tab cierra la lista, y salir habiendo escrito el nombre exacto elige
+  esa opción. 6 pruebas de regresión que fallaban con el código anterior.
+- **La lista vacía explica por qué** (`[sinCoincidencias]`): «Sal no lo lleva ninguna receta: agrégalo a
+  una receta», «zal no existe», «la leche no se compra». Hay un enlace a Recetas y productos.
+- **Formulario de compra** (`features/compras/compra-formulario.ts`, con sus pruebas):
+  - Las filas a medio llenar ya no se descartan sin aviso al guardar; cada fila dice qué le falta.
+  - Un insumo repetido se marca apenas se elige («ya está en la fila 1: suma la cantidad ahí»).
+  - Cantidad mayor a cero y precio no negativo (cero se acepta).
+  - La fecha no puede ser futura (también se valida en la web).
+  - Al elegir un insumo se propone el último precio pagado.
+  - Aviso, sin bloquear, si el precio se aleja más de 5 veces del último. Atrapa «S/ 20 por g» cuando
+    era por kg.
+  - La ✕ de la única fila la vacía en lugar de quedar deshabilitada.
+- **Backend:** `CompraService.registrar` rechaza la leche del acopio («La leche no se compra»). La web
+  ya no la ofrecía, pero la API sí la aceptaba y la contaba dos veces. Tiene su prueba en `CompraServiceTests`.
+
+### Rediseño del módulo Producción en la web (2026-10-28) — resuelta
+El cliente rechazó todas las pantallas de Producción por difíciles de usar. Se rehicieron las 4: Recetas y
+productos, Producción (Registrar · Historial · Reportes), Compras e Inventario. **Backend, endpoints, permisos y
+reglas no cambian**; la lógica de cada componente se conserva.
+- **Sistema visual propio del módulo**: `huata-web/src/produccion-ui.css` (se carga después de `tema-azul.css`).
+  Clases `pd-*` bajo `.pd`, con los colores del tema azul. Lleva `!important` solo donde los temas globales
+  pisan `h1`, `th`, `td`, `input` y `table`.
+- **Las 4 pantallas usan la misma estructura**: encabezado con acción principal, franja de 4 indicadores, tarjetas
+  blancas, tablas con chips de estado (Disponible / Agotado / Vence pronto / Sin receta / Pausado / Anulada) y
+  buscador.
+- **Formularios en ventana**: la receta y la compra se abren en un panel lateral; producto, ajuste y edición de
+  insumo, en un modal.
+- Producción tiene pestañas Registrar · Historial · Reportes en la propia página. El historial tiene buscador
+  y estado de cada lote. Los reportes muestran indicadores (producidos, vendidos, ingresos, saldo).
+- Recetas: tabla de productos con la receta en palabras y botones Receta · Datos · Pausar · Eliminar.
+  "Datos" (`editarProducto`) ya existía en el componente, pero no tenía botón.
+- Compras: alta de proveedor dentro del formulario; el proveedor recién creado queda elegido.
+- Inventario: las acciones del menú "⋯" quedan a la vista en cada fila (Comprar, Ajustar, Movimientos,
+  Editar, Eliminar).
+
+Detalle de Registrar producción:
+- **Tarjetas de producto** en lugar del buscador: cada una dice cuánto alcanza ("Alcanza para 15 unidades", "Sin receta", "No alcanza") con el mismo `GET /produccion/capacidad`, una consulta por producto.
+- **"Pusiste a producir" y "Salieron" juntos**, a la vista (antes "Salieron" estaba escondido en "Más detalles").
+- **Una sola tabla "Se usa del almacén"** (Hay · Se usa · Queda) en lugar de dos listas repetidas; el insumo que falta trae su propio "Comprar".
+- Vencimiento, costo aproximado y responsable en una línea de resumen.
+- Al guardar, el formulario **queda abierto y limpio** con un aviso del lote guardado, y debajo se ve **"Hoy se produjo"**.
+- **No hay etapa de maduración**: la empresa no madura sus productos y el cliente no la quiere. El lote se vende apenas se registra.
+
 ### Eliminar productos (2026-10-27) — resuelta
 Pedido del cliente: no encontraba cómo eliminar un producto y el mensaje ("ya tiene producción o precios") no decía dónde quitarlo.
 - **Solo impide eliminar el historial de producción**: un lote (aun anulado) tiene movimientos de inventario y asientos; las ventas cuelgan de los lotes. Con alguno, se pausa.
