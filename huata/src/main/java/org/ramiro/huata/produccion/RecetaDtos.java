@@ -4,11 +4,27 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import org.ramiro.huata.inventario.UnidadMedida;
 
-record RecetaItemRequest(@NotNull Long materiaPrimaId, @NotNull @Positive BigDecimal cantidadPorUnidad) {}
+/**
+ * Un ingrediente de la receta: uno que ya existe ({@code materiaPrimaId}) o uno que se escribe por
+ * primera vez ({@code nombre} + {@code unidadMedida}). Los nuevos se crean en la misma transaccion que
+ * la receta: si la receta no se guarda, tampoco quedan insumos sueltos en el inventario.
+ */
+record RecetaItemRequest(
+        Long materiaPrimaId,
+        @Size(max = 120) String nombre,
+        UnidadMedida unidadMedida,
+        @NotNull @Positive BigDecimal cantidadPorUnidad) {
+
+    RecetaItemRequest(Long materiaPrimaId, BigDecimal cantidadPorUnidad) {
+        this(materiaPrimaId, null, null, cantidadPorUnidad);
+    }
+}
 
 record RecetaRequest(
         @NotNull Long productoId,

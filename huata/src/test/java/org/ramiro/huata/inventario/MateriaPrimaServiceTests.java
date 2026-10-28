@@ -76,7 +76,7 @@ class MateriaPrimaServiceTests {
 
         assertThatThrownBy(() -> crear(nombre.toUpperCase()))
                 .isInstanceOf(BusinessRuleException.class)
-                .hasMessageContaining("Ya existe una materia prima");
+                .hasMessageContaining("Ya existe un insumo");
     }
 
     /** Ni con espacios de más alrededor: se compara el nombre ya recortado. */
@@ -215,5 +215,123 @@ class MateriaPrimaServiceTests {
 
         assertThat(service.kardexDeMateriaPrima(creada.getId(), PageRequest.of(0, 10)).getContent())
                 .isEmpty();
+    }
+
+    // ------------------------------------------------------- Nombres y reactivacion
+
+    /** "Azúcar" y "azucar  " son el mismo saco: tildes, mayusculas y espacios no hacen otro insumo. */
+    @Test
+    void elDuplicadoSeDetectaSinTildesNiEspacios() {
+        String base = "Azúcar " + System.nanoTime();
+        crear(base);
+
+        assertThatThrownBy(() -> crear("  " + base.replace("ú", "u").toUpperCase() + "  "))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("Ya existe un insumo");
+    }
+
+    /**
+     * El caso que reporto el cliente: borrar "sal" y volver a crearla decia "Ya existe" de algo que no
+     * se veia en ninguna pantalla. Ahora se reactiva la misma fila, con su historial.
+     */
+    @Test
+    void crearConElNombreDeUnInsumoDadoDeBajaLoReactiva() {
+        String nombre = nombreUnico("sal");
+        MateriaPrima original = crear(nombre);
+        service.inactivar(original.getId());
+
+        MateriaPrima otraVez = service.crear(new MateriaPrimaRequest(nombre.toUpperCase(), UnidadMedida.GRAMO, null));
+
+        assertThat(otraVez.getId()).isEqualTo(original.getId());
+        assertThat(otraVez.isActivo()).isTrue();
+        // Sin movimientos, toma la unidad nueva.
+        assertThat(otraVez.getUnidadMedida()).isEqualTo(UnidadMedida.GRAMO);
+        assertThat(service.listar()).anySatisfy(c -> assertThat(c.materiaPrima().getId()).isEqualTo(original.getId()));
+    }
+
+    /** Con kardex, la unidad no cambia al reactivar: los saldos viejos estan en esa unidad. */
+    @Test
+    void alReactivarUnInsumoConMovimientosConservaSuUnidad() {
+        String nombre = nombreUnico("Cuajo");
+        MateriaPrima original = crear(nombre);
+        inventarioService.registrarEntradaCompra(original, new BigDecimal("3"), HOY, 1L);
+        service.inactivar(original.getId());
+
+        MateriaPrima otraVez = service.crear(new MateriaPrimaRequest(nombre, UnidadMedida.GRAMO, null));
+
+        assertThat(otraVez.getUnidadMedida()).isEqualTo(UnidadMedida.KG);
+        assertThat(service.saldoDe(otraVez.getId())).isEqualByComparingTo("3");
+    }
+
+    @Test
+    void obtenerOCrearReusaElExistenteEnVezDeDuplicarlo() {
+        String nombre = nombreUnico("Cultivo");
+        MateriaPrima existente = crear(nombre);
+
+        assertThat(service.obtenerOCrear(" " + nombre.toLowerCase() + " ", UnidadMedida.GRAMO).getId())
+                .isEqualTo(existente.getId());
+    }
+
+    /** Renombrar a un nombre ocupado era un error 500 de la base de datos; ahora es un aviso claro. */
+    @Test
+    void noSePuedeRenombrarAUnNombreQueYaExiste() {
+        String ocupado = nombreUnico("Envase");
+        crear(ocupado);
+        MateriaPrima otra = crear(nombreUnico("Pote"));
+
+        assertThatThrownBy(() -> service.actualizar(otra.getId(), new MateriaPrimaRequest(ocupado, UnidadMedida.KG, null)))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("Ya existe un insumo");
+    }
+
+    @Test
+    void noSePuedeCambiarLaUnidadDeUnInsumoConMovimientos() {
+        MateriaPrima m = crear(nombreUnico("Cloruro"));
+        inventarioService.registrarEntradaCompra(m, new BigDecimal("2"), HOY, 1L);
+
+        assertThatThrownBy(() -> service.actualizar(m.getId(), new MateriaPrimaRequest(m.getNombre(), UnidadMedida.GRAMO, null)))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("unidad");
+    }
+
+    // ------------------------------------------- Nombres casi iguales (cliente, 2026-10-27)
+
+    private static String letras() {
+        return String.valueOf(System.nanoTime()).chars()
+                .mapToObj(c -> String.valueOf((char) ('a' + (c - '0'))))
+                .reduce("", String::concat);
+    }
+
+    /** El caso del cliente: con "sal" en el inventario, "zal" no se puede crear. */
+    @Test
+    void noSePuedeCrearUnInsumoCasiIgualAOtro() {
+        String sufijo = letras();
+        crear("sal " + sufijo);
+
+        assertThatThrownBy(() -> crear("zal " + sufijo))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("casi igual");
+    }
+
+    /** Tampoco si el parecido esta dado de baja: lo correcto es reactivarlo escribiendo su nombre. */
+    @Test
+    void noSePuedeCrearUnInsumoCasiIgualAUnoDadoDeBaja() {
+        String sufijo = letras();
+        MateriaPrima sal = crear("sal " + sufijo);
+        service.inactivar(sal.getId());
+
+        assertThatThrownBy(() -> crear("zal " + sufijo))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("dado de baja");
+    }
+
+    /** Desde la receta pasa por la misma regla. */
+    @Test
+    void obtenerOCrearTambienBloqueaLosCasiIguales() {
+        String sufijo = letras();
+        crear("cuajo " + sufijo);
+
+        assertThatThrownBy(() -> service.obtenerOCrear("cuajos " + sufijo, UnidadMedida.ML))
+                .isInstanceOf(BusinessRuleException.class);
     }
 }

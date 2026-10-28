@@ -11,6 +11,7 @@ import org.ramiro.huata.common.NotFoundException;
 import org.ramiro.huata.inventario.InventarioService;
 import org.ramiro.huata.inventario.MateriaPrima;
 import org.ramiro.huata.inventario.MateriaPrimaRepository;
+import org.ramiro.huata.inventario.MateriaPrimaService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +27,7 @@ public class RecetaService {
 
     private final RecetaQuesoRepository recetaRepository;
     private final MateriaPrimaRepository materiaPrimaRepository;
+    private final MateriaPrimaService materiaPrimaService;
     private final InventarioService inventarioService;
     private final ProductoService productoService;
     private final AuditoriaService auditoriaService;
@@ -67,11 +69,13 @@ public class RecetaService {
         receta.setVigenteHasta(req.vigenteHasta());
         receta.setRendimientoLitrosPorUnidad(req.rendimientoLitrosPorUnidad());
         receta.setObservaciones(req.observaciones());
+        java.util.Set<Long> usados = new java.util.HashSet<>();
         for (RecetaItemRequest itemReq : req.items()) {
-            MateriaPrima materiaPrima = materiaPrimaRepository
-                    .findById(itemReq.materiaPrimaId())
-                    .filter(MateriaPrima::isActivo)
-                    .orElseThrow(() -> NotFoundException.of("Materia prima", itemReq.materiaPrimaId()));
+            MateriaPrima materiaPrima = resolverInsumo(itemReq);
+            if (!usados.add(materiaPrima.getId())) {
+                throw new BusinessRuleException("\"" + materiaPrima.getNombre()
+                        + "\" esta dos veces en la receta. Dejalo una sola vez con la cantidad total.");
+            }
             RecetaItem item = new RecetaItem();
             item.setReceta(receta);
             item.setMateriaPrima(materiaPrima);
@@ -85,6 +89,27 @@ public class RecetaService {
                 guardada.getProducto().getNombre() + " · vigente desde " + guardada.getVigenteDesde() + " · " + guardada.getItems().size()
                         + " insumo(s)");
         return guardada;
+    }
+
+    /**
+     * Con id: el insumo tiene que existir y estar activo (uno dado de baja dejo de comprarse; para
+     * volver a usarlo se escribe su nombre y se reactiva a proposito). Sin id: se busca por nombre y,
+     * si no existe, se crea con la unidad indicada.
+     */
+    private MateriaPrima resolverInsumo(RecetaItemRequest itemReq) {
+        if (itemReq.materiaPrimaId() != null) {
+            MateriaPrima m = materiaPrimaRepository.findById(itemReq.materiaPrimaId())
+                    .orElseThrow(() -> NotFoundException.of("Materia prima", itemReq.materiaPrimaId()));
+            if (!m.isActivo()) {
+                throw new NotFoundException("\"" + m.getNombre() + "\" fue dado de baja en Inventario. "
+                        + "Quitalo de la receta o vuelve a escribir su nombre para reactivarlo.");
+            }
+            return m;
+        }
+        if (itemReq.nombre() == null || itemReq.nombre().isBlank() || itemReq.unidadMedida() == null) {
+            throw new BusinessRuleException("Cada ingrediente nuevo necesita su nombre y su unidad de medida.");
+        }
+        return materiaPrimaService.obtenerOCrear(itemReq.nombre(), itemReq.unidadMedida());
     }
 
     /**

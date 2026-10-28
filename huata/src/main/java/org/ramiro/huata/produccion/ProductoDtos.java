@@ -15,12 +15,32 @@ record ProductoRequest(
     }
 }
 
+/**
+ * {@code lotesRegistrados}: cuantas producciones tiene (anuladas incluidas). Solo lo trae el listado,
+ * para que la pantalla diga de antemano si el producto se puede eliminar; null en el resto.
+ */
 record ProductoResponse(
-        Long id, String nombre, String unidadVenta, String descripcion, boolean activo, Integer vidaUtilDias) {
+        Long id,
+        String nombre,
+        String unidadVenta,
+        String descripcion,
+        boolean activo,
+        Integer vidaUtilDias,
+        Long lotesRegistrados) {
 
     static ProductoResponse from(Producto p) {
+        return from(p, null);
+    }
+
+    static ProductoResponse from(Producto p, Long lotesRegistrados) {
         return new ProductoResponse(
-                p.getId(), p.getNombre(), p.getUnidadVenta(), p.getDescripcion(), p.isActivo(), p.getVidaUtilDias());
+                p.getId(),
+                p.getNombre(),
+                p.getUnidadVenta(),
+                p.getDescripcion(),
+                p.isActivo(),
+                p.getVidaUtilDias(),
+                lotesRegistrados);
     }
 }
 

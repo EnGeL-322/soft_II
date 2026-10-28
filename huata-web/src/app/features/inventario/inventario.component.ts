@@ -278,16 +278,17 @@ export class InventarioComponent implements OnInit {
     this.menuAbiertoId.set(null);
     const escrito = await this.dialogo.pedirTexto({
       titulo: `¿Eliminar «${m.nombre}»?`,
-      mensaje: 'Deja de aparecer en compras, recetas e inventario. Escribe su nombre para confirmar.',
+      mensaje: `Deja de aparecer en compras, recetas e inventario. Para confirmar escribe: ${m.nombre}`,
       etiqueta: 'Nombre del insumo',
+      placeholder: m.nombre,
       obligatorio: true,
       confirmar: 'Eliminar',
       cancelar: 'Volver',
       tipo: 'peligro',
     });
     if (!escrito) return;
-    if (escrito.trim().toLowerCase() !== m.nombre.trim().toLowerCase()) {
-      this.notificaciones.error('El nombre no coincide: no se eliminó nada.');
+    if (!mismoNombre(escrito, m.nombre)) {
+      this.notificaciones.error(`El nombre no coincide con «${m.nombre}»: no se eliminó nada.`);
       return;
     }
     this.inventario.inactivarMateriaPrima(m.id).subscribe({
@@ -365,4 +366,14 @@ export class InventarioComponent implements OnInit {
 function hoyLocal(): string {
   const d = new Date();
   return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+}
+
+/**
+ * La confirmación no distingue mayúsculas, tildes ni espacios de más: "azucar demo" confirma
+ * «Azúcar DEMO». Antes exigía la tilde exacta y el borrado fallaba sin que se entendiera por qué.
+ */
+export function mismoNombre(escrito: string, nombre: string): boolean {
+  const normal = (t: string) =>
+    t.normalize('NFD').replace(/\p{Diacritic}/gu, '').replace(/\s+/g, ' ').trim().toLowerCase();
+  return normal(escrito) === normal(nombre);
 }

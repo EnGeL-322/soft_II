@@ -35,7 +35,7 @@ import 'vista_resumen.dart';
 import '../../core/tiempo_real/cambios_en_vivo.dart';
 
 /// Vistas de la pantalla del acopiador: una tarea a la vez.
-enum _Vista { mapa, paradas, resumen }
+enum _Vista { paradas, mapa, resumen }
 
 /// Pantalla principal del acopiador (11, RF-12, RF-52, RF-75-77): ruta del día, proveedores en
 /// orden, estado blanco/verde/rojo por proveedor y total acumulado arriba. La lógica (offline, GPS,
@@ -57,7 +57,7 @@ class _RutaDiaScreenState extends State<RutaDiaScreen>
   String _periodoReporte = 'DIA';
   AsignacionRuta? _asignacionHoy;
   List<ParadaRuta> _filas = [];
-  _Vista _vista = _Vista.mapa;
+  _Vista _vista = _Vista.paradas;
   bool _compartiendoGps = false;
   StreamSubscription<Position>? _gpsSub;
   Timer? _latidoGps;
@@ -1053,12 +1053,12 @@ class _RutaDiaScreenState extends State<RutaDiaScreen>
             child: SegmentedButton<_Vista>(
               showSelectedIcon: false,
               segments: [
-                const ButtonSegment(value: _Vista.mapa, label: Text('Mapa'), icon: Icon(Icons.map_outlined, size: 18)),
                 ButtonSegment(
                   value: _Vista.paradas,
                   label: Text(pendientes > 0 ? 'Paradas · $pendientes' : 'Paradas'),
                   icon: const Icon(Icons.format_list_bulleted, size: 18),
                 ),
+                const ButtonSegment(value: _Vista.mapa, label: Text('Mapa'), icon: Icon(Icons.map_outlined, size: 18)),
                 const ButtonSegment(
                   value: _Vista.resumen,
                   label: Text('Resumen'),

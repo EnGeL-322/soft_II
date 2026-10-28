@@ -549,6 +549,8 @@ export interface Producto {
   activo: boolean;
   /** Cuántos días dura desde que se produce; sin dato = no se calcula vencimiento. */
   vidaUtilDias?: number;
+  /** Producciones registradas (anuladas incluidas). Solo en el listado; con alguna no se puede eliminar. */
+  lotesRegistrados?: number;
 }
 
 export type OrigenLeche = 'ACOPIO_DEL_DIA' | 'STOCK_CAMARA';

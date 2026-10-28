@@ -13,14 +13,22 @@
     </p>
   } @else {
     <nav pasos class="pasos" aria-label="Pasos">
-      <button type="button" [class.activo]="paso() === 'datos'" (click)="irA('datos')"><b>1</b> Datos</button>
-      <button type="button" [class.activo]="paso() === 'accesos'" (click)="irA('accesos')">
-        <b>2</b> Rol y vistas
+      <button type="button" [class.activo]="paso() === 'datos'" [class.hecho]="pasoHecho('datos')"
+        [attr.aria-current]="paso() === 'datos' ? 'step' : null" (click)="irA('datos')">
+        <b>1</b> Datos
+      </button>
+      <button type="button" [class.activo]="paso() === 'roles'" [class.hecho]="pasoHecho('roles')"
+        [attr.aria-current]="paso() === 'roles' ? 'step' : null" (click)="irA('roles')">
+        <b>2</b> Roles
         @if (rolesSel().length) {
           <span class="tab-count">{{ rolesSel().length }}</span>
         }
+      </button>
+      <button type="button" [class.activo]="paso() === 'vistas'"
+        [attr.aria-current]="paso() === 'vistas' ? 'step' : null" (click)="irA('vistas')">
+        <b>3</b> Vistas
         @if (personalizado()) {
-          <span class="tab-count ambar">±</span>
+          <span class="tab-count ambar" title="Ajustadas solo para esta persona">±</span>
         }
       </button>
     </nav>
@@ -62,34 +70,53 @@
       </div>
     </fieldset>
 
-    @if (paso() === 'accesos') {
-      @if (!soloPermisos()) {
-        <h3 class="seccion-ficha">Rol</h3>
-        <p class="muted ayuda">Elige uno o más roles. Debajo puedes ajustar las vistas solo para esta persona.</p>
-        <div class="role-options">
-          @for (r of accesos.rolesAsignables(); track r.nombre) {
-            <label class="role-option" [class.chosen]="rolesSel().includes(r.nombre)" [title]="r.descripcion ?? ''">
-              <input type="checkbox" [checked]="rolesSel().includes(r.nombre)" (change)="alternarRol(r.nombre)"
-                [disabled]="guardando()" />
-              <span>
-                <strong>{{ r.etiqueta }}</strong>
-                <em>{{ pantallasDeRol(r) }} pantallas</em>
-              </span>
-              @if (!r.sistema) {
-                <span class="badge badge-gris">Propio</span>
+    @if (paso() === 'roles') {
+      <h3 class="seccion-ficha">Roles de {{ form.nombreCompleto.trim() || 'esta persona' }}</h3>
+      <p class="muted ayuda">
+        Elige uno o más roles. Cada rol trae sus vistas; en el paso siguiente puedes ajustarlas solo para esta
+        persona sin cambiar el rol.
+      </p>
+      <div class="role-options" role="group" aria-label="Roles">
+        @for (r of accesos.rolesAsignables(); track r.nombre) {
+          <label class="role-option detallada" [class.chosen]="rolesSel().includes(r.nombre)">
+            <input type="checkbox" [checked]="rolesSel().includes(r.nombre)" (change)="alternarRol(r.nombre)"
+              [disabled]="guardando()" />
+            <span>
+              <strong>{{ r.etiqueta }}</strong>
+              @if (r.descripcion) {
+                <small>{{ r.descripcion }}</small>
               }
-            </label>
-          }
-        </div>
-        <p class="muted ayuda">Acopiadores y proveedores se crean en sus propias pestañas.</p>
-        <h3 class="seccion-ficha">Vistas que verá</h3>
-      } @else {
-        <p class="muted ayuda">Parte de lo que da su rol: <strong>{{ rolesDescritos() }}</strong>.</p>
-      }
+              <em>{{ pantallasDeRol(r) }} pantallas</em>
+            </span>
+            @if (!r.sistema) {
+              <span class="badge badge-gris">Propio</span>
+            }
+          </label>
+        } @empty {
+          <p class="muted">No hay roles disponibles. Créalos en la pestaña Roles.</p>
+        }
+      </div>
+      <div class="resumen-accesos">
+        @if (rolesSel().length) {
+          <span class="badge badge-verde">{{ rolesDescritos() }}</span>
+          <span class="muted">Sus roles le dan {{ accesos.pantallas(base()) }} pantallas.</span>
+        } @else {
+          <span class="muted">Aún no tiene roles.</span>
+        }
+      </div>
+      <p class="muted ayuda">Acopiadores y proveedores se crean en sus propias pestañas.</p>
+    }
+
+    @if (paso() === 'vistas') {
+      <h3 class="seccion-ficha">Vistas que verá</h3>
+      <p class="muted ayuda">
+        Parten de lo que dan sus roles (<strong>{{ rolesDescritos() || 'sin rol' }}</strong>). Lo que cambies
+        aquí aplica solo a esta persona.
+      </p>
       @if (personalizado()) {
         <div class="resumen-accesos">
           <span class="badge badge-ambar">Ajustado: {{ concedidos().size }} extra · {{ revocados().size }} quitados</span>
-          <button type="button" class="btn btn-soft" (click)="restablecerARoles()">Volver a lo que da el rol</button>
+          <button type="button" class="btn btn-soft" (click)="restablecerARoles()">Volver a lo que dan sus roles</button>
         </div>
       }
       <app-selector-vistas
@@ -104,11 +131,18 @@
 
   <ng-container pie>
     <button type="button" class="btn btn-soft" [disabled]="guardando()" (click)="cerrar()">Cancelar</button>
-    @if (paso() === 'datos') {
-      <button type="button" class="btn btn-blue" (click)="irA('accesos')">Siguiente: rol y vistas</button>
+    @if (anterior(); as atras) {
+      <button type="button" class="btn btn-soft" [disabled]="guardando()" (click)="irA(atras)">Anterior</button>
     }
-    <button type="submit" form="form-interno" class="btn btn-primary" [disabled]="guardando()">
-      {{ guardando() ? 'Guardando…' : editando() ? 'Guardar cambios' : 'Crear usuario' }}
-    </button>
+    @if (siguiente(); as adelante) {
+      <button type="button" class="btn btn-blue" [disabled]="guardando()" (click)="irA(adelante)">
+        {{ adelante === 'roles' ? 'Siguiente: roles' : 'Siguiente: vistas' }}
+      </button>
+    }
+    @if (editando() || !siguiente()) {
+      <button type="submit" form="form-interno" class="btn btn-primary" [disabled]="guardando()">
+        {{ guardando() ? 'Guardando…' : editando() ? 'Guardar cambios' : 'Crear usuario' }}
+      </button>
+    }
   </ng-container>
 </app-ventana-ficha>

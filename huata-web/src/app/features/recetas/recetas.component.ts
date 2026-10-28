@@ -4,7 +4,7 @@ import { Router } from '@angular/router';
 import { finalize } from 'rxjs';
 import { PERMISO } from '../../core/config/navegacion';
 import { etiquetaUnidad } from '../../core/config/unidades';
-import { MateriaPrima, Producto, Receta, TrabajadorProduccion, UnidadMedida } from '../../core/models/models';
+import { MateriaPrima, Producto, Receta, TrabajadorProduccion } from '../../core/models/models';
 import { AuthService } from '../../core/services/auth.service';
 import { InventarioService } from '../../core/services/inventario.service';
 import { ProduccionService } from '../../core/services/produccion.service';
@@ -14,26 +14,31 @@ import {
   recetaProgramada,
   recetaVigente,
 } from './recetas-texto';
+import {
+  EstadoFila,
+  FilaIngrediente,
+  UNIDADES,
+  estadoDeFila,
+  filaVacia,
+  filasDeReceta,
+  filasRepetidas,
+  itemsParaGuardar,
+  problemaDeFila,
+} from './editor-receta';
+import { buscarChoque, nombresIguales } from '../../core/util/nombres-parecidos';
 import { DialogoService } from '../../core/notificaciones/dialogo.service';
 import { NotificacionesService } from '../../core/notificaciones/notificaciones.service';
 import { recargarEnVivo } from '../../core/services/cambios-tiempo-real.service';
 
-interface FilaItem {
-  materiaPrimaId: number | null;
-  cantidadPorUnidad: number | null;
-  nombre: string;
-  unidadMedida: UnidadMedida;
-}
-
-const FILA_VACIA = (): FilaItem => ({ materiaPrimaId: null, cantidadPorUnidad: null, nombre: '', unidadMedida: 'GRAMO' });
 
 /**
  * "Recetas y productos": qué fabrica la planta (queso, yogur...) y qué lleva cada producto.
  *
  * <p>Pensada para quien no conoce la jerga: cada producto es una tarjeta que dice en palabras qué
  * lleva ("6 litros de Leche fresca"), y la receta se cambia desde esa tarjeta con un editor que ya
- * trae la receta actual. Los ingredientes se pueden crear desde el mismo recetario, sin tener
- * stock todavía: Compras será quien los ingrese al inventario cuando lleguen a planta.
+ * trae la receta actual. Los ingredientes se escriben a mano: si ya existen se usan (con su unidad),
+ * si se parecen a otro se pregunta, y si son nuevos se crean junto con la receta en una sola
+ * operación del servidor. Compras será quien los ingrese al inventario cuando lleguen a planta.
  */
 @Component({
   selector: 'app-recetas',
@@ -57,7 +62,37 @@ export class RecetasComponent implements OnInit {
   nombreTrabajador = '';
   readonly recetas = signal<Receta[]>([]);
   readonly materiasPrimas = signal<MateriaPrima[]>([]);
-  readonly items = signal<FilaItem[]>([FILA_VACIA()]);
+  readonly filas = signal<FilaIngrediente[]>([filaVacia()]);
+  /** Error del editor de receta: se muestra dentro de la ventana, donde la persona está mirando. */
+  readonly errorReceta = signal('');
+  /** Se intentó guardar: desde ahí se marcan las filas con problemas. */
+  readonly intentoGuardar = signal(false);
+  readonly unidades = UNIDADES;
+
+  /** Estado de cada fila (existente, nueva, parecida a otra, dada de baja) y su problema, si tiene. */
+  readonly analisis = computed(() => {
+    const materias = this.materiasPrimas();
+    const filas = this.filas();
+    const repetidas = filasRepetidas(filas);
+    return filas.map((fila, i) => {
+      const estado = estadoDeFila(fila, materias);
+      const problema = problemaDeFila(fila, estado, repetidas.has(i));
+      // Repetido, dado de baja o casi igual a otro se avisa en cuanto pasa; la cantidad, al guardar.
+      const inmediato =
+        repetidas.has(i) || estado.tipo === 'baja' || (estado.tipo === 'nuevo' && estado.parecido != null);
+      return { estado, problema, inmediato };
+    });
+  });
+
+  /** Para la lista de sugerencias: solo lo que hoy está en el inventario. */
+  readonly activas = computed(() => this.materiasPrimas().filter((m) => m.activo !== false));
+
+  readonly resumenReceta = computed(() => {
+    const a = this.analisis();
+    const usados = a.filter((x) => x.estado.tipo !== 'vacia').length;
+    const nuevos = a.filter((x) => x.estado.tipo === 'nuevo' || x.estado.tipo === 'reactivar').length;
+    return { usados, nuevos, problemas: a.filter((x) => x.problema).length };
+  });
   readonly cargando = signal(false);
   readonly guardando = signal(false);
   readonly error = signal('');
@@ -99,7 +134,12 @@ export class RecetasComponent implements OnInit {
     this.cargarProductos();
     this.cargar();
     this.cargarTrabajadores();
-    this.inventario.materiasPrimas().subscribe({ next: (m) => this.materiasPrimas.set(m) });
+    this.cargarMateriasPrimas();
+  }
+
+  private cargarMateriasPrimas(): void {
+    // Con las dadas de baja: así una fila con su nombre dice "se reactivará" y no "nuevo".
+    this.inventario.materiasPrimas(true).subscribe({ next: (m) => this.materiasPrimas.set(m) });
   }
 
   puedeEscribir(): boolean {
@@ -120,8 +160,8 @@ export class RecetasComponent implements OnInit {
     return ingredientesEnPalabras(r);
   }
 
-  unidadDe(materiaPrimaId: number | null): string {
-    return etiquetaUnidad(this.materiasPrimas().find((m) => m.id === materiaPrimaId)?.unidadMedida);
+  unidad(u: string | null | undefined): string {
+    return etiquetaUnidad(u);
   }
 
   cantidad(n: number): string {
@@ -173,8 +213,29 @@ export class RecetasComponent implements OnInit {
     this.formularioProducto.set(null);
   }
 
+  /**
+   * Otro producto con el mismo nombre o casi igual (regla del cliente: "yogurd" junto a "yogurt" no
+   * se permite). Se calcula al escribir para frenar antes de guardar; el servidor lo vuelve a validar.
+   */
+  choqueProducto(): { producto: Producto; igual: boolean } | null {
+    const nombre = this.nombreProducto.trim();
+    if (!nombre) return null;
+    const propio = this.formularioProducto();
+    const otros = this.productos().filter((p) => p.id !== propio);
+    const producto = buscarChoque(nombre, otros, (p) => p.nombre);
+    return producto ? { producto, igual: nombresIguales(nombre, producto.nombre) } : null;
+  }
+
+  /** "Usar el existente": cierra el alta y abre la receta del producto que ya estaba. */
+  irAProducto(p: Producto): void {
+    this.formularioProducto.set(null);
+    if (p.activo) this.abrirReceta(p);
+    else this.notificaciones.info(`«${p.nombre}» está pausado: usa «Reanudar» en su tarjeta para volver a producirlo.`);
+  }
+
   guardarProducto(): void {
     if (!this.puedeEscribir() || this.guardandoProducto()) return;
+    if (this.choqueProducto()) return;
     if (!this.nombreProducto.trim() || !this.unidadVenta.trim()) {
       this.error.set('Escribe el nombre del producto y cómo se vende (por unidad, por botella…).');
       return;
@@ -247,41 +308,82 @@ export class RecetasComponent implements OnInit {
 
   /**
    * Abre el editor con la receta que rige hoy ya cargada: cambiar una receta suele ser corregir una
-   * cantidad, no volver a escribir todo.
+   * cantidad, no volver a escribir todo. Los nombres salen de la receta guardada, así un ingrediente
+   * dado de baja se ve (y se avisa) en vez de quedar como una fila en blanco.
    */
   abrirReceta(p: Producto): void {
     this.limpiarMensajesDeError();
+    this.errorReceta.set('');
+    this.intentoGuardar.set(false);
     const actual = this.recetaActual(p);
     this.recetaDe.set(p);
     this.vigenteDesde = this.hoy;
     this.rendimientoLitrosPorUnidad = actual?.rendimientoLitrosPorUnidad ?? null;
     this.observaciones = '';
-    this.items.set(
-      actual && actual.items.length
-        ? actual.items.map((i) => ({
-            materiaPrimaId: i.materiaPrimaId,
-            cantidadPorUnidad: i.cantidadPorUnidad,
-            nombre: this.materiasPrimas().find((m) => m.id === i.materiaPrimaId)?.nombre ?? '',
-            unidadMedida: this.materiasPrimas().find((m) => m.id === i.materiaPrimaId)?.unidadMedida ?? 'GRAMO',
-          }))
-        : [FILA_VACIA()],
-    );
-    enfocar('editor-receta');
-  }
-
-  cerrarReceta(): void {
-    this.recetaDe.set(null);
-  }
-
-  agregarItem(): void {
-    this.items.update((f) => [FILA_VACIA(), ...f]);
+    this.filas.set(filasDeReceta(actual));
+    // El inventario pudo cambiar desde que se abrió la página (otra pestaña, otra persona).
+    this.cargarMateriasPrimas();
     enfocar('item-nombre-0');
   }
 
+  cerrarReceta(): void {
+    if (this.guardando()) return;
+    this.recetaDe.set(null);
+  }
+
+  /** Las filas nuevas van al final, como en cualquier lista: la persona sigue leyendo hacia abajo. */
+  agregarItem(): void {
+    this.filas.update((f) => [...f, filaVacia()]);
+    enfocar(`item-nombre-${this.filas().length - 1}`);
+  }
+
+  /** Cambia un campo de una fila sin mutar el arreglo (las señales derivadas se recalculan). */
+  cambiarFila(index: number, cambios: Partial<FilaIngrediente>): void {
+    this.errorReceta.set('');
+    this.filas.update((f) => f.map((fila, i) => (i === index ? { ...fila, ...cambios } : fila)));
+  }
+
+  /** «¿Quisiste decir sal?»: usa el existente en vez de crear un segundo insumo por un error de tipeo. */
+  usarParecido(index: number, materia: MateriaPrima): void {
+    this.cambiarFila(index, { nombre: materia.nombre });
+  }
+
+  volverAUsar(index: number): void {
+    this.cambiarFila(index, { reactivar: true });
+  }
+
+  estado(index: number): EstadoFila {
+    return this.analisis()[index]?.estado ?? { tipo: 'vacia' };
+  }
+
+  problema(index: number): string | null {
+    return this.analisis()[index]?.problema ?? null;
+  }
+
+  /** Unidad en la que se lee la cantidad de la fila: la del inventario, o la elegida si es nuevo. */
+  unidadDeFila(index: number): string {
+    const est = this.estado(index);
+    const fila = this.filas()[index];
+    if (est.tipo === 'existente') return etiquetaUnidad(est.materia.unidadMedida);
+    if (est.tipo === 'baja' || est.tipo === 'reactivar') return etiquetaUnidad(est.unidad);
+    return etiquetaUnidad(fila?.unidad);
+  }
+
+  /** Stock de un ingrediente existente: al escribir la receta ya se ve si hay o hay que comprar. */
+  stockDe(m: MateriaPrima): string {
+    return `${cantidadLegible(m.stock ?? 0)} ${etiquetaUnidad(m.unidadMedida)}`;
+  }
+
+  /** Solo lo que nunca se produjo: con producciones, el historial se conserva y se pausa. */
+  sePuedeEliminar(p: Producto): boolean {
+    return !p.lotesRegistrados;
+  }
+
   async eliminarProducto(p: Producto): Promise<void> {
+    if (!this.sePuedeEliminar(p)) return;
     const ok = await this.dialogo.confirmar({
       titulo: `¿Eliminar «${p.nombre}»?`,
-      mensaje: 'Se elimina definitivamente con su receta. Esta acción no se puede deshacer.',
+      mensaje: 'Se borra para siempre junto con su receta y sus precios de venta. No se puede deshacer.',
       confirmar: 'Eliminar',
       tipo: 'peligro',
     });
@@ -292,102 +394,82 @@ export class RecetasComponent implements OnInit {
         this.productos.update((productos) => productos.filter((producto) => producto.id !== p.id));
         this.notificaciones.exito(`Se eliminó "${p.nombre}".`);
       },
-      error: (e) => this.error.set(e.error?.message ?? 'No se pudo eliminar el producto.'),
+      // En aviso flotante: el mensaje de arriba de la página no se ve desde la tarjeta.
+      error: (e) => this.notificaciones.error(e.error?.message ?? 'No se pudo eliminar el producto.'),
     });
   }
 
-  siguienteCampoReceta(evento: Event, id: string): void { evento.preventDefault(); enfocar(id); }
-  guardarFila(evento: Event): void {
+  siguienteCampoReceta(evento: Event, id: string): void {
     evento.preventDefault();
-    if ((evento as KeyboardEvent).shiftKey) { this.agregarItem(); return; }
-    this.guardar();
+    enfocar(id);
+  }
+
+  /** Enter en la cantidad: pasa a la fila siguiente, o crea una si era la última. */
+  siguienteFila(evento: Event, index: number): void {
+    evento.preventDefault();
+    if (index === this.filas().length - 1) this.agregarItem();
+    else enfocar(`item-nombre-${index + 1}`);
   }
 
   @HostListener('document:keydown', ['$event'])
   teclaRapida(evento: KeyboardEvent): void {
-    if (evento.key === 'Enter' && evento.shiftKey && this.recetaDe() && !(evento.target instanceof HTMLSelectElement)) {
-      evento.preventDefault(); this.agregarItem();
+    if (!this.recetaDe()) return;
+    if (evento.key === 'Escape') {
+      this.cerrarReceta();
+    } else if (evento.key === 'Enter' && (evento.ctrlKey || evento.metaKey)) {
+      evento.preventDefault();
+      this.guardar();
     }
-  }
-
-  guardarConEnter(evento: Event): void {
-    evento.preventDefault();
-    this.guardar();
   }
 
   quitarItem(index: number): void {
-    this.items.update((f) => f.filter((_, i) => i !== index));
+    this.errorReceta.set('');
+    this.filas.update((f) => (f.length === 1 ? [filaVacia()] : f.filter((_, i) => i !== index)));
   }
 
-  /** Una materia prima elegida dos veces en la misma receta: se avisa antes de guardar. */
-  repetida(index: number): boolean {
-    const id = this.items()[index]?.materiaPrimaId;
-    return id != null && this.items().findIndex((i) => i.materiaPrimaId === id) !== index;
-  }
-
+  /**
+   * Guarda en una sola petición: los ingredientes nuevos se crean (o reactivan) en el servidor junto
+   * con la receta. Antes se creaban uno por uno desde aquí y, si la receta fallaba, quedaban insumos
+   * sueltos en el inventario.
+   */
   guardar(): void {
     const producto = this.recetaDe();
-    if (!producto) return;
-    const pendiente = this.items().find((item) => item.materiaPrimaId == null);
-    if (pendiente) {
-      const nombre = pendiente.nombre.trim();
-      if (!nombre) {
-        this.error.set('Escribe el nombre del ingrediente antes de guardarlo.');
-        return;
-      }
-      const existente = this.materiasPrimas().find((m) => m.nombre.trim().toLocaleLowerCase('es') === nombre.toLocaleLowerCase('es'));
-      if (existente) {
-        this.items.update((filas) => filas.map((fila) => fila === pendiente ? { ...fila, materiaPrimaId: existente.id, unidadMedida: existente.unidadMedida } : fila));
-        this.guardar();
-        return;
-      }
-      this.guardando.set(true);
-      this.inventario.crearMateriaPrima({ nombre, unidadMedida: pendiente.unidadMedida })
-        .pipe(finalize(() => this.guardando.set(false)))
-        .subscribe({
-          next: (ingrediente) => {
-            this.materiasPrimas.update((actuales) => [...actuales, ingrediente]);
-            this.items.update((filas) => filas.map((fila) => fila === pendiente ? { ...fila, materiaPrimaId: ingrediente.id } : fila));
-            this.guardar();
-          },
-          error: (e) => this.error.set(e.error?.message ?? 'No se pudo crear el ingrediente.'),
-        });
+    if (!producto || this.guardando()) return;
+    this.intentoGuardar.set(true);
+    const { usados, problemas } = this.resumenReceta();
+    if (usados === 0) {
+      this.errorReceta.set('Agrega al menos un ingrediente con su cantidad.');
+      enfocar('item-nombre-0');
       return;
     }
-    const completas = this.items().filter(
-      (i): i is FilaItem & { materiaPrimaId: number; cantidadPorUnidad: number } =>
-        i.materiaPrimaId != null && i.cantidadPorUnidad != null && i.cantidadPorUnidad > 0,
-    );
-    if (completas.length === 0) {
-      this.error.set('Agrega al menos una materia prima con su cantidad (mayor que cero).');
-      return;
-    }
-    if (this.items().some((_, i) => this.repetida(i))) {
-      this.error.set('Hay una materia prima repetida. Déjala una sola vez con la cantidad total.');
-      return;
-    }
-    if (completas.length < this.items().length) {
-      this.error.set('Hay filas sin completar. Elige la materia prima y su cantidad, o quita la fila.');
+    if (problemas > 0) {
+      const primera = this.analisis().findIndex((x) => x.problema);
+      this.errorReceta.set(
+        problemas === 1 ? 'Revisa la fila marcada antes de guardar.' : `Revisa las ${problemas} filas marcadas antes de guardar.`,
+      );
+      enfocar(`item-nombre-${primera}`);
       return;
     }
     this.guardando.set(true);
-    this.limpiarMensajes();
+    this.errorReceta.set('');
     this.produccion
       .crearReceta({
         productoId: producto.id,
         vigenteDesde: this.vigenteDesde,
         rendimientoLitrosPorUnidad: this.rendimientoLitrosPorUnidad ?? undefined,
         observaciones: this.observaciones.trim() || undefined,
-        items: completas,
+        items: itemsParaGuardar(this.filas(), this.materiasPrimas()),
       })
       .pipe(finalize(() => this.guardando.set(false)))
       .subscribe({
         next: () => {
+          this.recetaDe.set(null);
           this.notificaciones.exito(
             this.vigenteDesde <= this.hoy
               ? `Se guardó la receta de "${producto.nombre}". Desde hoy se produce con ella.`
               : `Se guardó la receta de "${producto.nombre}". Se empezará a usar el ${this.vigenteDesde}.`,
           );
+          this.cargarMateriasPrimas();
           // Siguiente paso natural: ver si hay lo que la receta pide y comprar lo que falte.
           if (this.auth.puede(PERMISO.inventarioRead)) {
             this.router.navigate(['/inventario'], { queryParams: { producto: producto.id } });
@@ -395,7 +477,7 @@ export class RecetasComponent implements OnInit {
           }
           this.cargar();
         },
-        error: (e) => this.error.set(e.error?.message ?? 'No se pudo guardar la receta.'),
+        error: (e) => this.errorReceta.set(e.error?.message ?? 'No se pudo guardar la receta.'),
       });
   }
 

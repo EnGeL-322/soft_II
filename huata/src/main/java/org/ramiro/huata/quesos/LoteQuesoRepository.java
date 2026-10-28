@@ -13,6 +13,9 @@ public interface LoteQuesoRepository extends JpaRepository<LoteQueso, Long> {
 
     boolean existsByProductoId(Long productoId);
 
+    /** Lotes del producto, anulados incluidos: los dos son historial que impide eliminarlo. */
+    long countByProductoId(Long productoId);
+
     List<LoteQueso> findByActivoTrueAndFechaBetweenOrderByFechaDescIdDesc(LocalDate desde, LocalDate hasta);
 
     List<LoteQueso> findByActivoTrueOrderByFechaDescIdDesc();

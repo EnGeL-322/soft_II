@@ -164,7 +164,11 @@ public class DemoDataSeeder implements CommandLineRunner {
         // Los tres quesos que antes eran el enum TipoQueso: en Postgres los crea V28 y aqui solo se
         // crean si faltan (perfil "test" sobre H2). Buscar antes de insertar es lo que evita la caida
         // por clave duplicada que ya hubo con IGV_PORCENTAJE (CLAUDE.md seccion 36.11).
-        sembrarProductosSiFaltan();
+        // Solo en "test": en Postgres los crea la migracion, y sembrarlos en cada arranque hacia
+        // reaparecer los quesos que el usuario elimino desde Recetas y productos.
+        if (environment.acceptsProfiles(org.springframework.core.env.Profiles.of("test"))) {
+            sembrarProductosSiFaltan();
+        }
 
         // La leche del acopio (V31): donde entra lo que planta recibe de las rutas. Igual que los
         // productos, solo se crea si falta (en Postgres la crea la migracion).

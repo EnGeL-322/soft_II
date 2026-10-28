@@ -53,7 +53,15 @@
             @if (puedeEditar) {
               <div class="acciones-fila">
                 @if (u.activo) {
-                  <button type="button" class="icon-btn" data-tip="Editar" title="Editar"
+                  <button type="button" class="icon-btn" data-tip="Roles" title="Roles"
+                    [attr.aria-label]="'Roles de ' + u.nombreCompleto" (click)="editar(u, 'roles')">
+                    <app-icono nombre="usuarios" [tamano]="17" />
+                  </button>
+                  <button type="button" class="icon-btn" data-tip="Vistas" title="Vistas"
+                    [attr.aria-label]="'Vistas de ' + u.nombreCompleto" (click)="editar(u, 'vistas')">
+                    <app-icono nombre="llave" [tamano]="17" />
+                  </button>
+                  <button type="button" class="icon-btn" data-tip="Editar datos" title="Editar datos"
                     [attr.aria-label]="'Editar a ' + u.nombreCompleto" (click)="editar(u)">
                     <app-icono nombre="editar" [tamano]="17" />
                   </button>

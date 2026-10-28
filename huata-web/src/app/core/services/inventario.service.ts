@@ -13,8 +13,10 @@ export interface MateriaPrimaRequest {
 export class InventarioService {
   constructor(private readonly http: HttpClient) {}
 
-  materiasPrimas() {
-    return this.http.get<MateriaPrima[]>(`${API_BASE_URL}/inventario/materias-primas`);
+  /** Solo las activas, salvo que se pidan también las dadas de baja (el recetario las necesita). */
+  materiasPrimas(incluirInactivos = false) {
+    const params: Record<string, string> = incluirInactivos ? { incluirInactivos: 'true' } : {};
+    return this.http.get<MateriaPrima[]>(`${API_BASE_URL}/inventario/materias-primas`, { params });
   }
 
   crearMateriaPrima(datos: MateriaPrimaRequest) {

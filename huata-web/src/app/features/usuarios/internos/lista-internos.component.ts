@@ -11,7 +11,7 @@ import { ListaPaginada } from '../../../shared/ui/lista-paginada';
 import { PaginadorComponent } from '../../../shared/ui/paginador.component';
 import { CatalogoAccesos } from '../compartido/catalogos';
 import { iniciales } from '../compartido/iniciales';
-import { FichaInternoComponent } from './ficha-interno.component';
+import { FichaInternoComponent, Paso } from './ficha-interno.component';
 import { recargarEnVivo } from '../../../core/services/cambios-tiempo-real.service';
 
 /**
@@ -64,8 +64,9 @@ export class ListaInternosComponent implements OnInit {
     if (this.puedeEditar) this.ficha().nuevo();
   }
 
-  editar(u: Usuario): void {
-    if (this.puedeEditar) this.ficha().editar(u);
+  /** Sin `paso` abre los datos; con 'roles' o 'vistas' va directo a esa parte de la ficha. */
+  editar(u: Usuario, paso: Paso = 'datos'): void {
+    if (this.puedeEditar) this.ficha().editar(u, paso);
   }
 
   esPersonalizado(u: Usuario): boolean {

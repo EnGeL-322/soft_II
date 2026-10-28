@@ -190,6 +190,23 @@ tr.inactivo td {
   background: var(--green);
   color: #fff;
 }
+.pasos button.hecho {
+  color: var(--green);
+}
+.pasos .hecho b {
+  background: var(--green-soft, #dbe7f3);
+  color: var(--green);
+}
+/* Paso Roles: la descripción del rol a la vista, para decidir sin abrir cada uno. */
+.role-option.detallada {
+  align-items: flex-start;
+}
+.role-option.detallada small {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 .ficha-nota {
   margin: 0 28px;
 }

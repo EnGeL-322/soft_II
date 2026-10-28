@@ -269,4 +269,61 @@ class RecetaServiceTests {
                 .findFirst()
                 .orElseThrow();
     }
+
+    // ------------------------------------------- Ingredientes escritos en el recetario
+
+    private RecetaQueso recetaCon(RecetaItemRequest... items) {
+        return service.crear(new RecetaRequest(producto.getId(), ENERO, null, null, null, List.of(items)));
+    }
+
+    /** Un ingrediente nuevo se crea junto con la receta, en la misma transaccion. */
+    @Test
+    void unIngredienteNuevoSeCreaConLaReceta() {
+        String nombre = "Estabilizante " + System.nanoTime();
+
+        RecetaQueso receta = recetaCon(new RecetaItemRequest(null, nombre, UnidadMedida.GRAMO, new BigDecimal("3")));
+
+        MateriaPrima creado = receta.getItems().get(0).getMateriaPrima();
+        assertThat(creado.getNombre()).isEqualTo(nombre);
+        assertThat(creado.getUnidadMedida()).isEqualTo(UnidadMedida.GRAMO);
+        assertThat(creado.isActivo()).isTrue();
+    }
+
+    /** Escribir el nombre de uno que ya existe usa ese, no crea otro con el mismo nombre. */
+    @Test
+    void escribirElNombreDeUnInsumoExistenteNoLoDuplica() {
+        RecetaQueso receta = recetaCon(
+                new RecetaItemRequest(null, sal.getNombre().toUpperCase(), UnidadMedida.GRAMO, new BigDecimal("1")));
+
+        assertThat(receta.getItems().get(0).getMateriaPrima().getId()).isEqualTo(sal.getId());
+        // La unidad del insumo manda: no se cambia por la que se eligio en la fila.
+        assertThat(receta.getItems().get(0).getMateriaPrima().getUnidadMedida()).isEqualTo(UnidadMedida.KG);
+    }
+
+    @Test
+    void escribirElNombreDeUnInsumoDadoDeBajaLoReactiva() {
+        sal.setActivo(false);
+        materiaPrimaRepository.saveAndFlush(sal);
+
+        RecetaQueso receta = recetaCon(new RecetaItemRequest(null, sal.getNombre(), UnidadMedida.KG, new BigDecimal("1")));
+
+        assertThat(receta.getItems().get(0).getMateriaPrima().getId()).isEqualTo(sal.getId());
+        assertThat(materiaPrimaRepository.findById(sal.getId()).orElseThrow().isActivo()).isTrue();
+    }
+
+    /** El mismo insumo dos veces (por id y por nombre) se rechaza: se suma en una sola fila. */
+    @Test
+    void elMismoInsumoDosVecesSeRechaza() {
+        assertThatThrownBy(() -> recetaCon(
+                        new RecetaItemRequest(sal.getId(), new BigDecimal("1")),
+                        new RecetaItemRequest(null, sal.getNombre(), UnidadMedida.KG, new BigDecimal("2"))))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("dos veces");
+    }
+
+    @Test
+    void unIngredienteNuevoSinUnidadSeRechaza() {
+        assertThatThrownBy(() -> recetaCon(new RecetaItemRequest(null, "Algo nuevo", null, BigDecimal.ONE)))
+                .isInstanceOf(BusinessRuleException.class);
+    }
 }

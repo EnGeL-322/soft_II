@@ -8,7 +8,7 @@
   </div>
 
 
-  @if (error()) {
+  @if (error() && formularioProducto() == null) {
     <div class="mensaje mensaje-error" role="alert">{{ error() }}</div>
   }
 
@@ -17,7 +17,10 @@
     <div class="bloque-cabecera">
       <div>
         <h2>Tus productos</h2>
-        <p>Cada tarjeta muestra qué lleva una unidad del producto.</p>
+        <p>
+          Cada tarjeta tiene sus botones: <b>Editar receta</b>, <b>Pausar</b> (deja de producirse sin
+          perder nada) y <b>Eliminar</b> (solo si nunca se produjo).
+        </p>
       </div>
       @if (puedeEscribir() && formularioProducto() == null) {
         <button type="button" class="boton-grande" (click)="nuevoProducto()">
@@ -30,6 +33,9 @@
       <div class="receta-backdrop" (click)="cancelarProducto()"></div>
       <form class="panel-formulario producto-modal" (ngSubmit)="guardarProducto()">
         <div class="modal-title"><h3>{{ formularioProducto() === 'nuevo' ? 'Nuevo producto' : 'Cambiar datos del producto' }}</h3><button type="button" (click)="cancelarProducto()" aria-label="Cerrar">×</button></div>
+        @if (error()) {
+          <div class="mensaje mensaje-error" role="alert">{{ error() }}</div>
+        }
         <div class="campos">
           <div class="campo">
             <label for="pr-nombre">¿Cómo se llama?</label>
@@ -40,8 +46,22 @@
               maxlength="120"
               placeholder="Ej. Yogur natural"
               required
+              [attr.aria-invalid]="choqueProducto() ? 'true' : null"
+              aria-describedby="pr-nombre-choque"
               (keydown.enter)="siguienteCampo($event, 'pr-unidad')"
             />
+            @if (choqueProducto(); as c) {
+              <div class="choque-nombre" id="pr-nombre-choque" role="alert">
+                <span class="chip chip-error">{{ c.igual ? 'Ya existe' : 'Casi igual a otro' }}</span>
+                @if (c.igual) {
+                  Ya hay un producto llamado <b>«{{ c.producto.nombre }}»</b>{{ c.producto.activo ? '' : ' (pausado)' }}.
+                } @else {
+                  Se parece demasiado a <b>«{{ c.producto.nombre }}»</b>{{ c.producto.activo ? '' : ' (pausado)' }}.
+                  Si es otro producto, ponle un nombre que se distinga (por ejemplo, con el sabor o el tamaño).
+                }
+                <button type="button" class="enlace" (click)="irAProducto(c.producto)">Usar «{{ c.producto.nombre }}»</button>
+              </div>
+            }
           </div>
           <div class="campo">
             <label for="pr-unidad">¿Cómo se vende?</label>
@@ -88,7 +108,7 @@
           </div>
         </div>
         <div class="botonera">
-          <button type="submit" class="boton-grande" [disabled]="guardandoProducto()">
+          <button type="submit" class="boton-grande" [disabled]="guardandoProducto() || choqueProducto()">
             {{ guardandoProducto() ? 'Guardando…' : 'Guardar producto' }}
           </button>
           <button type="button" class="boton-secundario" (click)="cancelarProducto()">
@@ -103,14 +123,22 @@
         <article class="tarjeta-producto" [class.inactivo]="!p.activo">
           <header>
             <h3>{{ p.nombre }}</h3>
+            <span class="estado-producto" [class.pausado]="!p.activo">{{ p.activo ? 'Se produce' : 'Pausado' }}</span>
           </header>
+          <p class="producto-detalle">Se vende por {{ p.unidadVenta }}</p>
 
           @if (puedeEscribir()) {
             <footer class="acciones-producto">
-              <button type="button" class="accion-icono" (click)="abrirReceta(p)" title="Editar receta" [attr.aria-label]="'Editar ' + p.nombre">✎</button>
-              <button type="button" class="accion-icono accion-pausa" (click)="cambiarEstadoProducto(p)" [title]="p.activo ? 'Pausar producción' : 'Reanudar producción'" [attr.aria-label]="p.activo ? 'Pausar ' + p.nombre : 'Reanudar ' + p.nombre">{{ p.activo ? 'Ⅱ' : '▶' }}</button>
-              <button type="button" class="accion-icono accion-eliminar" (click)="eliminarProducto(p)" title="Eliminar" [attr.aria-label]="'Eliminar ' + p.nombre">🗑</button>
+              <button type="button" class="accion" (click)="abrirReceta(p)" [attr.aria-label]="'Editar receta de ' + p.nombre">✎ Editar receta</button>
+              <button type="button" class="accion accion-pausa" (click)="cambiarEstadoProducto(p)" [attr.aria-label]="(p.activo ? 'Pausar ' : 'Reanudar ') + p.nombre">{{ p.activo ? 'Ⅱ Pausar' : '▶ Reanudar' }}</button>
+              <button type="button" class="accion accion-eliminar" (click)="eliminarProducto(p)" [disabled]="!sePuedeEliminar(p)" [attr.aria-label]="'Eliminar ' + p.nombre" [attr.aria-describedby]="sePuedeEliminar(p) ? null : 'no-eliminar-' + p.id">🗑 Eliminar</button>
             </footer>
+            @if (!sePuedeEliminar(p)) {
+              <p class="nota-eliminar" [id]="'no-eliminar-' + p.id">
+                No se puede eliminar: ya {{ p.lotesRegistrados === 1 ? 'tiene 1 producción registrada' : 'tiene ' + p.lotesRegistrados + ' producciones registradas' }}
+                y ese historial se guarda. Si ya no lo hacen, usa <b>Pausar</b>.
+              </p>
+            }
           }
         </article>
       } @empty {
@@ -122,88 +150,181 @@
   <!-- ============================ EDITOR DE RECETA ============================ -->
   @if (recetaDe(); as p) {
     <div class="receta-backdrop" (click)="cerrarReceta()"></div>
-    <form class="bloque editor-receta receta-modal" id="editor-receta" (ngSubmit)="guardar()">
+    <form
+      class="bloque editor-receta receta-modal"
+      id="editor-receta"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="titulo-receta"
+      (ngSubmit)="guardar()"
+      novalidate
+    >
       <div class="bloque-cabecera">
         <div>
-          <h2>Receta de {{ p.nombre }}</h2>
+          <h2 id="titulo-receta">Receta de {{ p.nombre }}</h2>
           <p>
-            Agrega los ingredientes para <b>1 {{ p.unidadVenta }}</b>. Al producir, el sistema multiplica las cantidades.
+            Escribe qué lleva <b>1 {{ p.unidadVenta }}</b>. Al producir, el sistema multiplica las cantidades.
           </p>
         </div>
-        <button type="button" class="cerrar-modal" (click)="cerrarReceta()" aria-label="Cerrar receta">×</button>
+        <button type="button" class="cerrar-modal" (click)="cerrarReceta()" [disabled]="guardando()" aria-label="Cerrar receta">×</button>
       </div>
 
-      <div class="insumos">
-        @for (item of items(); track $index; let i = $index) {
-          <div class="insumo-fila" [class.con-alerta]="repetida(i)">
-            <span class="insumo-numero" aria-hidden="true">{{ i + 1 }}</span>
+      @if (errorReceta()) {
+        <div class="mensaje mensaje-error" role="alert">{{ errorReceta() }}</div>
+      }
 
-            <div class="insumo-campo">
-              <span class="insumo-etiqueta">Ingrediente</span>
-              <input [id]="'item-nombre-' + i" name="item-nombre-{{ i }}" [(ngModel)]="item.nombre" list="ingredientes-conocidos" placeholder="Ej. leche, sal, cuajo" (keydown.enter)="siguienteCampoReceta($event, 'item-cant-' + i)" />
-              <datalist id="ingredientes-conocidos">
-                @for (ingrediente of materiasPrimas(); track ingrediente.id) { <option [value]="ingrediente.nombre"></option> }
-              </datalist>
-              @if (repetida(i)) {
-                <small class="insumo-alerta">Ya está en la fila de arriba.</small>
-              }
+      <datalist id="ingredientes-conocidos">
+        @for (m of activas(); track m.id) {
+          <option [value]="m.nombre">{{ unidad(m.unidadMedida) }}</option>
+        }
+      </datalist>
+
+      <ol class="ingredientes" aria-label="Ingredientes">
+        @for (fila of filas(); track $index; let i = $index) {
+          @let est = estado(i);
+          @let falla = intentoGuardar() || analisis()[i]?.inmediato ? problema(i) : null;
+          <li class="ingrediente" [class.con-error]="falla" [attr.data-estado]="est.tipo">
+            <span class="ingrediente-numero" aria-hidden="true">{{ i + 1 }}</span>
+
+            <div class="ingrediente-nombre">
+              <label [for]="'item-nombre-' + i">Ingrediente</label>
+              <input
+                [id]="'item-nombre-' + i"
+                [name]="'item-nombre-' + i"
+                [ngModel]="fila.nombre"
+                (ngModelChange)="cambiarFila(i, { nombre: $event })"
+                list="ingredientes-conocidos"
+                autocomplete="off"
+                maxlength="120"
+                placeholder="Ej. leche, sal, cuajo"
+                [attr.aria-invalid]="falla ? 'true' : null"
+                [attr.aria-describedby]="'item-estado-' + i"
+                (keydown.enter)="siguienteCampoReceta($event, 'item-cant-' + i)"
+              />
+              <div class="ingrediente-estado" [id]="'item-estado-' + i" aria-live="polite">
+                @switch (est.tipo) {
+                  @case ('existente') {
+                    @if (est.tipo === 'existente') {
+                      <span class="chip chip-ok">✓ En inventario</span>
+                      <span>Hay {{ stockDe(est.materia) }}</span>
+                    }
+                  }
+                  @case ('nuevo') {
+                    @if (est.tipo === 'nuevo') {
+                      @if (est.parecido; as parecido) {
+                        <span class="chip chip-error">Casi igual a «{{ parecido.nombre }}»</span>
+                        <button type="button" class="enlace" (click)="usarParecido(i, parecido)">
+                          Usar «{{ parecido.nombre }}»{{ parecido.activo === false ? ' (se reactivará)' : '' }}
+                        </button>
+                      } @else {
+                        <span class="chip chip-nuevo">Nuevo</span>
+                        <span>Se agregará al inventario al guardar.</span>
+                      }
+                    }
+                  }
+                  @case ('baja') {
+                    <span class="chip chip-error">Dado de baja</span>
+                    <button type="button" class="enlace" (click)="volverAUsar(i)">Volver a usarlo</button>
+                  }
+                  @case ('reactivar') {
+                    <span class="chip chip-nuevo">Se reactivará</span>
+                    <span>Estaba dado de baja: vuelve al inventario con su historial al guardar.</span>
+                  }
+                }
+              </div>
             </div>
 
-            <div class="insumo-campo">
-              <label [for]="'item-cant-' + i">Cantidad para 1 {{ p.unidadVenta }}</label>
-              <div class="insumo-con-unidad">
+            <div class="ingrediente-cantidad">
+              <label [for]="'item-cant-' + i">Para 1 {{ p.unidadVenta }}</label>
+              <div class="cantidad-con-unidad">
                 <input
                   [id]="'item-cant-' + i"
+                  [name]="'item-cant-' + i"
                   type="number"
                   inputmode="decimal"
-                  step="0.0001"
+                  step="any"
                   min="0"
                   placeholder="0"
-                  [(ngModel)]="item.cantidadPorUnidad"
-                  name="item-cant-{{ i }}"
-                  (keydown.enter)="siguienteCampoReceta($event, 'item-unidad-' + i)"
+                  [ngModel]="fila.cantidad"
+                  (ngModelChange)="cambiarFila(i, { cantidad: $event })"
+                  [attr.aria-invalid]="falla ? 'true' : null"
+                  (keydown.enter)="siguienteFila($event, i)"
                 />
-                <select [id]="'item-unidad-' + i" name="item-unidad-{{ i }}" [(ngModel)]="item.unidadMedida" (keydown.enter)="guardarFila($event)">
-                  <option value="GRAMO">gramos (g)</option>
-                  <option value="LITRO">litros (L)</option>
-                </select>
+                @switch (est.tipo) {
+                  @case ('existente') {
+                    @if (est.tipo === 'existente') {
+                      <span class="unidad-fija" title="La unidad la define el inventario">{{ unidad(est.materia.unidadMedida) }}</span>
+                    }
+                  }
+                  @case ('baja') {
+                    @if (est.tipo === 'baja') {
+                      <span class="unidad-fija">{{ unidad(est.unidad) }}</span>
+                    }
+                  }
+                  @case ('reactivar') {
+                    @if (est.tipo === 'reactivar') {
+                      <span class="unidad-fija">{{ unidad(est.unidad) }}</span>
+                    }
+                  }
+                  @default {
+                    <select
+                      [id]="'item-unidad-' + i"
+                      [name]="'item-unidad-' + i"
+                      [ngModel]="fila.unidad"
+                      (ngModelChange)="cambiarFila(i, { unidad: $event })"
+                      aria-label="Unidad del ingrediente nuevo"
+                    >
+                      @for (u of unidades; track u.valor) {
+                        <option [value]="u.valor">{{ u.texto }}</option>
+                      }
+                    </select>
+                  }
+                }
               </div>
-              @if (item.cantidadPorUnidad && item.materiaPrimaId != null) {
-                <small class="insumo-ejemplo">
-                  Para 100 unidades: {{ cantidad(item.cantidadPorUnidad * 100) }}
-                  {{ item.unidadMedida === 'LITRO' ? 'litros' : 'g' }}
+              @if (fila.cantidad && fila.cantidad > 0 && est.tipo !== 'vacia') {
+                <small class="ingrediente-ejemplo">
+                  Para 100: {{ cantidad(fila.cantidad * 100) }}
+                  {{ unidadDeFila(i) }}
                 </small>
               }
             </div>
 
-            <div class="insumo-acciones">
-              <button type="button" class="insumo-nuevo" (click)="agregarItem()">+ Nuevo ingrediente</button>
-              <button
-                type="button"
-                class="insumo-quitar"
-                [disabled]="items().length === 1"
-                [attr.aria-label]="'Quitar ingrediente ' + (i + 1)"
-                (click)="quitarItem(i)"
-              >
-                ✕ Quitar
-              </button>
-            </div>
-          </div>
+            <button
+              type="button"
+              class="ingrediente-quitar"
+              [disabled]="guardando()"
+              [attr.aria-label]="'Quitar ingrediente ' + (i + 1)"
+              title="Quitar"
+              (click)="quitarItem(i)"
+            >
+              ✕
+            </button>
+
+            @if (falla) {
+              <p class="ingrediente-problema" role="alert">{{ falla }}</p>
+            }
+          </li>
         }
+      </ol>
 
-        <button type="button" class="insumo-agregar" (click)="agregarItem()">
-          + Agregar ingrediente <small>Shift + Enter también agrega una fila</small>
-        </button>
-      </div>
+      <button type="button" class="insumo-agregar" (click)="agregarItem()" [disabled]="guardando()">
+        + Agregar ingrediente
+      </button>
 
-      <div class="botonera">
+      <div class="botonera botonera-receta">
+        <span class="resumen-receta">
+          {{ resumenReceta().usados }} {{ resumenReceta().usados === 1 ? 'ingrediente' : 'ingredientes' }}
+          @if (resumenReceta().nuevos) {
+            · {{ resumenReceta().nuevos }} {{ resumenReceta().nuevos === 1 ? 'nuevo' : 'nuevos' }}
+          }
+          <small>Ctrl + Enter guarda · Esc cierra</small>
+        </span>
+        <button type="button" class="boton-secundario" (click)="cerrarReceta()" [disabled]="guardando()">Cancelar</button>
         <button type="submit" class="boton-grande" [disabled]="guardando()">
           {{ guardando() ? 'Guardando…' : 'Guardar receta' }}
         </button>
-        <button type="button" class="boton-secundario" (click)="cerrarReceta()">Cancelar</button>
       </div>
     </form>
   }
-
 
 </section>

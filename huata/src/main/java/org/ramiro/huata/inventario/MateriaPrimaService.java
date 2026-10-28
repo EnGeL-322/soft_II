@@ -2,9 +2,11 @@ package org.ramiro.huata.inventario;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.ramiro.huata.auditoria.AuditoriaService;
 import org.ramiro.huata.common.BusinessRuleException;
+import org.ramiro.huata.common.NombresParecidos;
 import org.ramiro.huata.common.NotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -23,7 +25,17 @@ public class MateriaPrimaService {
 
     /** Materias primas activas con su stock, en una sola consulta agregada (mismo patron que quesos). */
     public List<MateriaPrimaService.ConStock> listar() {
-        List<MateriaPrima> materias = materiaPrimaRepository.findByActivoTrueOrderByNombre();
+        return listar(false);
+    }
+
+    /**
+     * Con {@code incluirInactivos}, tambien las dadas de baja: el recetario las necesita para avisar
+     * "esta se reactivara" en vez de prometer un insumo nuevo que en realidad ya existe.
+     */
+    public List<MateriaPrimaService.ConStock> listar(boolean incluirInactivos) {
+        List<MateriaPrima> materias = incluirInactivos
+                ? materiaPrimaRepository.findAll(org.springframework.data.domain.Sort.by("nombre"))
+                : materiaPrimaRepository.findByActivoTrueOrderByNombre();
         if (materias.isEmpty()) {
             return List.of();
         }
@@ -44,13 +56,25 @@ public class MateriaPrimaService {
 
     public record ConStock(MateriaPrima materiaPrima, BigDecimal stock) {}
 
+    /**
+     * Alta de un insumo. El nombre se compara sin mayusculas, tildes ni espacios de mas ("Azucar" y
+     * "azúcar " son el mismo saco). Si ese nombre es de un insumo <b>dado de baja</b>, se reactiva en
+     * vez de fallar: antes el sistema decia "Ya existe" de algo que ninguna pantalla mostraba, y la
+     * unica salida era inventar otro nombre ("zal") y partir el kardex en dos.
+     */
     @Transactional
     public MateriaPrima crear(MateriaPrimaRequest req) {
-        if (materiaPrimaRepository.existsByNombreIgnoreCase(req.nombre().trim())) {
-            throw new BusinessRuleException("Ya existe una materia prima llamada \"" + req.nombre().trim() + "\".");
+        String nombre = limpiar(req.nombre());
+        MateriaPrima existente = buscarPorNombre(nombre).orElse(null);
+        if (existente != null && existente.isActivo()) {
+            throw new BusinessRuleException("Ya existe un insumo llamado \"" + existente.getNombre() + "\".");
         }
+        if (existente != null) {
+            return reactivar(existente, req.unidadMedida(), req.costoUnitarioReferencial());
+        }
+        exigirQueNoSeParezca(nombre, null);
         MateriaPrima m = new MateriaPrima();
-        m.setNombre(req.nombre().trim());
+        m.setNombre(nombre);
         m.setUnidadMedida(req.unidadMedida());
         m.setCostoUnitarioReferencial(req.costoUnitarioReferencial());
         MateriaPrima guardada = materiaPrimaRepository.save(m);
@@ -59,15 +83,93 @@ public class MateriaPrimaService {
         return guardada;
     }
 
+    /**
+     * Para el recetario: el insumo activo con ese nombre, el dado de baja reactivado, o uno nuevo. Asi
+     * escribir "sal" en una receta nunca crea un segundo "sal".
+     */
+    @Transactional
+    public MateriaPrima obtenerOCrear(String nombre, UnidadMedida unidad) {
+        MateriaPrima existente = buscarPorNombre(limpiar(nombre)).orElse(null);
+        if (existente == null) {
+            return crear(new MateriaPrimaRequest(nombre, unidad, null));
+        }
+        return existente.isActivo() ? existente : reactivar(existente, unidad, null);
+    }
+
+    /** Busca por nombre normalizado entre activos e inactivos (la tabla de insumos es corta). */
+    public Optional<MateriaPrima> buscarPorNombre(String nombre) {
+        String clave = clave(nombre);
+        return materiaPrimaRepository.findAll().stream()
+                .filter(m -> clave(m.getNombre()).equals(clave))
+                // Si quedaron duplicados de antes de esta regla, manda el activo.
+                .min(java.util.Comparator.comparing((MateriaPrima m) -> !m.isActivo()).thenComparing(MateriaPrima::getId));
+    }
+
+    /**
+     * La unidad solo cambia si el insumo nunca tuvo movimientos: con kardex, pasar de kg a g haria que
+     * los saldos viejos se lean mil veces mas chicos.
+     */
+    private MateriaPrima reactivar(MateriaPrima m, UnidadMedida unidad, BigDecimal costo) {
+        m.setActivo(true);
+        if (unidad != null && unidad != m.getUnidadMedida() && !movimientoRepository.existsByMateriaPrima_Id(m.getId())) {
+            m.setUnidadMedida(unidad);
+        }
+        if (costo != null) {
+            m.setCostoUnitarioReferencial(costo);
+        }
+        MateriaPrima guardada = materiaPrimaRepository.save(m);
+        auditoriaService.registrar("Reactivacion de materia prima", ENTIDAD, guardada.getNombre());
+        return guardada;
+    }
+
     @Transactional
     public MateriaPrima actualizar(Long id, MateriaPrimaRequest req) {
         MateriaPrima m = materiaPrimaRepository.findById(id).orElseThrow(() -> NotFoundException.of("Materia prima", id));
-        m.setNombre(req.nombre().trim());
+        String nombre = limpiar(req.nombre());
+        buscarPorNombre(nombre)
+                .filter(otra -> !otra.getId().equals(id))
+                .ifPresent(otra -> {
+                    throw new BusinessRuleException(otra.isActivo()
+                            ? "Ya existe un insumo llamado \"" + otra.getNombre() + "\"."
+                            : "El nombre \"" + otra.getNombre() + "\" es de un insumo dado de baja. "
+                                    + "Para volver a usarlo, crealo con ese nombre y se reactiva con su historial.");
+                });
+        exigirQueNoSeParezca(nombre, id);
+        if (req.unidadMedida() != m.getUnidadMedida() && movimientoRepository.existsByMateriaPrima_Id(id)) {
+            throw new BusinessRuleException(
+                    "No se puede cambiar la unidad de \"" + m.getNombre() + "\": ya tiene movimientos en el kardex.");
+        }
+        m.setNombre(nombre);
         m.setUnidadMedida(req.unidadMedida());
         m.setCostoUnitarioReferencial(req.costoUnitarioReferencial());
         MateriaPrima guardada = materiaPrimaRepository.save(m);
         auditoriaService.registrar("Edicion de materia prima", ENTIDAD, guardada.getNombre());
         return guardada;
+    }
+
+    /**
+     * Regla del cliente (2026-10-27): no se crea un insumo casi igual a otro ("zal" junto a "sal"),
+     * activo o dado de baja. Se bloquea siempre; si de verdad es otro, se le pone un nombre que se
+     * distinga.
+     */
+    private void exigirQueNoSeParezca(String nombre, Long idPropio) {
+        materiaPrimaRepository.findAll().stream()
+                .filter(m -> !m.getId().equals(idPropio))
+                .filter(m -> NombresParecidos.parecidos(nombre, m.getNombre()))
+                .findFirst()
+                .ifPresent(m -> {
+                    throw new BusinessRuleException("\"" + nombre + "\" es casi igual a \"" + m.getNombre()
+                            + "\", que ya existe" + (m.isActivo() ? "" : " (dado de baja)") + ". Si es el mismo,"
+                            + " usa \"" + m.getNombre() + "\"; si es otro, ponle un nombre que se distinga.");
+                });
+    }
+
+    static String limpiar(String nombre) {
+        return NombresParecidos.limpiar(nombre);
+    }
+
+    public static String clave(String nombre) {
+        return NombresParecidos.clave(nombre);
     }
 
     @Transactional

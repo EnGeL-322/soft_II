@@ -31,8 +31,8 @@ public class MateriaPrimaController {
     private final AjusteInventarioService ajusteInventarioService;
 
     @GetMapping("/materias-primas")
-    public List<MateriaPrimaResponse> listar() {
-        return materiaPrimaService.listar().stream()
+    public List<MateriaPrimaResponse> listar(@RequestParam(defaultValue = "false") boolean incluirInactivos) {
+        return materiaPrimaService.listar(incluirInactivos).stream()
                 .map(c -> MateriaPrimaResponse.from(c.materiaPrima(), c.stock()))
                 .toList();
     }

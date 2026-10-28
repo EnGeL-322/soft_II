@@ -1,10 +1,16 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { API_BASE_URL } from '../config/api-config';
-import { CapacidadProduccion, Producto, Receta, TrabajadorProduccion } from '../models/models';
+import { CapacidadProduccion, Producto, Receta, TrabajadorProduccion, UnidadMedida } from '../models/models';
 
+/**
+ * Un ingrediente de la receta: uno existente (`materiaPrimaId`) o uno escrito por primera vez
+ * (`nombre` + `unidadMedida`), que el servidor crea o reactiva en la misma transacción.
+ */
 export interface RecetaItemRequest {
-  materiaPrimaId: number;
+  materiaPrimaId?: number;
+  nombre?: string;
+  unidadMedida?: UnidadMedida;
   cantidadPorUnidad: number;
 }
 

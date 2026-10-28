@@ -35,7 +35,9 @@ public class ProductoController {
     @PreAuthorize("hasAnyAuthority('" + Permiso.RECETAS_READ + "', '" + Permiso.PRODUCCION_READ + "', '"
             + Permiso.QUESOS_READ + "', '" + Permiso.INVENTARIO_READ + "', '" + Permiso.PARAMETROS_READ + "')")
     public List<ProductoResponse> listar(@RequestParam(defaultValue = "false") boolean incluirInactivos) {
-        return productoService.listar(incluirInactivos).stream().map(ProductoResponse::from).toList();
+        return productoService.listar(incluirInactivos).stream()
+                .map(p -> ProductoResponse.from(p, productoService.lotesRegistrados(p.getId())))
+                .toList();
     }
 
     @PostMapping

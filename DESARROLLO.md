@@ -502,6 +502,46 @@ botones, **No · Ver · Todo** (Todo = la vista y todas sus acciones); el detall
 medida. No cambia ningún permiso: es otra forma de encender los mismos. V58 renombra las vistas
 `recojo` y `conciliacion` a "Recojos en ruta" y "Recepción de rutas", como en el menú.
 
+**Roles y vistas por separado en cada usuario (pedido del cliente 2026-10-27).** La ficha de un
+usuario interno pasa de dos pasos a tres: **Datos · Roles · Vistas**. En Roles se eligen uno o más
+roles (con su descripción y cuántas pantallas trae cada uno); en Vistas se ajusta, solo para esa
+persona, lo que dan sus roles. A Vistas solo se llega con al menos un rol. En la lista de Internos
+cada fila tiene accesos directos a sus Roles y a sus Vistas. Solo cambia la web: el backend y los
+permisos son los mismos (roles + extras − quitados).
+
+**Insumos y editor de recetas rehechos (pedido del cliente 2026-10-27).** Problema reportado: al
+escribir "sal" en una receta salía *Ya existe una materia prima llamada "sal"* y "sal" no aparecía en
+ninguna pantalla; la salida fue crear "zal". Causa: dar de baja es lógico (la fila queda por el
+kardex) y el alta comparaba el nombre contra todas las filas, también las dadas de baja. Reglas nuevas:
+- El nombre de un insumo se compara **sin mayúsculas, tildes ni espacios de más** ("Azúcar" = "azucar ").
+- Crear un insumo con el nombre de uno **dado de baja lo reactiva** (misma fila, mismo historial). Su
+  unidad solo cambia si nunca tuvo movimientos; con kardex se conserva.
+- Renombrar a un nombre ocupado y cambiar la unidad de un insumo con movimientos se rechazan con un
+  aviso claro (antes el primero era un error 500).
+- La receta se guarda en **una sola transacción**: cada ingrediente va por id (existente) o por
+  nombre + unidad (nuevo o reactivado). Antes la web creaba los insumos uno por uno y, si la receta
+  fallaba, quedaban sueltos. El mismo insumo dos veces en una receta se rechaza.
+- Una receta sigue sin poder apuntar por id a un insumo dado de baja (regla vigente); el editor lo
+  muestra como "Dado de baja" con el botón **Volver a usarlo**.
+- Editor: cada fila dice qué es el ingrediente (*En inventario* con su stock, *Nuevo*, *Se
+  reactivará*, *Dado de baja*) y, si se parece a uno existente, pregunta *¿Quisiste decir «sal»?*. La
+  unidad de un insumo existente la fija el inventario (antes "5 gramos" de un insumo en kg se guardaba
+  como 5 kg). Los errores se muestran dentro de la ventana. `GET /inventario/materias-primas` acepta
+  `incluirInactivos=true` para esto; sin el parámetro responde como antes.
+
+**Nombres casi iguales: se bloquean siempre (decisión del cliente 2026-10-27).** Tras ver "yogurd"
+junto a "yogurt" y "zal" junto a "sal", el cliente pidió que el sistema no lo permita. Regla única en
+`common/NombresParecidos.java` (copia para avisar al escribir: `core/util/nombres-parecidos.ts`;
+la del servidor es la que manda), aplicada a **productos e insumos**, al crear y al renombrar, contra
+activos, pausados y dados de baja:
+- Iguales: sin mayúsculas, tildes ni espacios de más.
+- Casi iguales: a 1 letra de distancia (2 si el nombre tiene 8 o más). No se comparan nombres de
+  menos de 3 letras, y si los números difieren son distintos ("Envase 1 L" / "Envase 5 L").
+- No hay botón para saltarse el bloqueo: si de verdad es otro, se le pone un nombre que se distinga.
+  La web ofrece "Usar «yogurt»" (abre su receta) y deshabilita Guardar.
+- Limpieza autorizada por el cliente: se eliminaron los productos "yogurd" y "zal" (sin
+  producciones) y el insumo "zal" (sin movimientos, compras ni recetas).
+
 **DNI y teléfono opcionales (pedido del cliente, 2026-10-24).** En acopiadores y proveedores el DNI
 y el teléfono pueden quedar vacíos; si se escriben, deben ser válidos (DNI de 8 dígitos, sin repetir).
 El código del proveedor sigue siendo su DNI cuando lo tiene; sin DNI se genera `PRV-00001`… (el código
@@ -767,6 +807,13 @@ El flujo acopio → almacén → receta → lote → venta ya descontaba y coste
 - **Todo lote tiene vencimiento.** Los días que dura cada producto se configuran en Configuración → Precios y calidad → Vencimiento de productos (`PATCH /productos/{id}/vencimiento`). Sin ese dato el producto no se puede producir; un lote puede cambiar su fecha a mano.
 - **La venta se hace por producto**, no por lote: sale primero lo que vence antes y, si un lote no alcanza, se completa con el siguiente (`POST /quesos/ventas/por-producto`). Cada lote tocado queda como una venta propia para conservar su costo. Web y app.
 - **Quesos reconstruidos**: al registrar producción, sección "¿Salieron quesos mal?" con Reconstruidos y Recorte (unidades y kg). Quedan en el lote; siguen contando en el stock y se venden al precio del producto.
+
+### Eliminar productos (2026-10-27) — resuelta
+Pedido del cliente: no encontraba cómo eliminar un producto y el mensaje ("ya tiene producción o precios") no decía dónde quitarlo.
+- **Solo impide eliminar el historial de producción**: un lote (aun anulado) tiene movimientos de inventario y asientos; las ventas cuelgan de los lotes. Con alguno, se pausa.
+- **Precios y recetas sin lotes se eliminan junto con el producto**: son configuración, nada se vendió con ellos. La auditoría anota cuántos precios se fueron.
+- En Recetas y productos cada tarjeta muestra estado (Se produce / Pausado) y botones con texto: Editar receta, Pausar/Reanudar, Eliminar. Si no se puede eliminar, el botón queda deshabilitado y la tarjeta dice por qué (`lotesRegistrados` en `GET /productos`).
+- Los tres quesos de V28 ya no se vuelven a sembrar en cada arranque fuera del perfil `test`: reaparecían después de eliminarlos.
 
 ### Pendientes de confirmar con la administración de Huata
 0. **Costo de los insumos al producir**: hoy el lote se costea con el **último precio de compra** (`costoUnitarioReferencial`), mientras el asiento de venta dice "a costo promedio". ¿Se pasa a costo promedio ponderado? Es una política contable: no se cambió sin confirmación.

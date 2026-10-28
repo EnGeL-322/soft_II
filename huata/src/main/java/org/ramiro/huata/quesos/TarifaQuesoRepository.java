@@ -11,6 +11,8 @@ public interface TarifaQuesoRepository extends JpaRepository<TarifaQueso, Long> 
 
     boolean existsByProductoId(Long productoId);
 
+    List<TarifaQueso> findByProductoId(Long productoId);
+
     /**
      * Periodos de un producto que cubren la fecha: ya empezaron y, si tienen fin, todavia no
      * terminaron. El primero es el que manda (el que empezo mas tarde; a igual inicio, el ultimo

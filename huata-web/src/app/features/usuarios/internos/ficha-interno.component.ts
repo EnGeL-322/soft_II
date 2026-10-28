@@ -9,8 +9,13 @@ import { generarClave } from '../compartido/clave';
 import { VentanaFichaComponent } from '../compartido/ventana-ficha.component';
 import { CambioPermiso, SelectorVistasComponent } from '../compartido/selector-vistas.component';
 
-/** Dos pasos: los datos de la cuenta y, juntos, el rol y las vistas que ese rol le da. */
-type Paso = 'datos' | 'accesos';
+/**
+ * Tres pasos, cada uno con una sola decisión: los datos de la cuenta, los roles de esta persona y
+ * las vistas que verá (las de sus roles, ajustables solo para ella).
+ */
+export type Paso = 'datos' | 'roles' | 'vistas';
+
+const ORDEN: readonly Paso[] = ['datos', 'roles', 'vistas'];
 
 interface FormInterno {
   nombreCompleto: string;
@@ -20,8 +25,8 @@ interface FormInterno {
 }
 
 /**
- * Ficha de una cuenta interna en dos pasos: datos, y rol + vistas. Al elegir el rol aparecen las
- * vistas que da, ya encendidas; se apagan las que la persona no deba ver y se le pueden dar otras
+ * Ficha de una cuenta interna en tres pasos: datos, roles y vistas. Al pasar a vistas aparecen las
+ * que dan los roles elegidos, ya encendidas; se apagan las que la persona no deba ver y se le pueden dar otras
  * (roles + extras − quitados). Con `abrirPermisos` sirve también para dar o quitar acciones puntuales a la cuenta de
  * un acopiador, cuyos datos y rol se editan en su propia ficha. Todo lo vuelve a validar el backend.
  */
@@ -70,23 +75,30 @@ export class FichaInternoComponent {
 
   readonly titulo = computed(() => this.editando()?.nombreCompleto ?? 'Nuevo usuario interno');
 
+  /** Pasos visibles: a una cuenta de acopiador solo se le ajustan las vistas. */
+  readonly pasos = computed<readonly Paso[]>(() => (this.soloPermisos() ? ['vistas'] : ORDEN));
+  readonly anterior = computed<Paso | null>(() => this.vecino(-1));
+  readonly siguiente = computed<Paso | null>(() => this.vecino(1));
+
   nuevo(): void {
     this.soloPermisos.set(false);
     this.cargar(null, vacio(), []);
   }
 
-  editar(u: Usuario): void {
+  /** Abre la ficha de la cuenta; `paso` permite ir directo a sus roles o a sus vistas. */
+  editar(u: Usuario, paso: Paso = 'datos'): void {
     if (u.gestionadoEnSuModulo) return;
     this.soloPermisos.set(false);
     const asignables = new Set(this.accesos.rolesAsignables().map((r) => r.nombre));
     this.cargar(u, datosDe(u), u.roles.filter((r) => asignables.has(r)));
+    this.irA(paso);
   }
 
   /** Cuenta de acopiador: aquí solo se dan o quitan acciones; el rol y los datos son de su ficha. */
   abrirPermisos(u: Usuario): void {
     this.soloPermisos.set(true);
     this.cargar(u, datosDe(u), [...u.roles]);
-    this.paso.set('accesos');
+    this.paso.set('vistas');
   }
 
   private cargar(u: Usuario | null, form: FormInterno, roles: string[]): void {
@@ -110,13 +122,30 @@ export class FichaInternoComponent {
     this.error.set('');
   }
 
+  /** Avanza solo si lo anterior está completo; retroceder siempre se puede. */
   irA(paso: Paso): void {
-    if (paso === 'accesos' && !this.datosCompletos()) {
+    if (paso !== 'datos' && !this.datosCompletos()) {
+      this.paso.set('datos');
       this.error.set('Completa el nombre, el usuario y la contraseña inicial.');
+      return;
+    }
+    if (paso === 'vistas' && !this.soloPermisos() && !this.rolesSel().length) {
+      this.paso.set('roles');
+      this.error.set('Elige al menos un rol: es el punto de partida de sus vistas.');
       return;
     }
     this.error.set('');
     this.paso.set(paso);
+  }
+
+  /** Para la barra de pasos: los anteriores al actual ya se completaron. */
+  pasoHecho(paso: Paso): boolean {
+    return ORDEN.indexOf(paso) < ORDEN.indexOf(this.paso());
+  }
+
+  private vecino(delta: number): Paso | null {
+    const pasos = this.pasos();
+    return pasos[pasos.indexOf(this.paso()) + delta] ?? null;
   }
 
   private datosCompletos(): boolean {
@@ -191,7 +220,7 @@ export class FichaInternoComponent {
       return;
     }
     if (!this.rolesSel().length) {
-      this.paso.set('accesos');
+      this.paso.set('roles');
       this.error.set('Elige al menos un rol: es el punto de partida de sus vistas.');
       return;
     }

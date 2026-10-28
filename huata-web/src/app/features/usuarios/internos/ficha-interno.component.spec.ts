@@ -126,9 +126,42 @@ describe('Ficha de usuario interno', () => {
   it('no deja pasar a vistas y permisos sin datos completos', () => {
     const { c } = crear();
     c.nuevo();
-    c.irA('accesos');
+    c.irA('roles');
     expect(c.paso()).toBe('datos');
     expect(c.error()).toContain('Completa');
+  });
+
+  it('roles y vistas son pasos separados: a vistas solo se llega con al menos un rol', () => {
+    const { c } = crear();
+    c.nuevo();
+    c.form.nombreCompleto = 'Persona de prueba';
+    c.form.username = 'prueba@huata.pe';
+    c.form.password = 'ClaveDePrueba';
+    expect(c.siguiente()).toBe('roles');
+    c.irA('roles');
+    expect(c.paso()).toBe('roles');
+    expect(c.anterior()).toBe('datos');
+    expect(c.pasoHecho('datos')).toBe(true);
+
+    c.irA('vistas');
+    expect(c.paso()).toBe('roles');
+    expect(c.error()).toContain('rol');
+
+    c.alternarRol('GERENCIA');
+    c.irA('vistas');
+    expect(c.paso()).toBe('vistas');
+    expect(c.siguiente()).toBeNull();
+    expect(c.error()).toBe('');
+  });
+
+  it('desde la lista se abre la ficha directo en los roles o en las vistas de la persona', () => {
+    const { c, dialog } = crear();
+    const u = { id: 4, nombreCompleto: 'Vendedora', username: 'v@huata.pe', roles: ['VENTAS'], activo: true } as Usuario;
+    c.editar(u, 'roles');
+    expect(dialog.open).toBe(true);
+    expect(c.paso()).toBe('roles');
+    c.editar(u, 'vistas');
+    expect(c.paso()).toBe('vistas');
   });
 
   it('no guarda sin rol, envía las excepciones y conserva el formulario si el servidor rechaza', () => {
@@ -139,8 +172,8 @@ describe('Ficha de usuario interno', () => {
     c.form.password = 'ClaveDePrueba';
     c.guardar();
     expect(c.error()).toContain('rol');
-    // Rol y vistas van juntos: sin rol vuelve a ese paso.
-    expect(c.paso()).toBe('accesos');
+    // Sin rol vuelve al paso Roles.
+    expect(c.paso()).toBe('roles');
     http.expectNone((r) => r.method === 'POST');
 
     c.alternarRol('VENTAS');
@@ -202,7 +235,8 @@ describe('Ficha de usuario interno', () => {
       id: 6, nombreCompleto: 'Acopiador Demo', username: 'acopiador.demo@huata.pe', activo: true,
       roles: ['ACOPIADOR'], gestionadoEnSuModulo: true, permisosConcedidos: [], permisosRevocados: [],
     } as Usuario);
-    expect(c.paso()).toBe('accesos');
+    expect(c.paso()).toBe('vistas');
+    expect(c.pasos()).toEqual(['vistas']);
     c.aplicarCambios([{ permiso: 'pagos.read', activo: true }]);
     c.guardar();
 

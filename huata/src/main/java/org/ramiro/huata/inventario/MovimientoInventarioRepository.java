@@ -11,6 +11,9 @@ import org.springframework.data.repository.query.Param;
 
 public interface MovimientoInventarioRepository extends JpaRepository<MovimientoInventario, Long> {
 
+    /** Si ya tiene kardex, su unidad no se puede cambiar: los saldos anteriores dejarian de cuadrar. */
+    boolean existsByMateriaPrima_Id(Long materiaPrimaId);
+
     Page<MovimientoInventario> findByMateriaPrima_IdOrderByFechaDescIdDesc(Long materiaPrimaId, Pageable pageable);
 
     Page<MovimientoInventario> findByLoteQueso_IdOrderByFechaDescIdDesc(Long loteQuesoId, Pageable pageable);
