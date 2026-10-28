@@ -176,7 +176,9 @@ button.pd-kpi:hover { border-color: #c9d6e6; }
   border-top: 1px solid var(--pd-borde);
   background: var(--pd-fondo-suave);
 }
-.pd .pd-card-foot .pd-foot-info { margin-right: auto; color: var(--muted); font-size: 13px; }
+/* El aviso se encoge y los botones quedan juntos en una línea: Guardar no baja solo a otra fila. */
+.pd .pd-card-foot .pd-foot-info { flex: 1 1 220px; margin-right: auto; color: var(--muted); font-size: 13px; }
+.pd .pd-card-foot > .pd-btn { flex: none; white-space: nowrap; }
 
 /* ---------- Pestañas (control segmentado) ---------- */
 .pd .pd-tabs {
@@ -616,3 +618,8 @@ button.pd-kpi:hover { border-color: #c9d6e6; }
 /* El botón flotante de mensajería vive abajo a la derecha: que no tape el botón principal. */
 .pd .pd-panel .pd-ventana-foot,
 .pd .pd-card-foot.fijo { padding-right: 92px; }
+
+/* Chip que además es acción («Falta configurar» abre los datos del producto). */
+.pd button.pd-chip-boton { border: 0; cursor: pointer; font: inherit; font-size: 12px; font-weight: 600; }
+.pd button.pd-chip-boton:hover { filter: brightness(0.96); text-decoration: underline; }
+.pd button.pd-chip-boton:focus-visible { outline: none; box-shadow: var(--ring); }

@@ -33,6 +33,8 @@
       }
     </div>
   </header>
+  <app-flujo-produccion paso="catalogo" />
+
 
   @if (vista() === 'recetas' && !productos().length) {
     <div class="pd-alerta" data-tono="aviso">
@@ -49,6 +51,10 @@
     <div class="pd-kpi" [attr.data-tono]="resumen().sinReceta ? 'aviso' : null">
       <span class="pd-kpi-icono"><app-icono nombre="recetas" [tamano]="20" /></span>
       <div><span class="pd-kpi-etiqueta">Sin receta</span><span class="pd-kpi-valor">{{ resumen().sinReceta }}</span></div>
+    </div>
+    <div class="pd-kpi" [attr.data-tono]="resumen().sinVidaUtil ? 'aviso' : null" title="Sin vida útil no se puede registrar la producción ni calcular el vencimiento (FEFO)">
+      <span class="pd-kpi-icono"><app-icono nombre="calendario" [tamano]="20" /></span>
+      <div><span class="pd-kpi-etiqueta">Sin vida útil</span><span class="pd-kpi-valor">{{ resumen().sinVidaUtil }}</span></div>
     </div>
     <div class="pd-kpi">
       <span class="pd-kpi-icono"><app-icono nombre="pausa" [tamano]="20" /></span>
@@ -190,7 +196,17 @@
                 <span class="pd-fuerte">{{ p.nombre }}</span>
                 <span class="pd-sub">Se vende por {{ p.unidadVenta }}{{ p.descripcion ? ' · ' + p.descripcion : '' }}</span>
               </td>
-              <td>{{ p.vidaUtilDias ? p.vidaUtilDias + ' días' : 'Sin configurar' }}</td>
+              <td>
+                @if (p.vidaUtilDias) {
+                  {{ p.vidaUtilDias }} días
+                } @else if (puedeEscribir()) {
+                  <button type="button" class="pd-chip pd-chip-boton" data-tono="aviso" (click)="editarProducto(p)" [attr.aria-label]="'Configurar cuántos días dura ' + p.nombre" title="Sin esto no se puede registrar su producción ni calcular el vencimiento">
+                    Falta configurar
+                  </button>
+                } @else {
+                  <span class="pd-chip" data-tono="aviso" title="Sin esto no se puede registrar su producción ni calcular el vencimiento">Falta configurar</span>
+                }
+              </td>
               <td>
                 @if (r) {
                   <a class="pd-chip" data-tono="ok" routerLink="/recetas" [queryParams]="{ vista: 'recetas' }">Completa</a>

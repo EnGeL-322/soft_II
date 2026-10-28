@@ -71,3 +71,50 @@ export function repartirFefo(lotes: LoteQueso[], productoId: number | null, unid
   }
   return tomas;
 }
+
+/** Qué tan cerca está un vencimiento, para pintarlo y explicarlo al vender. */
+export type TonoVencimiento = 'vencido' | 'urgente' | 'pronto' | 'ok' | 'sin';
+
+export interface EstadoVencimiento {
+  /** Días que faltan (negativo si ya venció); null sin fecha de vencimiento. */
+  dias: number | null;
+  texto: string;
+  tono: TonoVencimiento;
+}
+
+/** Hoy o mañana es urgente; dentro de una semana, pronto. */
+export function estadoVencimiento(vence: string | null | undefined, hoy: string): EstadoVencimiento {
+  if (!vence) return { dias: null, texto: 'Sin fecha de vencimiento', tono: 'sin' };
+  const dias = Math.round((Date.parse(vence + 'T12:00:00') - Date.parse(hoy + 'T12:00:00')) / 86400000);
+  if (dias < 0) return { dias, texto: `Venció hace ${-dias} ${-dias === 1 ? 'día' : 'días'}`, tono: 'vencido' };
+  if (dias === 0) return { dias, texto: 'Vence hoy', tono: 'urgente' };
+  if (dias === 1) return { dias, texto: 'Vence mañana', tono: 'urgente' };
+  if (dias <= 7) return { dias, texto: `Vence en ${dias} días`, tono: 'pronto' };
+  return { dias, texto: `Vence en ${dias} días`, tono: 'ok' };
+}
+
+/** Un lote del producto en cámara, en el orden en que sale, con lo que se lleva esta venta. */
+export interface FilaFefo {
+  lote: LoteQueso;
+  orden: number;
+  vencimiento: EstadoVencimiento;
+  sale: number;
+  queda: number;
+}
+
+/** Todos los lotes del producto en orden FEFO, marcando de cuáles sale la venta y cuánto queda. */
+export function filasFefo(lotes: LoteQueso[], productoId: number | null, unidades: number | null, hoy: string): FilaFefo[] {
+  if (productoId == null) return [];
+  const tomas = new Map(repartirFefo(lotes, productoId, unidades).map((t) => [t.loteId, t.unidades]));
+  return ordenFefo(lotes.filter((l) => l.productoId === productoId && l.stock > 0)).map((lote, i) => {
+    const sale = tomas.get(lote.id) ?? 0;
+    return { lote, orden: i + 1, vencimiento: estadoVencimiento(lote.fechaVencimiento, hoy), sale, queda: lote.stock - sale };
+  });
+}
+
+/** dd/mm/aaaa. */
+export function fechaCorta(iso: string | null | undefined): string {
+  if (!iso) return '—';
+  const [a, m, d] = iso.split('-');
+  return d && m && a ? `${d}/${m}/${a}` : iso;
+}

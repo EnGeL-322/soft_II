@@ -209,6 +209,67 @@ describe('Producción: cuánto se puede producir y qué se descuenta', () => {
     expect(c.unidadVenta(15)).toBe('botella 1 L');
   });
 
+  // ---- Registro simple: lo excepcional solo si pasa ----
+
+  it('un lote normal se guarda sin abrir ningún extra: hoy, el usuario conectado y sin defectos', () => {
+    const c = crear();
+    expect([c.verNovedades(), c.verDatos(), c.verPersonal(), c.verNota()]).toEqual([false, false, false, false]);
+    expect(c.fechaLegible()).toBe('Hoy');
+    c.cantidad = 10;
+    c.guardar();
+    const enviado = crearLote.mock.calls[0][0];
+    expect(enviado.responsable).toBe('Ana Ccama');
+    expect(enviado.unidadesProducidas).toBe(10);
+    expect(enviado.quesosReparados).toBeUndefined();
+    expect(enviado.manoObra).toEqual([]);
+  });
+
+  it('quitar «salieron menos o con defectos» borra lo escrito y el lote vuelve a lo puesto a producir', () => {
+    const c = crear();
+    c.cantidad = 10;
+    c.verNovedades.set(true);
+    c.salieron = 8;
+    c.quesosReparados = 2;
+    c.recorteKg = 0.5;
+    c.quitarNovedades();
+    expect([c.salieron, c.quesosReparados, c.quesosRecorte, c.recorteKg, c.verNovedades()]).toEqual([null, null, null, null, false]);
+    expect(c.unidadesQueSalen()).toBe(10);
+  });
+
+  it('las que salieron con defecto no pueden ser más de las que salieron', () => {
+    const c = crear();
+    c.cantidad = 10;
+    c.salieron = 5;
+    c.quesosReparados = 4;
+    c.quesosRecorte = 2;
+    expect(c.faltantes()).toContain('las que salieron con defecto no pueden ser más de las que salieron');
+    expect(c.puedeGuardar()).toBe(false);
+  });
+
+  it('agregar personal abre una fila; quitarlo no deja pagos colgados', () => {
+    const c = crear();
+    c.agregarPersonal();
+    expect(c.verPersonal()).toBe(true);
+    expect(c.manoObraFilas().length).toBe(1);
+    c.quitarPersonal();
+    expect(c.manoObraFilas()).toEqual([]);
+    c.verNota.set(true);
+    c.observaciones = 'algo';
+    c.quitarNota();
+    expect(c.observaciones).toBe('');
+  });
+
+  it('otra fecha se muestra como dd/mm/aaaa y al guardar se limpian los extras', () => {
+    const c = crear();
+    c.fecha = '2026-10-20';
+    expect(c.fechaLegible()).toBe('20/10/2026');
+    c.verNovedades.set(true);
+    c.verNota.set(true);
+    c.cantidad = 5;
+    c.guardar();
+    expect([c.verNovedades(), c.verNota()]).toEqual([false, false]);
+  });
+
   // ---- Órdenes de producción (V61) ----
 
   const ORDEN = {

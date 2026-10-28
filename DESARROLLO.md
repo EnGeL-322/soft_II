@@ -860,6 +860,24 @@ El cliente aprobó `HUATA-PROTOTIPO-FINAL-LOGICA.html`. Se llevó al sistema sin
   cuánto alcanza. Además, `.pd-modal` se centra sin `transform`: el transform hacía que la lista `position: fixed`
   del buscador se abriera corrida hacia un costado.
 
+### «Nueva producción» simplificada: lo excepcional solo si pasa (2026-10-28) — resuelta
+El cliente se quejó de que el formulario mostraba demasiado: «¿Salieron quesos mal?» aparecía incluso con
+productos que no son queso, y fecha, responsable, vencimiento, leche, notas y personal estaban siempre a la vista.
+- **Un lote normal = producto, cantidad y Guardar.** El producto se elige con el mismo buscador de «Nueva orden»
+  (se despliega hacia abajo y dice código y cuánto alcanza).
+- **Datos de siempre en una línea:** Fecha (Hoy) · A cargo (usuario conectado) · Vence · Leche (solo si la receta
+  lleva leche) · Costo. Se editan con «Cambiar».
+- **Extras con «+ …», solo si pasaron:**
+  - «Salieron menos o con defectos»: salieron en total, reprocesadas, recorte en unidades y en kg. El texto usa la
+    unidad de venta del producto, no «quesos».
+  - «Personal y pago»: solo aparece si hay trabajadores cargados.
+  - «Nota».
+  - «Quitar» limpia sus datos.
+- **Sin cambios en backend ni en el contrato** (`LoteQuesoRequest` igual). El consumo sigue siendo receta × lo
+  puesto a producir.
+- **Pruebas:** 5 nuevas en `produccion-queso.component.spec` (lote normal sin extras, quitar limpia, defectos ≤
+  salieron, personal, fecha legible). Web: 399 de 399.
+
 ### Registrar compra: «escribo sal y siempre pone cuajo» (2026-10-28) — resuelta
 Reporte del cliente: al escribir un insumo que ninguna receta lleva («sal», «zal»), el campo se limpiaba
 y terminaba eligiendo «cuajo», el único insumo comprable. El filtro por recetas sigue igual (el cliente
@@ -981,3 +999,41 @@ Pedido del cliente: no encontraba cómo eliminar un producto y el mensaje ("ya t
 Los casos CP-01…CP-17 del prototipo son un buen punto de partida literal para los tests unitarios y E2E de cada fase; hay que adaptarlos a JUnit/Cypress. **Ojo con CP-03**, que espera "100 L de calidad normal → precio S/ 1.70/L e importe S/ 175.00": el importe no corresponde al precio y hay que corregirlo antes de usarlo como caso de prueba (100 × 1,70 = 170,00).
 
 Faltan casos para las reglas nuevas. Como mínimo hay que añadir: corrección de densidad en cada frontera de banda (RF-13), retarificación retroactiva de la semana (7.7), tarifa de Excelencia y su pérdida (7.4), retiro por segunda incidencia (7.2), zona efectiva en un reporte histórico (7.9) y conciliación de recojo móvil (7.10).
+
+### Venta por vencimiento a la vista, flujo de producción y pruebas del supervisor (2026-10-28) — resuelta
+- **Venta (FEFO visible).**
+  - Al elegir el producto se muestra la tabla «Sale primero lo que vence antes», con orden, lote, producido,
+    vence, estado (Vence hoy / mañana / en N días), en cámara, sale y queda.
+  - Las filas de las que sale la venta van resaltadas.
+  - Aviso arriba si el lote que sale primero vence hoy, mañana o en la semana.
+  - Aviso rojo si quedan lotes **vencidos** con stock: el servidor ya no los vendía; ahora quien vende sabe que
+    están ahí para retirarlos.
+  - El buscador de producto dice el próximo vencimiento.
+  - El detalle de cada venta registrada muestra el vencimiento del lote.
+  - Lógica en `reparto-fefo.ts` (`estadoVencimiento`, `filasFefo`). El servidor sigue decidiendo
+    (`lotesParaVender`).
+- **Flujo de producción.** Tira de proceso compartida (`app-flujo-produccion`) en Catálogo y en Producción:
+  Catálogo y recetas → Planificar → Producir → Cámara → Vender.
+  - Muestra contadores (órdenes pendientes, producido hoy, en cámara).
+  - Solo enlaza lo que el rol puede abrir.
+  - Al guardar un lote se ofrecen «Ver en cámara» y «Vender».
+- **Catálogo.** Producto sin vida útil = «Falta configurar» en ámbar, con acción directa, y nuevo KPI «Sin vida
+  útil». Antes era texto gris y bloqueaba registrar producción sin que se notara. En Registrar, el enlace lleva
+  al Catálogo.
+- **Nombres que suenan igual (`NombresParecidos` + `nombres-parecidos.ts`).**
+  - Además de la distancia de letras, se compara cómo suena en castellano: z/ce/ci → s, qu/c → k, v → b,
+    ll → y, h muda, letras dobles una vez.
+  - «sal» bloquea «zal», «zall», «saal», «sall»; «vainilla» bloquea «bainiya».
+- **Bug corregido (hallado por las pruebas):** un insumo podía tener como sinónimo el nombre de otro insumo
+  activo. Ahora se rechaza.
+- **`PruebasDelSupervisorTests`** (API real con MockMvc, permisos reales, exige 4xx limpio, nunca 401/403 ni 500):
+  - Nombres repetidos o que suenan igual; vacíos, largos, costo negativo, unidad inexistente.
+  - Recetas sin insumos, con cantidad 0 o negativa, o con ids falsos.
+  - Órdenes con 0, negativas, 2 000 000 o de un producto falso.
+  - Producción con 0, negativa, sin responsable, más de lo que alcanza, que vence antes de producirse o con
+    fecha futura.
+  - Vender más de lo que hay, 0, sin cliente o lo vencido.
+  - Compras con cantidad 0, costo negativo, insumo o proveedor falso.
+  - JSON roto.
+  - Un proveedor de leche sin permisos (403).
+- **Pruebas:** backend 1141 de 1141; web 402 de 402.

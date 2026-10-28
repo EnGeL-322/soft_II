@@ -82,6 +82,7 @@ public class MateriaPrimaService {
             m.setTipo(req.tipo());
         }
         m.setSinonimos(sinonimosLimpios(req.sinonimos()));
+        exigirSinonimosLibres(m.getSinonimos(), null);
         MateriaPrima guardada = materiaPrimaRepository.save(m);
         auditoriaService.registrar(
                 "Alta de materia prima", ENTIDAD, guardada.getNombre() + " · " + guardada.getUnidadMedida());
@@ -115,6 +116,27 @@ public class MateriaPrimaService {
                     throw new BusinessRuleException("\"" + nombre + "\" ya es otro nombre de " + m.codigo() + " · "
                             + m.getNombre() + ". Usa ese insumo.");
                 });
+    }
+
+    /**
+     * Un sinónimo no puede ser el nombre de otro insumo activo: «Sal fina» con sinónimo «Cuajo»
+     * haría que buscar «cuajo» encuentre dos cosas distintas (hallado por las pruebas del supervisor).
+     */
+    private void exigirSinonimosLibres(String sinonimos, Long idPropio) {
+        if (sinonimos == null) {
+            return;
+        }
+        for (String sinonimo : sinonimos.split(",")) {
+            String clave = clave(sinonimo);
+            materiaPrimaRepository.findAll().stream()
+                    .filter(m -> m.isActivo() && !m.getId().equals(idPropio))
+                    .filter(m -> clave(m.getNombre()).equals(clave))
+                    .findFirst()
+                    .ifPresent(m -> {
+                        throw new BusinessRuleException("\"" + sinonimo.trim() + "\" es el nombre de otro insumo ("
+                                + m.codigo() + " · " + m.getNombre() + "): no puede ser un sinónimo.");
+                    });
+        }
     }
 
     /** "sal fina ,  Sal de cocina,," queda "sal fina, Sal de cocina". */
@@ -183,6 +205,7 @@ public class MateriaPrimaService {
         }
         if (req.sinonimos() != null) {
             m.setSinonimos(sinonimosLimpios(req.sinonimos()));
+            exigirSinonimosLibres(m.getSinonimos(), id);
         }
         MateriaPrima guardada = materiaPrimaRepository.save(m);
         auditoriaService.registrar("Edicion de materia prima", ENTIDAD, guardada.codigo() + " · " + guardada.getNombre());

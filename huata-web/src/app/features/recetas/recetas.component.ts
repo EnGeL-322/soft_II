@@ -1,4 +1,5 @@
 import { Component, DestroyRef, HostListener, OnInit, computed, signal, inject } from '@angular/core';
+import { FlujoProduccionComponent } from '../../shared/ui/flujo-produccion.component';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -45,7 +46,7 @@ import { IconoComponent } from '../../shared/ui/icono.component';
 @Component({
   selector: 'app-recetas',
   standalone: true,
-  imports: [FormsModule, IconoComponent, RouterLink],
+  imports: [FormsModule, IconoComponent, RouterLink, FlujoProduccionComponent],
   templateUrl: './recetas.component.html',
   styleUrl: './recetas.component.css',
 })
@@ -139,6 +140,8 @@ export class RecetasComponent implements OnInit {
       activos: activos.length,
       pausados: productos.length - activos.length,
       sinReceta: activos.filter((p) => !recetaVigente(recetas, p.id, this.hoy)).length,
+      /** Sin días de vida útil no se registra producción ni hay vencimiento para vender por FEFO. */
+      sinVidaUtil: activos.filter((p) => !p.vidaUtilDias).length,
     };
   });
 

@@ -49,4 +49,21 @@ class NombresParecidosTest {
         assertThat(NombresParecidos.buscarChoque("sal", List.of("zal", "Sal"), s -> s)).contains("Sal");
         assertThat(NombresParecidos.buscarChoque("vainilla", List.of("zal", "Sal"), s -> s)).isEmpty();
     }
+
+    /** El caso del supervisor: lo que suena igual en castellano es el mismo insumo. */
+    @Test
+    void loQueSuenaIgualEsParecido_salZalZall() {
+        for (String intento : new String[] {"zal", "zall", "saal", "sall", "Zaal", "çal"}) {
+            assertThat(NombresParecidos.parecidos("sal", intento) || NombresParecidos.iguales("sal", intento))
+                    .as(intento).isTrue();
+        }
+        assertThat(NombresParecidos.parecidos("vainilla", "bainiya")).isTrue();
+        assertThat(NombresParecidos.parecidos("cuajo", "kuajo")).isTrue();
+        assertThat(NombresParecidos.parecidos("hierba", "ierva")).isTrue();
+        // Lo distinto de verdad sigue pasando.
+        assertThat(NombresParecidos.parecidos("sal", "sol")).isTrue(); // a una letra: ya lo era antes
+        assertThat(NombresParecidos.parecidos("sal", "azúcar")).isFalse();
+        assertThat(NombresParecidos.parecidos("cuajo", "queso")).isFalse();
+        assertThat(NombresParecidos.parecidos("leche", "lecha entera")).isFalse();
+    }
 }

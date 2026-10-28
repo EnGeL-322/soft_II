@@ -25,7 +25,7 @@ import { PaginadorComponent } from '../../shared/ui/paginador.component';
 import { DialogoService } from '../../core/notificaciones/dialogo.service';
 import { NotificacionesService } from '../../core/notificaciones/notificaciones.service';
 import { recargarEnVivo } from '../../core/services/cambios-tiempo-real.service';
-import { productosParaVender, repartirFefo } from './reparto-fefo';
+import { estadoVencimiento, fechaCorta, filasFefo, productosParaVender, repartirFefo } from './reparto-fefo';
 
 /**
  * "Registrar venta" de Secretaría (vistas-por-roles.html, NAVS.secretaria).
@@ -53,6 +53,14 @@ type VistaVentas = 'cobros' | 'registrar' | 'clientes' | 'precios';
     RouterLink,
   ],
   templateUrl: './venta-queso.component.html',
+  styles: `
+    .fefo { margin-top: 14px; border: 1px solid #dfe7f1; border-radius: 12px; overflow: hidden; }
+    .fefo-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; padding: 12px 16px; background: #f7f9fc; border-bottom: 1px solid #dfe7f1; }
+    .fefo-head h4 { margin: 0; font-size: 15px; }
+    .fefo .tablebox { margin: 0; border: 0; border-radius: 0; }
+    .fefo tr.fefo-sale td { background: #eef5ff; font-weight: 600; }
+    .fefo .badge { margin-left: 6px; }
+  `,
 })
 export class VentaQuesoComponent implements OnInit {
   /** Tiempo real: si alguien guarda algo de ventas, produccion, esta pantalla se actualiza sola. */
@@ -94,6 +102,44 @@ export class VentaQuesoComponent implements OnInit {
   /** De qué lotes saldrá la venta: primero lo que vence antes. */
   reparto() {
     return repartirFefo(this.lotes(), this.productoId, this.unidades);
+  }
+
+  /** Lotes del producto en el orden en que salen, con lo que se lleva esta venta (vista FEFO). */
+  filasFefo() {
+    return filasFefo(this.lotes(), this.productoId, this.unidades, this.fecha);
+  }
+
+  /** El lote que sale primero, si vence hoy, mañana o dentro de la semana: se avisa arriba. */
+  primeroPorVencer() {
+    const primera = this.filasFefo()[0];
+    return primera && (primera.vencimiento.tono === 'urgente' || primera.vencimiento.tono === 'pronto') ? primera : null;
+  }
+
+  /**
+   * Lotes del producto que siguen con stock pero ya vencieron: el servidor no los vende, y quien vende
+   * tiene que saber que están ahí (para retirarlos), no descubrirlo por un "no hay stock".
+   */
+  vencidosEnCamara() {
+    if (this.productoId == null) return [];
+    return this.todosLotes().filter(
+      (l) => l.productoId === this.productoId && l.stock > 0 && estadoVencimiento(l.fechaVencimiento, this.fecha).tono === 'vencido',
+    );
+  }
+
+  unidadesVencidas() {
+    return this.vencidosEnCamara().reduce((s, l) => s + l.stock, 0);
+  }
+
+  readonly fechaCorta = fechaCorta;
+
+  /** «1 unidad», «25 unidades»; otras formas de venta («botella 1 L») se dejan como están. */
+  unidadesDe(n: number, unidadVenta: string): string {
+    return unidadVenta === 'unidad' && n !== 1 ? 'unidades' : unidadVenta;
+  }
+
+  /** Con qué vencimiento salió lo vendido: trazabilidad de que se respetó el FEFO. */
+  vencimientoDeVenta(v: VentaQueso): string | null {
+    return this.todosLotes().find((l) => l.id === v.loteId)?.fechaVencimiento ?? null;
   }
 
   /** Periodo de precios que rige para el producto elegido en la fecha de la venta. */
@@ -140,7 +186,9 @@ export class VentaQuesoComponent implements OnInit {
     this.productosEnCamara().map((p) => ({
       valor: p.productoId,
       etiqueta: `${p.productoNombre} · ${p.stock} en cámara`,
-      detalle: p.proximoVencimiento ? `el próximo vence ${p.proximoVencimiento}` : undefined,
+      detalle: p.proximoVencimiento
+        ? `Sale primero el que vence el ${fechaCorta(p.proximoVencimiento)} · ${estadoVencimiento(p.proximoVencimiento, this.fecha).texto.toLowerCase()}`
+        : 'Sin fecha de vencimiento',
     })),
   );
 

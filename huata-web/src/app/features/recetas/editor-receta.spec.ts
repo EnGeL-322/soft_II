@@ -104,8 +104,8 @@ describe('editor de receta', () => {
     expect(itemsParaGuardar([{ nombre: 'Sal', cantidad: 1, unidad: 'GRAMO' }], conBajas)).toEqual([
       { nombre: 'Sal', unidadMedida: 'KG', cantidadPorUnidad: 1 },
     ]);
-    // "zall" se parece a "zal" (activa), nunca a una dada de baja.
-    expect(ingredienteParecido('sall', [zal])).toBeNull();
+    // "sall" suena igual que "zal" (activa) y se sugiere esa, nunca la "sal" dada de baja.
+    expect(ingredienteParecido('sall', conBajas)?.id).toBe(14);
   });
 
   it('cambiar el nombre de una fila guardada apunta al nuevo ingrediente, no al de antes', () => {

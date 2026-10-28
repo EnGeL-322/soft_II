@@ -53,7 +53,31 @@ public final class NombresParecidos {
             return false;
         }
         int tolerancia = Math.max(x.length(), y.length()) >= 8 ? 2 : 1;
-        return Math.abs(x.length() - y.length()) <= tolerancia && distancia(x, y) <= tolerancia;
+        if (Math.abs(x.length() - y.length()) <= tolerancia && distancia(x, y) <= tolerancia) {
+            return true;
+        }
+        // Se escriben distinto pero suenan igual (o casi): "sal" / "zall", "vainilla" / "bainiya".
+        String fx = fonetica(x);
+        String fy = fonetica(y);
+        return fx.equals(fy) || (Math.abs(fx.length() - fy.length()) <= tolerancia && distancia(fx, fy) <= tolerancia);
+    }
+
+    /**
+     * Como suena en castellano: z, ce/ci -> s; qu, c -> k; v -> b; ll -> y; h muda; letras repetidas
+     * una sola vez. Asi "zall", "zal" y "sal" quedan iguales.
+     */
+    static String fonetica(String clave) {
+        String f = clave
+                .replace("ch", "\u0001")
+                .replace("ll", "y")
+                .replace("h", "")
+                .replaceAll("c([ei])", "s$1")
+                .replace("qu", "k")
+                .replace("c", "k")
+                .replace("z", "s")
+                .replace("v", "b")
+                .replace("\u0001", "ch");
+        return f.replaceAll("(.)\\1+", "$1");
     }
 
     /** El primer candidato igual o parecido a {@code nombre}, si lo hay. */

@@ -3,7 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { VentaQuesoComponent } from './venta-queso.component';
 import { LoteQueso } from '../../core/models/models';
-import { productosParaVender, repartirFefo } from './reparto-fefo';
+import { estadoVencimiento, filasFefo, productosParaVender, repartirFefo } from './reparto-fefo';
 
 function lote(id: number, productoId: number, stock: number, costo: number, vence: string | null, fecha = '2026-09-10'): LoteQueso {
   return {
@@ -103,6 +103,40 @@ describe('reparto FEFO', () => {
       [2, 2],
       [1, 3],
     ]);
+  });
+});
+
+describe('vender lo que vence antes, a la vista', () => {
+  it('dice claro cuánto falta para que venza cada lote', () => {
+    const hoy = '2026-10-28';
+    expect(estadoVencimiento('2026-10-27', hoy)).toEqual({ dias: -1, texto: 'Venció hace 1 día', tono: 'vencido' });
+    expect(estadoVencimiento('2026-10-28', hoy).texto).toBe('Vence hoy');
+    expect(estadoVencimiento('2026-10-29', hoy)).toEqual({ dias: 1, texto: 'Vence mañana', tono: 'urgente' });
+    expect(estadoVencimiento('2026-11-02', hoy).tono).toBe('pronto');
+    expect(estadoVencimiento('2026-11-20', hoy).tono).toBe('ok');
+    expect(estadoVencimiento(null, hoy).tono).toBe('sin');
+  });
+
+  it('la tabla lista los lotes en el orden en que salen, cuánto sale de cada uno y cuánto queda', () => {
+    const lotes = [lote(1, 7, 10, 9, '2026-11-10'), lote(2, 7, 5, 9, '2026-10-29'), lote(3, 7, 4, 9, null), lote(4, 8, 9, 9, '2026-10-28')];
+    const filas = filasFefo(lotes, 7, 8, '2026-10-28');
+    expect(filas.map((f) => [f.orden, f.lote.id, f.sale, f.queda, f.vencimiento.tono])).toEqual([
+      [1, 2, 5, 0, 'urgente'],
+      [2, 1, 3, 7, 'ok'],
+      [3, 3, 0, 4, 'sin'],
+    ]);
+  });
+
+  it('avisa del lote que sale primero si vence pronto y de lo vencido que sigue en cámara', () => {
+    TestBed.configureTestingModule({ providers: [provideHttpClient(), provideRouter([])] });
+    const c = TestBed.createComponent(VentaQuesoComponent).componentInstance;
+    c.fecha = '2026-10-28';
+    c.lotes.set([lote(1, 7, 10, 9, '2026-10-29'), lote(2, 7, 3, 9, '2026-12-01')]);
+    c.todosLotes.set([lote(1, 7, 10, 9, '2026-10-29'), lote(2, 7, 3, 9, '2026-12-01'), lote(9, 7, 6, 9, '2026-10-20')]);
+    c.productoId = 7;
+    expect(c.primeroPorVencer()?.lote.id).toBe(1);
+    expect(c.unidadesVencidas()).toBe(6);
+    expect(c.vencidosEnCamara().map((l) => l.id)).toEqual([9]);
   });
 });
 

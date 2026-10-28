@@ -28,7 +28,26 @@ export function nombresParecidos(a: string, b: string): boolean {
   if (x === y || Math.min(x.length, y.length) < 3) return false;
   if (x.replace(/\D/g, '') !== y.replace(/\D/g, '')) return false;
   const tolerancia = Math.max(x.length, y.length) >= 8 ? 2 : 1;
-  return Math.abs(x.length - y.length) <= tolerancia && distancia(x, y) <= tolerancia;
+  if (Math.abs(x.length - y.length) <= tolerancia && distancia(x, y) <= tolerancia) return true;
+  // Se escriben distinto pero suenan igual (o casi): "sal" / "zall", "vainilla" / "bainiya".
+  const fx = fonetica(x);
+  const fy = fonetica(y);
+  return fx === fy || (Math.abs(fx.length - fy.length) <= tolerancia && distancia(fx, fy) <= tolerancia);
+}
+
+/** Como suena en castellano: z, ce/ci → s; qu, c → k; v → b; ll → y; h muda; sin letras repetidas. */
+function fonetica(clave: string): string {
+  return clave
+    .replace(/ch/g, '\u0001')
+    .replace(/ll/g, 'y')
+    .replace(/h/g, '')
+    .replace(/c([ei])/g, 's$1')
+    .replace(/qu/g, 'k')
+    .replace(/c/g, 'k')
+    .replace(/z/g, 's')
+    .replace(/v/g, 'b')
+    .replace(/\u0001/g, 'ch')
+    .replace(/(.)\1+/g, '$1');
 }
 
 /** El primero igual o casi igual al nombre (primero el igual exacto). */

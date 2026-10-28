@@ -41,7 +41,7 @@
           <h3>Registrar venta</h3>
           <p>
             @if (producto(); as p) {
-              Hay {{ p.stock }} {{ p.unidadVenta }} de {{ p.productoNombre }} en cámara. Sale primero lo que vence antes.
+              Hay {{ p.stock }} {{ unidadesDe(p.stock, p.unidadVenta) }} de {{ p.productoNombre }} en cámara. Sale primero lo que vence antes.
               @if (!tarifa()) {
                 <strong>{{ p.productoNombre }} no tiene precio para esta fecha:</strong> configúralo
                 en Precios de venta.
@@ -120,13 +120,76 @@
         </div>
       </div>
 
-      @if (reparto().length) {
-        <p class="muted" style="margin: 10px 0 0">
-          Sale de:
-          @for (t of reparto(); track t.loteId; let ultimo = $last) {
-            <strong>{{ t.unidades }} del lote {{ t.codigo }}</strong>{{ t.fechaVencimiento ? ' (vence ' + t.fechaVencimiento + ')' : '' }}{{ ultimo ? '.' : ', ' }}
-          }
-        </p>
+      <!-- FEFO a la vista: de qué lotes sale la venta, cuándo vence cada uno y qué queda -->
+      @if (producto(); as p) {
+        @if (primeroPorVencer(); as pv) {
+          <div class="note" [class.red]="pv.vencimiento.tono === 'urgente'" [class.amber]="pv.vencimiento.tono === 'pronto'" role="status" style="margin-top: 14px">
+            <strong>{{ pv.vencimiento.texto }}:</strong> el lote {{ pv.lote.codigo }} ({{ pv.lote.stock }} {{ unidadesDe(pv.lote.stock, p.unidadVenta) }},
+            vence el {{ fechaCorta(pv.lote.fechaVencimiento) }}) es el que sale primero en esta venta.
+          </div>
+        }
+        @if (unidadesVencidas()) {
+          <div class="note red" role="alert" style="margin-top: 10px">
+            <strong>{{ unidadesVencidas() }} {{ unidadesDe(unidadesVencidas(), p.unidadVenta) }} de {{ p.productoNombre }} ya vencieron</strong>
+            ({{ vencidosEnCamara().length === 1 ? 'lote' : 'lotes' }}
+            @for (l of vencidosEnCamara(); track l.id; let ultimo = $last) {
+              <span>{{ l.codigo }}{{ ultimo ? '' : ', ' }}</span>
+            }).
+            No se venden: retíralos de cámara.
+          </div>
+        }
+        <div class="fefo" aria-labelledby="fefo-titulo">
+          <div class="fefo-head">
+            <h4 id="fefo-titulo">Sale primero lo que vence antes</h4>
+            <span class="muted">
+              @if (unidades && unidades > p.stock) {
+                Solo hay {{ p.stock }} {{ unidadesDe(p.stock, p.unidadVenta) }} sin vencer.
+              } @else if (unidades) {
+                Esta venta sale de {{ reparto().length }} {{ reparto().length === 1 ? 'lote' : 'lotes' }}.
+              } @else {
+                Escribe las unidades para ver de qué lotes salen.
+              }
+            </span>
+          </div>
+          <div class="tablebox">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Lote</th>
+                  <th>Producido</th>
+                  <th>Vence</th>
+                  <th class="num">En cámara</th>
+                  <th class="num">Sale</th>
+                  <th class="num">Queda</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (f of filasFefo(); track f.lote.id) {
+                  <tr [class.fefo-sale]="f.sale > 0">
+                    <td>{{ f.orden }}</td>
+                    <td><strong>{{ f.lote.codigo }}</strong></td>
+                    <td>{{ fechaCorta(f.lote.fecha) }}</td>
+                    <td>
+                      {{ fechaCorta(f.lote.fechaVencimiento) }}
+                      <span
+                        class="badge"
+                        [class.badge-red]="f.vencimiento.tono === 'urgente'"
+                        [class.badge-ambar]="f.vencimiento.tono === 'pronto'"
+                        [class.badge-verde]="f.vencimiento.tono === 'ok'"
+                        [class.badge-gris]="f.vencimiento.tono === 'sin'"
+                        >{{ f.vencimiento.texto }}</span
+                      >
+                    </td>
+                    <td class="num">{{ f.lote.stock }}</td>
+                    <td class="num">{{ f.sale ? f.sale : '—' }}</td>
+                    <td class="num">{{ f.queda }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
       }
 
       <div class="payment-report-footer" style="margin-top: 12px">
@@ -194,6 +257,8 @@
                     <dl>
                       <dt>Lote</dt>
                       <dd>{{ v.loteCodigo }}</dd>
+                      <dt>Vencimiento del lote</dt>
+                      <dd>{{ fechaCorta(vencimientoDeVenta(v)) }}</dd>
                       <dt>Comprador</dt>
                       <dd>{{ etiquetaComprador(v.tipoComprador) }}</dd>
                       <dt>IGV</dt>

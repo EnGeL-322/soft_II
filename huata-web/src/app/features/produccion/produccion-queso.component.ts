@@ -1,5 +1,6 @@
 import { DecimalPipe } from '@angular/common';
 import { BuscadorComponent, OpcionBuscador } from '../../shared/ui/buscador.component';
+import { FlujoProduccionComponent, PasoProduccion } from '../../shared/ui/flujo-produccion.component';
 import { Component, DestroyRef, OnInit, computed, signal, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
@@ -78,7 +79,7 @@ type Pestana = 'ordenes' | 'registrar' | 'historial' | 'reportes';
 @Component({
   selector: 'app-produccion-queso',
   standalone: true,
-  imports: [PaginadorComponent, FormsModule, DecimalPipe, BuscadorComponent, RouterLink, IconoComponent],
+  imports: [PaginadorComponent, FormsModule, DecimalPipe, BuscadorComponent, RouterLink, IconoComponent, FlujoProduccionComponent],
   templateUrl: './produccion-queso.component.html',
   styles: `
     .pq-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
@@ -102,6 +103,14 @@ type Pestana = 'ordenes' | 'registrar' | 'historial' | 'reportes';
     .pq-hoy .pq-hoy-num { text-align: right; font-weight: 700; font-size: 18px; color: var(--marino, var(--text)); }
     .pq-filtros { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
     .pq-filtros .pd-campo { width: 180px; }
+    .pq-extra { display: flex; flex-direction: column; gap: 12px; padding: 14px 16px; border: 1px solid #dfe7f1; border-radius: 12px; background: #f7f9fc; }
+    .pq-extra-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--marino, var(--text)); }
+    .pq-sub-etiqueta { margin: 2px 0 0; }
+    .pq-datos { display: flex; align-items: center; justify-content: space-between; gap: 12px 20px; flex-wrap: wrap; padding: 12px 16px; border-radius: 12px; background: #f7f9fc; }
+    .pq-agregar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+    .pq-chip { padding: 7px 14px; border: 1px dashed #b9cbe2; border-radius: 999px; background: #fff; color: var(--azul, var(--green)); font-size: 13px; font-weight: 600; cursor: pointer; }
+    .pq-chip:hover { border-style: solid; background: #f2f7fd; }
+    .pq-chip:focus-visible { outline: none; box-shadow: var(--ring); }
     @media (max-width: 1100px) { .pq-layout { grid-template-columns: 1fr; } }
   `,
 })
@@ -185,6 +194,15 @@ export class ProduccionQuesoComponent implements OnInit {
   /** Vacío = la calcula el sistema con los días que dura el producto. */
   fechaVencimiento = '';
 
+  /**
+   * Lo excepcional no se muestra hasta que pasa (pedido del cliente): un lote normal es producto,
+   * cantidad y guardar. Cada extra se agrega con «+ …» y al quitarlo se limpian sus datos.
+   */
+  readonly verNovedades = signal(false);
+  readonly verDatos = signal(false);
+  readonly verPersonal = signal(false);
+  readonly verNota = signal(false);
+
   // ---- Reportes (pestaña aparte) ----
   reporteDesde = '';
   reporteHasta = '';
@@ -193,9 +211,6 @@ export class ProduccionQuesoComponent implements OnInit {
   readonly descargandoReporte = signal(false);
   readonly errorReporte = signal('');
 
-  readonly opcProductos = computed<OpcionBuscador[]>(() =>
-    this.productos().map((p) => ({ valor: p.id, etiqueta: p.nombre, detalle: p.unidadVenta })),
-  );
   readonly opcTrabajadores = computed<OpcionBuscador[]>(() =>
     this.trabajadores().map((t) => ({ valor: t.id, etiqueta: t.nombre })),
   );
@@ -204,10 +219,10 @@ export class ProduccionQuesoComponent implements OnInit {
     this.productos().map((producto) => ({ producto, ...estadoTarjeta(this.capacidades().get(producto.id)) })),
   );
   /**
-   * Producto de la nueva orden: lista que se despliega hacia abajo y se filtra escribiendo (las
-   * tarjetas se extendían a lo ancho). Cada opción dice su código y cuánto alcanza hoy.
+   * Producto (nueva orden y nueva producción): lista que se despliega hacia abajo y se filtra
+   * escribiendo (las tarjetas se extendían a lo ancho). Cada opción dice su código y cuánto alcanza.
    */
-  readonly opcProductosOrden = computed<OpcionBuscador[]>(() =>
+  readonly opcProductos = computed<OpcionBuscador[]>(() =>
     this.tarjetas().map((t) => ({
       valor: t.producto.id,
       etiqueta: t.producto.nombre,
@@ -224,6 +239,20 @@ export class ProduccionQuesoComponent implements OnInit {
     return this.lotes().filter((l) =>
       normalizar(`${l.productoNombre} ${l.codigo} ${l.responsable}`).includes(q),
     );
+  });
+
+  /** En qué paso del proceso está la pantalla (la tira de arriba). Reportes no es un paso. */
+  readonly pasoFlujo = computed<PasoProduccion | null>(() => {
+    const p = this.pestana();
+    return p === 'ordenes' ? 'ordenes' : p === 'registrar' ? 'registrar' : p === 'historial' ? 'camara' : null;
+  });
+  readonly contadoresFlujo = computed<Partial<Record<PasoProduccion, string>>>(() => {
+    const pendientes = this.resumenOrdenes().pendientes;
+    return {
+      ordenes: pendientes ? `${pendientes} ${pendientes === 1 ? 'orden pendiente' : 'órdenes pendientes'}` : 'Sin órdenes pendientes',
+      registrar: `Hoy: ${this.producidoHoy()} producidas`,
+      camara: `${this.stockTotal()} en cámara`,
+    };
   });
 
   readonly stockTotal = computed(() => this.lotes().reduce((a, l) => a + l.stock, 0));
@@ -278,6 +307,10 @@ export class ProduccionQuesoComponent implements OnInit {
 
   puedeVerCompras(): boolean {
     return this.auth.puede(PERMISO.comprasRead);
+  }
+
+  puedeVender(): boolean {
+    return this.auth.puede(PERMISO.ventasRegistrar);
   }
 
   puedeVerConfiguracion(): boolean {
@@ -371,6 +404,51 @@ export class ProduccionQuesoComponent implements OnInit {
     this.recorteKg = null;
     this.fechaVencimiento = '';
     this.manoObraFilas.set([]);
+    this.verNovedades.set(false);
+    this.verDatos.set(false);
+    this.verPersonal.set(false);
+    this.verNota.set(false);
+  }
+
+  // ---------------------------------------------------------------- Extras (solo si pasan)
+
+  /** «Salieron menos o con defectos»: al quitarlo, el lote vuelve a ser «salió lo que se puso». */
+  quitarNovedades(): void {
+    this.salieron = null;
+    this.quesosReparados = null;
+    this.quesosRecorte = null;
+    this.recorteKg = null;
+    this.verNovedades.set(false);
+  }
+
+  agregarPersonal(): void {
+    if (!this.manoObraFilas().length) this.agregarManoObra();
+    this.verPersonal.set(true);
+  }
+
+  quitarPersonal(): void {
+    this.manoObraFilas.set([]);
+    this.verPersonal.set(false);
+  }
+
+  quitarNota(): void {
+    this.observaciones = '';
+    this.verNota.set(false);
+  }
+
+  /** «Hoy» o la fecha en dd/mm/aaaa, para la línea de datos del lote. */
+  fechaLegible(): string {
+    return this.fecha === hoy() ? 'Hoy' : fechaCorta(this.fecha);
+  }
+
+  vencimientoLegible(): string | null {
+    const v = this.vencimientoPrevisto();
+    return v ? fechaCorta(v) : null;
+  }
+
+  /** Lo que salió mal también salió: no puede ser más que lo que salió. */
+  unidadesConDefecto(): number {
+    return (this.quesosReparados ?? 0) + (this.quesosRecorte ?? 0);
   }
 
   // ---------------------------------------------------------------- Paso 1: producto y cuánto alcanza
@@ -543,8 +621,8 @@ export class ProduccionQuesoComponent implements OnInit {
     if (!this.responsable.trim()) f.push('falta quién estuvo a cargo');
     if (this.productoId && this.productos().length && !this.vencimientoPrevisto())
       f.push('falta configurar cuántos días dura el producto');
-    if ((this.quesosReparados ?? 0) + (this.quesosRecorte ?? 0) > (this.salieron ?? this.cantidad ?? 0))
-      f.push('los que salieron mal no pueden ser más de los que salieron');
+    if (this.unidadesConDefecto() > (this.salieron ?? this.cantidad ?? 0))
+      f.push('las que salieron con defecto no pueden ser más de las que salieron');
     return f;
   }
 
@@ -893,6 +971,12 @@ function estadoTarjeta(c: CapacidadProduccion | null | undefined): Omit<TarjetaP
 /** Tres decimales: lo que se lee en una balanza, sin arrastrar el error del punto flotante. */
 function redondear(n: number): number {
   return Math.round(n * 1000) / 1000;
+}
+
+/** 2026-11-04 → 04/11/2026. */
+function fechaCorta(iso: string): string {
+  const [a, m, d] = iso.split('-');
+  return d && m && a ? `${d}/${m}/${a}` : iso;
 }
 
 /** Días de una fecha ISO a otra (negativo si la segunda ya pasó). */
