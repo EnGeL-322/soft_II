@@ -37,7 +37,26 @@ public class CompraController {
     @PostMapping
     @PreAuthorize("hasAuthority('" + Permiso.COMPRAS_WRITE + "')")
     public ResponseEntity<CompraResponse> registrar(@Valid @RequestBody CompraRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(CompraResponse.from(compraService.registrar(request)));
+        return ResponseEntity.status(HttpStatus.CREATED).body(compraService.registrarYResponder(request));
+    }
+
+    /** Compras que todavia no llegan del todo: la bandeja de Recepciones (V61). */
+    @GetMapping("/pendientes")
+    public java.util.List<CompraResponse> pendientes() {
+        return compraService.pendientesDeRecepcion();
+    }
+
+    /** Historial de recepciones, con lote y vencimiento de cada linea (V61). */
+    @GetMapping("/recepciones")
+    public java.util.List<RecepcionResponse> recepciones() {
+        return compraService.recepciones();
+    }
+
+    /** Recibe lo que llego de una compra, total o en parte: es lo que mete el insumo al almacen. */
+    @PostMapping("/{id}/recepciones")
+    @PreAuthorize("hasAuthority('" + Permiso.COMPRAS_WRITE + "')")
+    public CompraResponse recibir(@PathVariable Long id, @Valid @RequestBody RecepcionRequest request) {
+        return compraService.recibirYResponder(id, request);
     }
 
     /** Anula una compra registrada por error (V59): exige motivo y no borra nada. */

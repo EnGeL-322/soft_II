@@ -808,6 +808,58 @@ El flujo acopio → almacén → receta → lote → venta ya descontaba y coste
 - **La venta se hace por producto**, no por lote: sale primero lo que vence antes y, si un lote no alcanza, se completa con el siguiente (`POST /quesos/ventas/por-producto`). Cada lote tocado queda como una venta propia para conservar su costo. Web y app.
 - **Quesos reconstruidos**: al registrar producción, sección "¿Salieron quesos mal?" con Reconstruidos y Recorte (unidades y kg). Quedan en el lote; siguen contando en el stock y se venden al precio del producto.
 
+### Prototipo de producción integrado: todo por ID (2026-10-28, V61) — resuelta
+El cliente aprobó `HUATA-PROTOTIPO-FINAL-LOGICA.html`. Se llevó al sistema sin perder la lógica que ya tenía
+(costeo, asientos, FEFO, anulaciones, auditoría). Las decisiones, cuando las dos lógicas chocaban:
+- **La leche sigue entrando por el acopio real** (recepción de rutas y entregas directas). El "Registrar acopio"
+  manual del prototipo no se implementó: duplicaría la leche y rompería trazabilidad, calidad y liquidación.
+- **Compra ≠ stock (del prototipo).** La compra queda `PENDIENTE_RECEPCION`. La **recepción** (total o parcial,
+  con lote y vencimiento del proveedor) es la que mete el insumo al almacén. Se mantiene la compra con varias
+  líneas, como una factura.
+  - El **asiento contable pasa a la recepción**, por el valor recibido: el inventario contable entra cuando entra
+    el físico.
+  - Anular una compra revierte solo lo recibido. Una compra pendiente se anula sin mover nada.
+  - "Llegó junto con la compra" (`recibirAhora`) recibe en el mismo acto, para compras al contado.
+  - **Compatibilidad:** si el cliente no envía `recibirAhora` (la app móvil), la compra se recibe en el acto,
+    como antes de V61. Las compras anteriores quedaron `RECIBIDA`.
+- **Órdenes de producción (OP2026-0001)**, del prototipo, pero **opcionales**: "Producir" abre el registro de
+  siempre ya lleno y el lote cumple la orden. Anular ese lote la reabre.
+  - Si está "lista" o "esperando insumos" **no se guarda**: se calcula en vivo.
+  - Las órdenes **reservan el almacén en el orden en que se planificaron**, para que dos órdenes no cuenten la
+    misma leche (mejora sobre el prototipo).
+- **Sugerencias de abastecimiento** (`GET /produccion/necesidades`): lo requerido por las órdenes pendientes,
+  menos el almacén, **menos lo ya comprado que no llegó** (mejora: no se compra dos veces).
+  - La leche se informa, pero no se compra.
+  - "Agregar bloque a compra" arma **una** compra con una línea por insumo marcado.
+- **IDs visibles derivados del id**, sin columnas nuevas: insumos MP-0001, productos P-0001, compras OC-0001,
+  recepciones RC-0001. Las órdenes guardan su código (OP + año + id), como los lotes. Todo se relaciona por id.
+- **Maestro de insumos:** `tipo` (materia prima, insumo o empaque) y `sinonimos`.
+  - Un nombre nuevo que ya es sinónimo de otro insumo se rechaza (evita "sal" / "sal fina" duplicados).
+  - Inventario busca también por código y por sinónimo.
+- **Responsable:** se usa el `createdBy` de la auditoría (quien registró la compra, la recepción o la orden). No
+  se agregó un campo nuevo.
+- **Navegación del prototipo**, sin pantallas duplicadas (son vistas `?vista=` de las mismas pantallas):
+  - Producción: Catálogo y recetas (Catálogo · Recetas) y Producción (Órdenes · Registrar · Historial · Reportes).
+  - Abastecimiento: Compras (Compras · Recepciones).
+  - Inventario: Stock · Kardex · Lotes y vencimientos. Lotes muestra el producto en cámara y los lotes de
+    insumos recibidos.
+- **API nueva:**
+  - `GET /compras/pendientes`
+  - `GET /compras/recepciones`
+  - `POST /compras/{id}/recepciones`
+  - `GET|POST /produccion/ordenes`
+  - `POST /produccion/ordenes/{id}/anular`
+  - `GET /produccion/necesidades`
+  - `LoteQuesoRequest.ordenId` (opcional) y `CompraRequest.recibirAhora` (opcional).
+- **Pruebas:** `RecepcionesDeCompraTests` y `OrdenesDeProduccionTests` (backend); `compra-formulario.spec` y
+  `produccion-queso.component.spec` (web).
+- **Pendiente:** la app móvil sigue registrando compras recibidas en el acto (compatible). Si se quiere el flujo
+  con recepción en el celular, falta agregarle la bandeja de Recepciones y las órdenes.
+- **Ajuste (pedido del cliente):** en «Nueva orden» el producto se elegía con tarjetas que crecían hacia el
+  costado. Ahora es un buscador (`app-buscador`) que se despliega hacia abajo, y cada opción muestra su código y
+  cuánto alcanza. Además, `.pd-modal` se centra sin `transform`: el transform hacía que la lista `position: fixed`
+  del buscador se abriera corrida hacia un costado.
+
 ### Registrar compra: «escribo sal y siempre pone cuajo» (2026-10-28) — resuelta
 Reporte del cliente: al escribir un insumo que ninguna receta lleva («sal», «zal»), el campo se limpiaba
 y terminaba eligiendo «cuajo», el único insumo comprable. El filtro por recetas sigue igual (el cliente

@@ -1,5 +1,7 @@
 import { DecimalPipe } from '@angular/common';
-import { Component, OnInit, computed, signal, inject } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, signal, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ComprasService } from '../../core/services/compras.service';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs';
 import { PERMISO } from '../../core/config/navegacion';
@@ -10,6 +12,8 @@ import {
   MovimientoInventario,
   PageResponse,
   Receta,
+  Recepcion,
+  TipoMateriaPrima,
   UnidadMedida,
 } from '../../core/models/models';
 import { AuthService } from '../../core/services/auth.service';
@@ -26,6 +30,13 @@ import { recargarEnVivo } from '../../core/services/cambios-tiempo-real.service'
 import { IconoComponent } from '../../shared/ui/icono.component';
 
 type Vista = 'insumos' | 'camara' | 'movimientos';
+
+/** Las vistas del menú lateral (prototipo aprobado) y la parte de la pantalla que abre cada una. */
+const VISTA_DE_MENU: Readonly<Record<string, Vista>> = { stock: 'insumos', kardex: 'movimientos', lotes: 'camara' };
+
+function sinTildes(texto: string): string {
+  return texto.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().trim();
+}
 
 /** Qué pasó en un movimiento, dicho como lo diría una persona, y si sumó o restó. */
 const MOVIMIENTOS: Record<string, { texto: string; entra: boolean }> = {
@@ -62,8 +73,18 @@ export class InventarioComponent implements OnInit {
   private readonly dialogo = inject(DialogoService);
   private readonly ruta = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly compras = inject(ComprasService);
 
   readonly vista = signal<Vista>('insumos');
+  readonly hoy = hoyLocal();
+  /** Lotes de insumos recibidos de compras, con su vencimiento (V61). */
+  readonly recepciones = signal<Recepcion[]>([]);
+  readonly lotesDeInsumos = computed(() =>
+    this.recepciones()
+      .flatMap((r) => r.items.filter((i) => i.lote || i.fechaVencimiento).map((i) => ({ ...i, recepcion: r.codigo, fecha: r.fecha })))
+      .sort((a, b) => (a.fechaVencimiento ?? '9999').localeCompare(b.fechaVencimiento ?? '9999')),
+  );
   readonly materiasPrimas = signal<MateriaPrima[]>([]);
   readonly recetas = signal<Receta[]>([]);
   readonly lotes = signal<LoteQueso[]>([]);
@@ -96,7 +117,8 @@ export class InventarioComponent implements OnInit {
     const deReceta = receta ? new Set(receta.items.map((i) => i.materiaPrimaId)) : null;
     return this.materiasPrimas()
       .filter((m) => !deReceta || deReceta.has(m.id))
-      .filter((m) => !q || m.nombre.toLowerCase().includes(q))
+      // Busca también por código y por sinónimos: "sal fina" encuentra Sal.
+      .filter((m) => !q || sinTildes(m.nombre + ' ' + (m.codigo ?? '') + ' ' + (m.sinonimos ?? '')).includes(sinTildes(q)))
       .sort((a, b) => Number(b.lecheAcopio ?? false) - Number(a.lecheAcopio ?? false) || a.nombre.localeCompare(b.nombre, 'es'));
   });
   readonly agotados = computed(() => this.materiasPrimas().filter((m) => !m.lecheAcopio && m.stock <= 0));
@@ -118,6 +140,14 @@ export class InventarioComponent implements OnInit {
     if (this.auth.puede(PERMISO.recetasRead))
       this.produccion.recetas().subscribe({ next: (r) => this.recetas.set(r) });
     this.cargarLotes();
+    if (this.auth.puede(PERMISO.comprasRead))
+      this.compras.recepciones().subscribe({ next: (r) => this.recepciones.set(r), error: () => {} });
+    // Stock · Kardex · Lotes y vencimientos: las vistas del menú (?vista=).
+    this.ruta.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((p) => {
+      const v = VISTA_DE_MENU[p.get('vista') ?? ''] ?? 'insumos';
+      this.vista.set(v);
+      if (v === 'movimientos' && !this.kardex()) this.cargarKardex();
+    });
   }
 
   private cargarLotes(): void {
@@ -146,9 +176,12 @@ export class InventarioComponent implements OnInit {
     this.router.navigate([], { relativeTo: this.ruta, queryParams: {} });
   }
 
+  /** Cambia de vista por la dirección, para que el menú lateral marque la misma. */
   cambiarVista(v: Vista): void {
     this.vista.set(v);
     this.menuAbiertoId.set(null);
+    const vista = Object.entries(VISTA_DE_MENU).find(([, x]) => x === v)?.[0];
+    this.router.navigate([], { relativeTo: this.ruta, queryParams: { vista }, queryParamsHandling: 'merge' });
   }
 
   unidad(m: { unidadMedida: string } | undefined): string {
@@ -232,7 +265,18 @@ export class InventarioComponent implements OnInit {
   nombreEdicion = '';
   unidadEdicion: UnidadMedida = 'KG';
   costoEdicion: number | null = null;
+  tipoEdicion: TipoMateriaPrima = 'MATERIA_PRIMA';
+  sinonimosEdicion = '';
+  readonly tipos: ReadonlyArray<{ valor: TipoMateriaPrima; texto: string }> = [
+    { valor: 'MATERIA_PRIMA', texto: 'Materia prima' },
+    { valor: 'INSUMO', texto: 'Insumo' },
+    { valor: 'EMPAQUE', texto: 'Empaque' },
+  ];
   readonly errorEdicion = signal('');
+
+  textoTipo(t: TipoMateriaPrima | undefined): string {
+    return this.tipos.find((x) => x.valor === t)?.texto ?? 'Materia prima';
+  }
 
   editarMateriaPrima(m: MateriaPrima): void {
     this.menuAbiertoId.set(null);
@@ -240,6 +284,8 @@ export class InventarioComponent implements OnInit {
     this.nombreEdicion = m.nombre;
     this.unidadEdicion = m.unidadMedida;
     this.costoEdicion = m.costoUnitarioReferencial ?? null;
+    this.tipoEdicion = m.tipo ?? 'MATERIA_PRIMA';
+    this.sinonimosEdicion = m.sinonimos ?? '';
     this.errorEdicion.set('');
   }
 
@@ -261,6 +307,8 @@ export class InventarioComponent implements OnInit {
         nombre: this.nombreEdicion.trim(),
         unidadMedida: this.unidadEdicion,
         costoUnitarioReferencial: this.costoEdicion ?? undefined,
+        tipo: this.tipoEdicion,
+        sinonimos: this.sinonimosEdicion.trim(),
       })
       .pipe(finalize(() => this.guardando.set(false)))
       .subscribe({

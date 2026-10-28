@@ -21,6 +21,8 @@ record ProductoRequest(
  */
 record ProductoResponse(
         Long id,
+        /** P-0001: sale del id. */
+        String codigo,
         String nombre,
         String unidadVenta,
         String descripcion,
@@ -35,6 +37,7 @@ record ProductoResponse(
     static ProductoResponse from(Producto p, Long lotesRegistrados) {
         return new ProductoResponse(
                 p.getId(),
+                p.codigo(),
                 p.getNombre(),
                 p.getUnidadVenta(),
                 p.getDescripcion(),

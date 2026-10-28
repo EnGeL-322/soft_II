@@ -72,6 +72,7 @@ public class QueseriaService {
     private final AuditoriaService auditoriaService;
     private final AsientoContableService asientoContableService;
     private final ParametroNegocioRepository parametroNegocioRepository;
+    private final org.ramiro.huata.produccion.OrdenProduccionService ordenProduccionService;
 
     private static final String ENTIDAD = "Quesos";
 
@@ -155,6 +156,11 @@ public class QueseriaService {
                     + ", no de " + producto.getNombre() + ".");
         }
 
+        // La orden que este lote cumple (V61), validada ANTES de mover el almacen.
+        org.ramiro.huata.produccion.OrdenProduccion orden = req.ordenId() != null
+                ? ordenProduccionService.pendienteParaLote(req.ordenId(), producto.getId())
+                : null;
+
         // Lo que se descuenta sale de la receta, no del formulario (decision del cliente, 2026-09-30):
         // receta x lo que se puso a producir. La misma cuenta que muestra la pantalla antes de guardar.
         List<CalculoProduccion.Consumo> consumos = CalculoProduccion.consumoPara(receta, req.cantidadAConsumir());
@@ -197,6 +203,9 @@ public class QueseriaService {
                 guardado, BigDecimal.valueOf(guardado.getUnidadesProducidas()), req.fecha());
 
         registrarAsientosDeProduccion(guardado);
+        if (orden != null) {
+            ordenProduccionService.cumplir(orden, guardado);
+        }
 
         auditoriaService.registrar(
                 "Producción de quesos",
@@ -394,6 +403,8 @@ public class QueseriaService {
 
         lote.setActivo(false);
         lote.setMotivoAnulacion(motivo);
+        // Si cumplia una orden de produccion, la orden vuelve a esperar produccion (V61).
+        ordenProduccionService.reabrirPorLoteAnulado(lote);
         LoteQueso guardado = loteRepository.save(lote);
         revertirAsientosDeProduccion(guardado, hoy);
 

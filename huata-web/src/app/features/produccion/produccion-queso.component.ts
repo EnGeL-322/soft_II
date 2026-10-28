@@ -3,7 +3,7 @@ import { BuscadorComponent, OpcionBuscador } from '../../shared/ui/buscador.comp
 import { Component, DestroyRef, OnInit, computed, signal, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { catchError, finalize, forkJoin, of } from 'rxjs';
 import { PERMISO } from '../../core/config/navegacion';
 import { etiquetaUnidad } from '../../core/config/unidades';
@@ -12,6 +12,7 @@ import {
   CapacidadProduccion,
   LoteQueso,
   MateriaPrima,
+  OrdenProduccion,
   OrigenLeche,
   Producto,
   TrabajadorProduccion,
@@ -63,7 +64,7 @@ export interface TarjetaProducto {
 }
 
 /** Vistas que abre el menú lateral (`?vista=`), en el mismo orden que sus subitems. */
-type Pestana = 'registrar' | 'historial' | 'reportes';
+type Pestana = 'ordenes' | 'registrar' | 'historial' | 'reportes';
 
 /** Cuántas producciones se ven sin pedir "Ver todas". */
 
@@ -115,6 +116,7 @@ export class ProduccionQuesoComponent implements OnInit {
   protected readonly notificaciones = inject(NotificacionesService);
   private readonly dialogo = inject(DialogoService);
   private readonly ruta = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   readonly pestana = signal<Pestana>('historial');
 
@@ -139,6 +141,33 @@ export class ProduccionQuesoComponent implements OnInit {
   readonly capacidades = signal<ReadonlyMap<number, CapacidadProduccion | null>>(new Map());
   /** El último lote guardado: se muestra arriba del formulario ya limpio. */
   readonly ultimoGuardado = signal<LoteQueso | null>(null);
+
+  // ---- Órdenes de producción (V61) ----
+  readonly ordenes = signal<OrdenProduccion[]>([]);
+  readonly cargandoOrdenes = signal(false);
+  /** La orden que el registro en curso va a cumplir (abierto desde «Producir»). */
+  readonly ordenActiva = signal<OrdenProduccion | null>(null);
+  readonly formOrdenAbierto = signal(false);
+  readonly guardandoOrden = signal(false);
+  readonly errorOrden = signal('');
+  readonly filtroOrdenes = signal<'activas' | 'todas'>('activas');
+  ordenProductoId: number | null = null;
+  ordenCantidad: number | null = null;
+  ordenFecha = hoy();
+  ordenObservaciones = '';
+
+  readonly ordenesVisibles = computed(() =>
+    this.filtroOrdenes() === 'activas' ? this.ordenes().filter((o) => o.estado === 'PENDIENTE') : this.ordenes(),
+  );
+  readonly resumenOrdenes = computed(() => {
+    const pendientes = this.ordenes().filter((o) => o.estado === 'PENDIENTE');
+    return {
+      pendientes: pendientes.length,
+      listas: pendientes.filter((o) => o.lista).length,
+      esperando: pendientes.filter((o) => o.lista === false).length,
+      terminadasHoy: this.ordenes().filter((o) => o.estado === 'TERMINADA' && this.lotes().some((l) => l.id === o.loteId && l.fecha === hoy())).length,
+    };
+  });
   private versionCapacidad = 0;
 
   productoId: number | null = null;
@@ -174,6 +203,17 @@ export class ProduccionQuesoComponent implements OnInit {
   readonly tarjetas = computed<TarjetaProducto[]>(() =>
     this.productos().map((producto) => ({ producto, ...estadoTarjeta(this.capacidades().get(producto.id)) })),
   );
+  /**
+   * Producto de la nueva orden: lista que se despliega hacia abajo y se filtra escribiendo (las
+   * tarjetas se extendían a lo ancho). Cada opción dice su código y cuánto alcanza hoy.
+   */
+  readonly opcProductosOrden = computed<OpcionBuscador[]>(() =>
+    this.tarjetas().map((t) => ({
+      valor: t.producto.id,
+      etiqueta: t.producto.nombre,
+      detalle: [t.producto.codigo, t.texto].filter(Boolean).join(' · '),
+    })),
+  );
   readonly lotesDeHoy = computed(() => this.lotes().filter((l) => l.fecha === hoy()));
 
   /** Historial: busca por producto, código de lote o responsable. */
@@ -204,20 +244,27 @@ export class ProduccionQuesoComponent implements OnInit {
   ngOnInit(): void {
     this.cargarLotes();
     this.cargarLeche();
+    this.cargarOrdenes();
     this.ruta.queryParamMap
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((params) => this.abrirVista(params.get('vista')));
+      .subscribe((params) => this.abrirVista(params.get('vista'), Number(params.get('orden')) || null));
   }
 
-  /** Sin vista (o sin permiso para la pedida) abre la primera permitida: registrar o el historial. */
-  private abrirVista(vista: string | null): void {
+  /**
+   * Sin vista abre la primera del menú: Órdenes de producción. `?orden=` abre Registrar con esa
+   * orden ya puesta (producto y cantidad), para cumplirla.
+   */
+  private abrirVista(vista: string | null, ordenId: number | null = null): void {
     if (vista === 'reportes' && this.puedeVerReporte()) {
       this.abrirReportes();
-    } else if (vista === 'historial' || !this.puedeRegistrar()) {
+    } else if (vista === 'historial') {
       this.pestana.set('historial');
-    } else {
+    } else if (vista === 'registrar' && this.puedeRegistrar()) {
       this.pestana.set('registrar');
       if (!this.panelAbierto()) this.abrirRegistro();
+      if (ordenId) this.prepararDesdeOrden(ordenId);
+    } else {
+      this.pestana.set('ordenes');
     }
   }
 
@@ -313,6 +360,7 @@ export class ProduccionQuesoComponent implements OnInit {
   }
 
   limpiar(): void {
+    this.ordenActiva.set(null);
     this.productoId = null;
     this.capacidad.set(null);
     this.cantidad = null;
@@ -547,6 +595,7 @@ export class ProduccionQuesoComponent implements OnInit {
         quesosRecorte: this.quesosRecorte ?? undefined,
         recorteKg: this.recorteKg ?? undefined,
         fechaVencimiento: this.fechaVencimiento || undefined,
+        ordenId: this.ordenActiva()?.id,
       })
       .pipe(finalize(() => this.guardando.set(false)))
       .subscribe({
@@ -556,7 +605,13 @@ export class ProduccionQuesoComponent implements OnInit {
           );
           // El formulario queda abierto y limpio para la siguiente producción del día.
           this.ultimoGuardado.set(lote);
+          const cumplida = this.ordenActiva();
           this.limpiar();
+          if (cumplida) {
+            this.cargarOrdenes();
+            // Sin ?orden= en la dirección: volver a entrar no debe precargar una orden ya cumplida.
+            this.router.navigate([], { queryParams: { vista: 'registrar' }, replaceUrl: true });
+          }
           this.cargarLotes();
           this.cargarLeche();
           this.cargarTarjetas();
@@ -578,6 +633,158 @@ export class ProduccionQuesoComponent implements OnInit {
     const d = new Date(this.fecha + 'T12:00:00');
     d.setDate(d.getDate() + dias);
     return d.toISOString().slice(0, 10);
+  }
+
+  // ---------------------------------------------------------------- Órdenes de producción
+
+  cargarOrdenes(): void {
+    if (!this.auth.puede(PERMISO.produccionRead) && !this.auth.puede(PERMISO.quesosRead)) return;
+    this.cargandoOrdenes.set(true);
+    this.produccion
+      .ordenes()
+      .pipe(finalize(() => this.cargandoOrdenes.set(false)))
+      .subscribe({
+        next: (o) => this.ordenes.set(o),
+        error: (e) => this.error.set(mensajeDeError(e, 'No se pudieron cargar las órdenes de producción.')),
+      });
+  }
+
+  abrirNuevaOrden(): void {
+    this.errorOrden.set('');
+    this.ordenProductoId = null;
+    this.ordenCantidad = null;
+    this.ordenFecha = hoy();
+    this.ordenObservaciones = '';
+    this.formOrdenAbierto.set(true);
+    // Las tarjetas de producto dicen cuánto alcanza: las mismas del registro.
+    if (!this.productos().length) {
+      this.produccion.productos().subscribe({
+        next: (p) => {
+          this.productos.set(p);
+          this.cargarTarjetas();
+        },
+      });
+    } else {
+      this.cargarTarjetas();
+    }
+  }
+
+  /**
+   * Antes de crear la orden: lo que necesita de cada insumo frente a lo que hay. Solo informa; la
+   * orden se crea igual (si falta, Compras recibe la sugerencia).
+   */
+  previaOrden(): { nombre: string; unidad: string; necesita: number; hay: number; alcanza: boolean }[] {
+    const c = this.ordenProductoId != null ? this.capacidades().get(this.ordenProductoId) : null;
+    const cantidad = this.ordenCantidad ?? 0;
+    if (!c || cantidad <= 0) return [];
+    return c.items.map((i) => {
+      const necesita = redondear(i.cantidadPorUnidad * cantidad);
+      return {
+        nombre: i.materiaPrimaNombre,
+        unidad: etiquetaUnidad(i.unidadMedida),
+        necesita,
+        hay: i.stockActual,
+        alcanza: i.stockActual >= necesita,
+      };
+    });
+  }
+
+  sinRecetaParaOrden(): boolean {
+    const c = this.ordenProductoId != null ? this.capacidades().get(this.ordenProductoId) : undefined;
+    return !!c && !c.tieneReceta;
+  }
+
+  guardarOrden(): void {
+    if (!this.ordenProductoId || !this.ordenCantidad || this.ordenCantidad < 1) {
+      this.errorOrden.set('Elige el producto y escribe cuántas producir.');
+      return;
+    }
+    this.guardandoOrden.set(true);
+    this.errorOrden.set('');
+    this.produccion
+      .crearOrden({
+        productoId: this.ordenProductoId,
+        cantidad: this.ordenCantidad,
+        fechaPlan: this.ordenFecha || undefined,
+        observaciones: this.ordenObservaciones.trim() || undefined,
+      })
+      .pipe(finalize(() => this.guardandoOrden.set(false)))
+      .subscribe({
+        next: (o) => {
+          this.formOrdenAbierto.set(false);
+          this.notificaciones.exito(
+            o.lista
+              ? `Orden ${o.codigo} lista para producir.`
+              : `Orden ${o.codigo} registrada. Faltan insumos: Compras ya tiene la sugerencia.`,
+          );
+          this.cargarOrdenes();
+        },
+        error: (e) => this.errorOrden.set(mensajeDeError(e, 'No se pudo crear la orden.')),
+      });
+  }
+
+  /** «Producir»: abre el registro con el producto y la cantidad de la orden. */
+  producirOrden(o: OrdenProduccion): void {
+    this.router.navigate([], { queryParams: { vista: 'registrar', orden: o.id } });
+  }
+
+  private prepararDesdeOrden(id: number): void {
+    const aplicar = (o: OrdenProduccion | undefined) => {
+      if (!o || o.estado !== 'PENDIENTE') {
+        this.notificaciones.error('Esa orden ya no está pendiente.');
+        return;
+      }
+      this.ordenActiva.set(o);
+      this.elegirProducto(o.productoId);
+      this.cantidad = o.cantidad;
+    };
+    const ya = this.ordenes().find((o) => o.id === id);
+    if (ya) {
+      aplicar(ya);
+      return;
+    }
+    this.produccion.ordenes().subscribe({
+      next: (lista) => {
+        this.ordenes.set(lista);
+        aplicar(lista.find((o) => o.id === id));
+      },
+    });
+  }
+
+  async anularOrden(o: OrdenProduccion): Promise<void> {
+    const motivo = await this.dialogo.pedirTexto({
+      titulo: `¿Anular la orden ${o.codigo}?`,
+      mensaje: `${o.cantidad} ${o.productoNombre}. Deja de contar para las sugerencias de compra. Queda registrada con el motivo.`,
+      etiqueta: 'Motivo de la anulación',
+      obligatorio: true,
+      confirmar: 'Anular orden',
+      cancelar: 'Volver',
+      tipo: 'peligro',
+    });
+    if (!motivo) return;
+    this.produccion.anularOrden(o.id, motivo).subscribe({
+      next: () => {
+        this.notificaciones.exito(`Orden ${o.codigo} anulada.`);
+        this.cargarOrdenes();
+      },
+      error: (e) => this.notificaciones.error(mensajeDeError(e, 'No se pudo anular la orden.')),
+    });
+  }
+
+  /** Estado de una orden para su chip. */
+  estadoOrden(o: OrdenProduccion): { texto: string; tono: 'ok' | 'aviso' | 'falta' | 'info' | 'neutro' } {
+    if (o.estado === 'TERMINADA') return { texto: 'Terminada', tono: 'info' };
+    if (o.estado === 'ANULADA') return { texto: 'Anulada', tono: 'neutro' };
+    return o.lista ? { texto: 'Lista para producir', tono: 'ok' } : { texto: 'Esperando insumos', tono: 'aviso' };
+  }
+
+  /** "Falta 2 kg de Fruta y 1 más": lo que la frena, en una línea. */
+  faltaDeOrden(o: OrdenProduccion): string {
+    const faltan = o.lineas.filter((l) => l.falta > 0);
+    if (!faltan.length) return '';
+    const primero = faltan[0];
+    const resto = faltan.length > 1 ? ` y ${faltan.length - 1} más` : '';
+    return `Falta ${redondear(primero.falta)} ${etiquetaUnidad(primero.unidadMedida)} de ${primero.materiaPrimaNombre}${resto}`;
   }
 
   /** Chip del historial: agotado, vencido, vence pronto (3 días o menos) o disponible. */

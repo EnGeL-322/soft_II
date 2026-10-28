@@ -1,11 +1,12 @@
 import { DecimalPipe } from '@angular/common';
 import { BuscadorComponent, OpcionBuscador } from '../../shared/ui/buscador.component';
-import { Component, OnInit, computed, signal, inject } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, signal, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs';
 import { PERMISO } from '../../core/config/navegacion';
 import { etiquetaUnidad } from '../../core/config/unidades';
-import { Compra, MateriaPrima, PageResponse, ProveedorCompra } from '../../core/models/models';
+import { Compra, MateriaPrima, Necesidad, PageResponse, ProveedorCompra, Recepcion } from '../../core/models/models';
 import { AuthService } from '../../core/services/auth.service';
 import { ComprasService } from '../../core/services/compras.service';
 import { InventarioService } from '../../core/services/inventario.service';
@@ -22,11 +23,15 @@ import { recargarEnVivo } from '../../core/services/cambios-tiempo-real.service'
 import { IconoComponent } from '../../shared/ui/icono.component';
 import {
   FilaCompraItem,
+  FilaRecepcion,
   avisoDePrecio,
   filaCompraVacia,
   filaEnBlanco,
+  filasDeRecepcion,
+  filasRecibidas,
   porQueNoAparece,
   problemaDeFila,
+  problemaDeRecepcion,
 } from './compra-formulario';
 
 /** Compras de materia prima/insumos (4.3): cada compra entra automáticamente al inventario. */
@@ -39,6 +44,11 @@ import {
     .cp-fila { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1fr) 96px 36px; }
     .cp-subtotal { align-self: center; padding-top: 18px; text-align: right; }
     .cp-quitar { margin-top: 24px; }
+    .cp-recepcion { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); align-items: end; }
+    .cp-llego { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border: 1px solid #e3eaf3; border-radius: 12px; background: #f7f9fc; cursor: pointer; }
+    .cp-llego input { margin-top: 3px; width: 18px; height: 18px; }
+    .cp-llego small { display: block; color: var(--muted); font-size: 12.5px; }
+    .cp-marcar { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; font-weight: 600; white-space: nowrap; }
     .cp-mensaje { grid-column: 1 / -1; margin: -2px 0 0; font-size: 13px; font-weight: 600; }
     .cp-mensaje.falta { color: var(--err); }
     .cp-mensaje.aviso { color: var(--warn); }
@@ -52,10 +62,39 @@ import {
 })
 export class ComprasComponent implements OnInit {
   /** Tiempo real: si alguien guarda algo de compras, inventario, esta pantalla se actualiza sola. */
-  private readonly _enVivo = recargarEnVivo(['compras', 'inventario'], () => {
+  private readonly _enVivo = recargarEnVivo(['compras', 'inventario', 'produccion'], () => {
     this.cargarProveedores();
     this.cargarCompras();
+    this.cargarBandeja();
   });
+  private readonly destroyRef = inject(DestroyRef);
+
+  /** Compras y Recepciones: dos vistas de la misma pantalla (`?vista=`), como en el prototipo aprobado. */
+  readonly vista = signal<'compras' | 'recepciones'>('compras');
+
+  // ---- Bandeja de recepción y sugerencias (V61) ----
+  /** Compras que todavía no llegan del todo. */
+  readonly pendientes = signal<Compra[]>([]);
+  readonly recepciones = signal<Recepcion[]>([]);
+  /** Lo que falta comprar para las órdenes de producción pendientes. */
+  readonly necesidades = signal<Necesidad[]>([]);
+  /** Insumos de la sugerencia marcados para comprar en bloque. */
+  readonly marcadas = signal<ReadonlySet<number>>(new Set());
+  /** La compra que se está recibiendo (formulario de recepción abierto). */
+  readonly recibiendo = signal<Compra | null>(null);
+  readonly filasRecepcion = signal<FilaRecepcion[]>([]);
+  readonly guardandoRecepcion = signal(false);
+  readonly errorRecepcion = signal('');
+  fechaRecepcion = hoy();
+  documentoRecepcion = '';
+  /**
+   * La compra al contado que llega con la factura entra al almacén en el mismo acto. Por defecto no:
+   * la compra queda pendiente y la recepción confirma lo que realmente llegó (prototipo aprobado).
+   */
+  recibirAhora = false;
+
+  readonly porComprar = computed(() => this.necesidades().filter((n) => !n.esLeche && n.aComprar > 0));
+  readonly lecheQueFalta = computed(() => this.necesidades().find((n) => n.esLeche) ?? null);
   protected readonly notificaciones = inject(NotificacionesService);
   private readonly dialogo = inject(DialogoService);
   private readonly ruta = inject(ActivatedRoute);
@@ -141,7 +180,139 @@ export class ComprasComponent implements OnInit {
       this.produccion.recetas().subscribe({ next: (r) => this.recetas.set(r), error: () => this.recetas.set(null) });
     }
     this.cargarCompras();
+    this.cargarBandeja();
     this.prellenarDesdeProduccion();
+    this.ruta.queryParamMap
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((p) => this.vista.set(p.get('vista') === 'recepciones' ? 'recepciones' : 'compras'));
+  }
+
+  /** Pendientes de recepción, historial de recepciones y sugerencias de compra. */
+  cargarBandeja(): void {
+    this.compraService.pendientes().subscribe({ next: (p) => this.pendientes.set(p), error: () => {} });
+    this.compraService.recepciones().subscribe({ next: (r) => this.recepciones.set(r), error: () => {} });
+    this.produccion.necesidades().subscribe({
+      next: (n) => {
+        this.necesidades.set(n);
+        // Por defecto todo marcado, como en el prototipo: lo normal es comprar el bloque completo.
+        this.marcadas.set(new Set(n.filter((x) => !x.esLeche && x.aComprar > 0).map((x) => x.materiaPrimaId)));
+      },
+      error: () => this.necesidades.set([]),
+    });
+  }
+
+  alternarMarcada(id: number): void {
+    this.marcadas.update((s) => {
+      const nuevo = new Set(s);
+      if (nuevo.has(id)) nuevo.delete(id);
+      else nuevo.add(id);
+      return nuevo;
+    });
+  }
+
+  marcarTodas(todas: boolean): void {
+    this.marcadas.set(new Set(todas ? this.porComprar().map((n) => n.materiaPrimaId) : []));
+  }
+
+  /**
+   * «Agregar bloque a compra»: una sola compra con una línea por insumo marcado, con lo que falta
+   * (redondeado hacia arriba) y el último precio pagado. Proveedor y precios los confirma la persona.
+   */
+  comprarBloque(): void {
+    const elegidas = this.porComprar().filter((n) => this.marcadas().has(n.materiaPrimaId));
+    if (!elegidas.length) {
+      this.notificaciones.info('Marca al menos un insumo de la sugerencia.');
+      return;
+    }
+    this.items.set(
+      elegidas.map((n) => ({
+        materiaPrimaId: n.materiaPrimaId,
+        cantidad: Math.ceil(n.aComprar * 1000) / 1000,
+        costoUnitario: n.costoReferencial && n.costoReferencial > 0 ? n.costoReferencial : null,
+      })),
+    );
+    this.intentoGuardar.set(false);
+    this.abrirFormulario();
+  }
+
+  estadoCompra(c: Compra): { texto: string; tono: 'ok' | 'aviso' | 'falta' | 'info' } {
+    if (!c.activo) return { texto: 'Anulada', tono: 'falta' };
+    if (c.estado === 'PENDIENTE_RECEPCION') return { texto: 'Por recibir', tono: 'aviso' };
+    if (c.estado === 'RECIBIDA_PARCIAL') return { texto: 'Recibida en parte', tono: 'info' };
+    return { texto: 'En almacén', tono: 'ok' };
+  }
+
+  // ---------------------------------------------------------------- Recepción
+
+  abrirRecepcion(c: Compra): void {
+    this.recibiendo.set(c);
+    this.filasRecepcion.set(filasDeRecepcion(c, (u) => etiquetaUnidad(u)));
+    this.fechaRecepcion = hoy();
+    this.documentoRecepcion = c.documento ?? '';
+    this.errorRecepcion.set('');
+  }
+
+  cerrarRecepcion(): void {
+    this.recibiendo.set(null);
+  }
+
+  problemaRecepcion(f: FilaRecepcion): string | null {
+    return problemaDeRecepcion(f, this.fechaRecepcion);
+  }
+
+  totalRecepcion(): number {
+    const c = this.recibiendo();
+    if (!c) return 0;
+    return filasRecibidas(this.filasRecepcion()).reduce(
+      (s, f) => s + (f.cantidad ?? 0) * (c.items.find((i) => i.id === f.compraItemId)?.costoUnitario ?? 0),
+      0,
+    );
+  }
+
+  guardarRecepcion(): void {
+    const c = this.recibiendo();
+    if (!c || this.guardandoRecepcion()) return;
+    const filas = this.filasRecepcion();
+    if (filas.some((f) => this.problemaRecepcion(f))) {
+      this.errorRecepcion.set('Corrige las líneas marcadas.');
+      return;
+    }
+    const llegaron = filasRecibidas(filas);
+    if (!llegaron.length) {
+      this.errorRecepcion.set('Escribe cuánto llegó de al menos un insumo.');
+      return;
+    }
+    if (this.fechaRecepcion > hoy()) {
+      this.errorRecepcion.set('La fecha no puede ser futura.');
+      return;
+    }
+    this.guardandoRecepcion.set(true);
+    this.errorRecepcion.set('');
+    this.compraService
+      .recibir(c.id, {
+        fecha: this.fechaRecepcion,
+        documento: this.documentoRecepcion.trim() || undefined,
+        items: llegaron.map((f) => ({
+          compraItemId: f.compraItemId,
+          cantidad: f.cantidad!,
+          lote: f.lote.trim() || undefined,
+          fechaVencimiento: f.fechaVencimiento || undefined,
+        })),
+      })
+      .pipe(finalize(() => this.guardandoRecepcion.set(false)))
+      .subscribe({
+        next: (actualizada) => {
+          this.recibiendo.set(null);
+          this.notificaciones.exito(
+            actualizada.estado === 'RECIBIDA'
+              ? `${actualizada.codigo} recibida completa. El stock ya se actualizó.`
+              : `Recepción registrada. De ${actualizada.codigo} todavía falta llegar una parte.`,
+          );
+          this.cargarCompras();
+          this.cargarBandeja();
+        },
+        error: (e) => this.errorRecepcion.set(mensajeDeError(e, 'No se pudo registrar la recepción.')),
+      });
   }
 
   /**
@@ -332,14 +503,19 @@ export class ComprasComponent implements OnInit {
         fecha: this.fecha,
         documento: this.documento.trim() || undefined,
         items,
+        recibirAhora: this.recibirAhora,
       })
       .pipe(finalize(() => this.guardando.set(false)))
       .subscribe({
         next: (c) => {
           this.formularioAbierto.set(false);
           this.notificaciones.exito(
-            `Compra registrada por S/ ${c.total.toFixed(2)}. El inventario ya se actualizó.`,
+            c.estado === 'RECIBIDA'
+              ? `${c.codigo} registrada y recibida por S/ ${c.total.toFixed(2)}. El stock ya se actualizó.`
+              : `${c.codigo} registrada por S/ ${c.total.toFixed(2)}. Queda por recibir: el stock sube al registrar la recepción.`,
           );
+          this.recibirAhora = false;
+          this.cargarBandeja();
           this.items.set([filaCompraVacia()]);
           this.intentoGuardar.set(false);
           this.documento = '';

@@ -208,4 +208,51 @@ describe('Producción: cuánto se puede producir y qué se descuenta', () => {
     c.capacidad.set({ ...CAPACIDAD, unidadVenta: 'botella 1 L' });
     expect(c.unidadVenta(15)).toBe('botella 1 L');
   });
+
+  // ---- Órdenes de producción (V61) ----
+
+  const ORDEN = {
+    id: 5,
+    codigo: 'OP2026-0005',
+    productoId: 1,
+    productoCodigo: 'P-0001',
+    productoNombre: 'Queso fresco',
+    unidadVenta: 'unidad',
+    recetaId: 7,
+    cantidad: 20,
+    fechaPlan: '2026-10-28',
+    estado: 'PENDIENTE' as const,
+    lista: false,
+    lineas: [
+      { materiaPrimaId: 2, materiaPrimaCodigo: 'MP-0002', materiaPrimaNombre: 'Leche fresca', unidadMedida: 'LITRO' as const, necesita: 200, disponible: 1000, falta: 0, esLeche: true },
+      { materiaPrimaId: 3, materiaPrimaCodigo: 'MP-0003', materiaPrimaNombre: 'Sal', unidadMedida: 'KG' as const, necesita: 1, disponible: 0.75, falta: 0.25, esLeche: false },
+    ],
+  };
+
+  it('una orden pendiente dice si está lista o qué la frena', () => {
+    const c = crear();
+    expect(c.estadoOrden(ORDEN)).toEqual({ texto: 'Esperando insumos', tono: 'aviso' });
+    expect(c.faltaDeOrden(ORDEN)).toBe('Falta 0.25 kg de Sal');
+    expect(c.estadoOrden({ ...ORDEN, lista: true })).toEqual({ texto: 'Lista para producir', tono: 'ok' });
+    expect(c.estadoOrden({ ...ORDEN, estado: 'TERMINADA', lista: null })).toEqual({ texto: 'Terminada', tono: 'info' });
+  });
+
+  it('la vista previa de una orden compara lo que necesita con lo que hay, sin bloquear', () => {
+    const c = crear();
+    c.capacidades.set(new Map([[1, CAPACIDAD]]));
+    c.ordenProductoId = 1;
+    c.ordenCantidad = 20;
+    expect(c.previaOrden().map((p) => [p.nombre, p.necesita, p.alcanza])).toEqual([
+      ['Leche fresca', 200, true],
+      ['Sal', 1, false],
+    ]);
+  });
+
+  it('al guardar un lote que cumple una orden, manda su id', () => {
+    const c = crear();
+    c.ordenActiva.set(ORDEN);
+    c.cantidad = 15;
+    c.guardar();
+    expect(crearLote.mock.calls[0][0].ordenId).toBe(5);
+  });
 });

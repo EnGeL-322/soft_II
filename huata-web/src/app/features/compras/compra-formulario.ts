@@ -1,4 +1,4 @@
-import { MateriaPrima } from '../../core/models/models';
+import { Compra, MateriaPrima } from '../../core/models/models';
 
 /** Una fila del formulario "Registrar compra", tal como la llena la persona. */
 export interface FilaCompraItem {
@@ -71,13 +71,58 @@ export function porQueNoAparece(texto: string, materias: readonly MateriaPrima[]
   const mostrado = texto.trim();
   if (existente?.lecheAcopio) return 'La leche no se compra: entra al almacén al recibir las rutas.';
   if (existente) {
-    return `«${existente.nombre}» no lo lleva ninguna receta. Agrégalo a una receta en Recetas y productos para comprarlo.`;
+    return `«${existente.nombre}» no lo lleva ninguna receta. Agrégalo a una receta (Catálogo y recetas → Recetas) para comprarlo.`;
   }
-  return `«${mostrado}» no existe. Escríbelo en una receta (Recetas y productos) y aparecerá aquí.`;
+  return `«${mostrado}» no existe. Escríbelo en una receta (Catálogo y recetas → Recetas) y aparecerá aquí.`;
+}
+
+// ---- Recepción (V61): lo que realmente llegó de una compra ----
+
+/** Una línea de la compra en el formulario de recepción. */
+export interface FilaRecepcion {
+  compraItemId: number;
+  nombre: string;
+  codigo?: string;
+  unidad: string;
+  pendiente: number;
+  /** Lo que llegó ahora. Vacío o 0: no llegó nada de esta línea. */
+  cantidad: number | null;
+  lote: string;
+  fechaVencimiento: string;
+}
+
+/** Las líneas que faltan recibir, propuestas con todo lo pendiente (lo normal es que llegue completo). */
+export function filasDeRecepcion(compra: Compra, unidad: (u?: string) => string): FilaRecepcion[] {
+  return compra.items
+    .filter((i) => (i.pendiente ?? i.cantidad) > 0)
+    .map((i) => ({
+      compraItemId: i.id,
+      nombre: i.materiaPrimaNombre,
+      codigo: i.materiaPrimaCodigo,
+      unidad: unidad(i.unidadMedida),
+      pendiente: i.pendiente ?? i.cantidad,
+      cantidad: i.pendiente ?? i.cantidad,
+      lote: '',
+      fechaVencimiento: '',
+    }));
+}
+
+/** Qué impide recibir esta línea, o null. `hoy` y `fecha` en ISO (yyyy-mm-dd). */
+export function problemaDeRecepcion(f: FilaRecepcion, fecha: string): string | null {
+  if (f.cantidad == null || f.cantidad === 0) return null;
+  if (f.cantidad < 0) return 'La cantidad no puede ser negativa.';
+  if (f.cantidad > f.pendiente + 1e-9) return `Quedan por recibir ${f.pendiente} ${f.unidad}.`;
+  if (f.fechaVencimiento && fecha && f.fechaVencimiento < fecha) return 'Llega ya vencido: revisa la fecha.';
+  return null;
+}
+
+/** Las líneas que sí llegaron (cantidad > 0). */
+export function filasRecibidas(filas: readonly FilaRecepcion[]): FilaRecepcion[] {
+  return filas.filter((f) => f.cantidad != null && f.cantidad > 0);
 }
 
 function normalizar(texto: string): string {
-  return texto.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+  return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
 }
 
 function redondear(n: number): string {

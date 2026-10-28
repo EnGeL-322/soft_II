@@ -73,10 +73,15 @@ public class MateriaPrimaService {
             return reactivar(existente, req.unidadMedida(), req.costoUnitarioReferencial());
         }
         exigirQueNoSeParezca(nombre, null);
+        exigirQueNoSeaSinonimo(nombre, null);
         MateriaPrima m = new MateriaPrima();
         m.setNombre(nombre);
         m.setUnidadMedida(req.unidadMedida());
         m.setCostoUnitarioReferencial(req.costoUnitarioReferencial());
+        if (req.tipo() != null) {
+            m.setTipo(req.tipo());
+        }
+        m.setSinonimos(sinonimosLimpios(req.sinonimos()));
         MateriaPrima guardada = materiaPrimaRepository.save(m);
         auditoriaService.registrar(
                 "Alta de materia prima", ENTIDAD, guardada.getNombre() + " · " + guardada.getUnidadMedida());
@@ -94,6 +99,35 @@ public class MateriaPrimaService {
             return crear(new MateriaPrimaRequest(nombre, unidad, null));
         }
         return existente.isActivo() ? existente : reactivar(existente, unidad, null);
+    }
+
+    /**
+     * Un nombre nuevo que ya es sinonimo de otro insumo es ese insumo con otro nombre: crearlo partiria
+     * el kardex en dos (el caso "sal" / "sal fina").
+     */
+    private void exigirQueNoSeaSinonimo(String nombre, Long excepto) {
+        String clave = clave(nombre);
+        materiaPrimaRepository.findAll().stream()
+                .filter(m -> !m.getId().equals(excepto) && m.getSinonimos() != null)
+                .filter(m -> java.util.Arrays.stream(m.getSinonimos().split(",")).map(MateriaPrimaService::clave).anyMatch(clave::equals))
+                .findFirst()
+                .ifPresent(m -> {
+                    throw new BusinessRuleException("\"" + nombre + "\" ya es otro nombre de " + m.codigo() + " · "
+                            + m.getNombre() + ". Usa ese insumo.");
+                });
+    }
+
+    /** "sal fina ,  Sal de cocina,," queda "sal fina, Sal de cocina". */
+    private static String sinonimosLimpios(String sinonimos) {
+        if (sinonimos == null) {
+            return null;
+        }
+        String limpio = java.util.Arrays.stream(sinonimos.split(","))
+                .map(s -> s.trim().replaceAll("\\s+", " "))
+                .filter(s -> !s.isEmpty())
+                .distinct()
+                .collect(java.util.stream.Collectors.joining(", "));
+        return limpio.isEmpty() ? null : limpio;
     }
 
     /** Busca por nombre normalizado entre activos e inactivos (la tabla de insumos es corta). */
@@ -139,11 +173,19 @@ public class MateriaPrimaService {
             throw new BusinessRuleException(
                     "No se puede cambiar la unidad de \"" + m.getNombre() + "\": ya tiene movimientos en el kardex.");
         }
+        exigirQueNoSeaSinonimo(nombre, id);
         m.setNombre(nombre);
         m.setUnidadMedida(req.unidadMedida());
         m.setCostoUnitarioReferencial(req.costoUnitarioReferencial());
+        // Tipo y sinonimos (V61) son opcionales: un cliente que no los manda no los borra.
+        if (req.tipo() != null) {
+            m.setTipo(req.tipo());
+        }
+        if (req.sinonimos() != null) {
+            m.setSinonimos(sinonimosLimpios(req.sinonimos()));
+        }
         MateriaPrima guardada = materiaPrimaRepository.save(m);
-        auditoriaService.registrar("Edicion de materia prima", ENTIDAD, guardada.getNombre());
+        auditoriaService.registrar("Edicion de materia prima", ENTIDAD, guardada.codigo() + " · " + guardada.getNombre());
         return guardada;
     }
 

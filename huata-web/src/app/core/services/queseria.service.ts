@@ -39,6 +39,8 @@ export interface LoteQuesoRequest {
   recorteKg?: number;
   /** Opcional: si falta, el servidor la calcula con los días que dura el producto. */
   fechaVencimiento?: string;
+  /** Opcional (V61): la orden de producción que este lote cumple. */
+  ordenId?: number;
 }
 
 /**

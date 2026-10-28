@@ -466,9 +466,11 @@ button.pd-kpi:hover { border-color: #c9d6e6; }
 .pd .pd-modal {
   position: fixed;
   z-index: 901;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
+  /* Centrado sin transform: un transform convierte la ventana en el marco de los position:fixed
+     de dentro y la lista del buscador se abría corrida hacia un costado. */
+  inset: 0;
+  margin: auto;
+  height: fit-content;
   display: flex;
   flex-direction: column;
   width: min(560px, calc(100vw - 32px));
@@ -589,7 +591,7 @@ button.pd-kpi:hover { border-color: #c9d6e6; }
   .pd .pd-opciones { grid-template-columns: 1fr 1fr; }
   .pd .pd-buscar { flex-basis: 100%; }
   .pd .pd-card-foot.fijo { position: sticky; bottom: 0; z-index: 3; }
-  .pd .pd-modal { width: 100vw; max-height: 100vh; top: auto; bottom: 0; left: 0; transform: none; border-radius: 16px 16px 0 0; }
+  .pd .pd-modal { width: 100vw; max-height: 100vh; top: auto; bottom: 0; left: 0; margin: 0; border-radius: 16px 16px 0 0; }
   .pd .pd-modal.ancho { width: 100vw; }
 }
 

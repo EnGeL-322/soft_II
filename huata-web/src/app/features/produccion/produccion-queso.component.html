@@ -4,6 +4,10 @@
     <div class="pd-head-texto">
       <span class="pd-migas">Producción</span>
       @switch (pestana()) {
+        @case ('ordenes') {
+          <h1 class="pd-titulo">Órdenes de producción</h1>
+          <p class="pd-subtitulo">Planifica qué producir; el sistema dice si hay insumos o qué comprar.</p>
+        }
         @case ('registrar') {
           <h1 class="pd-titulo">Registrar producción</h1>
           <p class="pd-subtitulo">Elige el producto, di cuántas hiciste y guarda.</p>
@@ -19,6 +23,12 @@
       }
     </div>
     <nav class="pd-tabs no-print" aria-label="Secciones de producción">
+      <a class="pd-tab" routerLink="/produccion-queso" [queryParams]="{ vista: 'ordenes' }" [attr.aria-selected]="pestana() === 'ordenes'">
+        <app-icono nombre="lista" [tamano]="16" /> Órdenes
+        @if (resumenOrdenes().pendientes) {
+          <span class="pd-contador">{{ resumenOrdenes().pendientes }}</span>
+        }
+      </a>
       @if (puedeRegistrar()) {
         <a class="pd-tab" routerLink="/produccion-queso" [queryParams]="{ vista: 'registrar' }" [attr.aria-selected]="pestana() === 'registrar'">
           <app-icono nombre="agregar" [tamano]="16" /> Registrar
@@ -36,7 +46,29 @@
   </header>
 
   <!-- ================================================================ INDICADORES -->
-  @if (pestana() !== 'reportes') {
+  @if (pestana() === 'ordenes') {
+    <div class="pd-kpis">
+      <div class="pd-kpi">
+        <span class="pd-kpi-icono"><app-icono nombre="lista" [tamano]="20" /></span>
+        <div><span class="pd-kpi-etiqueta">Órdenes pendientes</span><span class="pd-kpi-valor">{{ resumenOrdenes().pendientes }}</span></div>
+      </div>
+      <div class="pd-kpi" data-tono="ok">
+        <span class="pd-kpi-icono"><app-icono nombre="activar" [tamano]="20" /></span>
+        <div><span class="pd-kpi-etiqueta">Listas para producir</span><span class="pd-kpi-valor">{{ resumenOrdenes().listas }}</span></div>
+      </div>
+      <div class="pd-kpi" [attr.data-tono]="resumenOrdenes().esperando ? 'aviso' : null">
+        <span class="pd-kpi-icono"><app-icono nombre="alerta" [tamano]="20" /></span>
+        <div><span class="pd-kpi-etiqueta">Esperando insumos</span><span class="pd-kpi-valor">{{ resumenOrdenes().esperando }}</span></div>
+      </div>
+      <div class="pd-kpi">
+        <span class="pd-kpi-icono"><app-icono nombre="acopio" [tamano]="20" /></span>
+        <div>
+          <span class="pd-kpi-etiqueta">Leche en almacén</span>
+          <span class="pd-kpi-valor">{{ lecheDisponible() != null ? (lecheDisponible() | number: '1.0-0') : '—' }} <small>L</small></span>
+        </div>
+      </div>
+    </div>
+  } @else if (pestana() !== 'reportes') {
     <div class="pd-kpis">
       <div class="pd-kpi">
         <span class="pd-kpi-icono"><app-icono nombre="produccion" [tamano]="20" /></span>
@@ -73,8 +105,185 @@
     <div class="pd-alerta" data-tono="falta" role="alert"><span>{{ error() }}</span></div>
   }
 
+  <!-- ================================================================ ÓRDENES -->
+  @if (pestana() === 'ordenes') {
+    <section class="pd-card" aria-labelledby="titulo-ordenes">
+      <div class="pd-toolbar">
+        <div class="pd-tabs" role="tablist" aria-label="Qué órdenes ver">
+          <button type="button" class="pd-tab" role="tab" [attr.aria-selected]="filtroOrdenes() === 'activas'" (click)="filtroOrdenes.set('activas')">
+            Pendientes <span class="pd-contador">{{ resumenOrdenes().pendientes }}</span>
+          </button>
+          <button type="button" class="pd-tab" role="tab" [attr.aria-selected]="filtroOrdenes() === 'todas'" (click)="filtroOrdenes.set('todas')">
+            Todas <span class="pd-contador">{{ ordenes().length }}</span>
+          </button>
+        </div>
+        @if (puedeRegistrar()) {
+          <button type="button" class="pd-btn pd-btn-primario" (click)="abrirNuevaOrden()">
+            <app-icono nombre="agregar" [tamano]="18" /> Nueva orden
+          </button>
+        }
+      </div>
+      <h2 class="sr-only" id="titulo-ordenes">Órdenes de producción</h2>
+      <div class="pd-tabla-wrap">
+        <table class="pd-tabla">
+          <thead>
+            <tr>
+              <th>Orden</th>
+              <th>Producto</th>
+              <th class="num">Cantidad</th>
+              <th>Estado</th>
+              <th>Insumos</th>
+              <th class="acciones no-print"><span class="sr-only">Acciones</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (o of ordenesVisibles(); track o.id) {
+              @let est = estadoOrden(o);
+              <tr [class.anulado]="o.estado === 'ANULADA'">
+                <td>
+                  <span class="pd-fuerte">{{ o.codigo }}</span>
+                  <span class="pd-sub">Para el {{ o.fechaPlan }}</span>
+                </td>
+                <td>
+                  <span class="pd-fuerte">{{ o.productoNombre }}</span>
+                  <span class="pd-sub">{{ o.productoCodigo }}</span>
+                </td>
+                <td class="num pd-fuerte">{{ o.cantidad }}</td>
+                <td><span class="pd-chip" [attr.data-tono]="est.tono === 'neutro' ? null : est.tono">{{ est.texto }}</span></td>
+                <td style="white-space: normal">
+                  @if (o.estado === 'PENDIENTE') {
+                    @if (o.lista) {
+                      <span class="pd-muted">Alcanza con lo que hay</span>
+                    } @else {
+                      <span class="pd-ayuda falta">{{ faltaDeOrden(o) }}</span>
+                    }
+                  } @else if (o.estado === 'TERMINADA') {
+                    <span class="pd-muted">Lote {{ o.loteCodigo }}</span>
+                  } @else {
+                    <span class="pd-muted">{{ o.motivoAnulacion }}</span>
+                  }
+                </td>
+                <td class="acciones no-print">
+                  @if (o.estado === 'PENDIENTE' && puedeRegistrar()) {
+                    <div style="display: flex; gap: 6px; justify-content: flex-end">
+                      @if (o.lista) {
+                        <button type="button" class="pd-btn pd-btn-sm pd-btn-primario" (click)="producirOrden(o)">Producir</button>
+                      } @else if (puedeVerCompras()) {
+                        <a class="pd-btn pd-btn-sm" routerLink="/compras" [queryParams]="{ vista: 'compras' }">Ver qué comprar</a>
+                      }
+                      <button type="button" class="pd-btn pd-btn-sm pd-btn-peligro" (click)="anularOrden(o)">Anular</button>
+                    </div>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        @if (ordenesVisibles().length === 0 && !cargandoOrdenes()) {
+          <div class="pd-vacio">
+            <strong>{{ filtroOrdenes() === 'activas' ? 'No hay órdenes pendientes' : 'Todavía no hay órdenes' }}</strong>
+            Planifica una con «Nueva orden», o registra directamente lo que ya produjiste.
+          </div>
+        }
+      </div>
+      <div class="pd-card-foot">
+        <span class="pd-foot-info">
+          Las órdenes reservan el almacén en el orden en que se planificaron: dos órdenes no cuentan la misma leche.
+        </span>
+      </div>
+    </section>
+
+    @if (formOrdenAbierto()) {
+      <div class="pd-fondo" (click)="formOrdenAbierto.set(false)"></div>
+      <form class="pd-modal ancho" role="dialog" aria-modal="true" aria-labelledby="titulo-nueva-orden" (ngSubmit)="guardarOrden()">
+        <div class="pd-ventana-head">
+          <div>
+            <h2 id="titulo-nueva-orden">Nueva orden de producción</h2>
+            <p>Se registra aunque falte stock: lo que falte aparece como sugerencia en Compras.</p>
+          </div>
+          <button type="button" class="pd-cerrar" (click)="formOrdenAbierto.set(false)" aria-label="Cerrar">×</button>
+        </div>
+        <div class="pd-ventana-body">
+          @if (errorOrden()) {
+            <div class="pd-alerta" data-tono="falta" role="alert"><span>{{ errorOrden() }}</span></div>
+          }
+          <div class="pd-campo">
+            <span class="pd-etiqueta">Producto</span>
+            <app-buscador
+              [opciones]="opcProductosOrden()"
+              [(ngModel)]="ordenProductoId"
+              name="ordenProducto"
+              etiqueta="Producto"
+              placeholder="Escribe o elige el producto"
+            />
+          </div>
+          <div class="pd-grid pd-grid-3">
+            <div class="pd-campo">
+              <label for="op-cantidad">Cantidad a producir</label>
+              <input id="op-cantidad" name="ordenCantidad" class="pd-input-grande" type="number" min="1" step="1" inputmode="numeric" [(ngModel)]="ordenCantidad" placeholder="0" />
+            </div>
+            <div class="pd-campo">
+              <label for="op-fecha">Para el</label>
+              <input id="op-fecha" name="ordenFecha" type="date" [(ngModel)]="ordenFecha" />
+            </div>
+            <div class="pd-campo">
+              <label for="op-obs">Notas <span class="pd-muted">(opcional)</span></label>
+              <input id="op-obs" name="ordenObservaciones" [(ngModel)]="ordenObservaciones" maxlength="500" />
+            </div>
+          </div>
+          @if (sinRecetaParaOrden()) {
+            <div class="pd-alerta" data-tono="aviso">
+              <span>Este producto no tiene receta: créala antes de planificarlo.</span>
+              @if (puedeVerRecetas()) {
+                <a routerLink="/recetas" [queryParams]="{ vista: 'recetas' }">Ir a Recetas</a>
+              }
+            </div>
+          }
+          @if (previaOrden().length) {
+            <div class="pd-card pd-tabla-wrap">
+              <table class="pd-tabla pd-tabla-compacta">
+                <thead>
+                  <tr>
+                    <th>Insumo</th>
+                    <th class="num">Necesita</th>
+                    <th class="num">Hay</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (p of previaOrden(); track p.nombre) {
+                    <tr>
+                      <td class="pd-fuerte">{{ p.nombre }}</td>
+                      <td class="num">{{ p.necesita | number: '1.0-3' }} {{ p.unidad }}</td>
+                      <td class="num">{{ p.hay | number: '1.0-3' }} {{ p.unidad }}</td>
+                      <td>
+                        <span class="pd-chip" [attr.data-tono]="p.alcanza ? 'ok' : 'aviso'">{{ p.alcanza ? 'Disponible' : 'Generará necesidad' }}</span>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </div>
+        <div class="pd-ventana-foot">
+          <button type="button" class="pd-btn" (click)="formOrdenAbierto.set(false)">Cancelar</button>
+          <button type="submit" class="pd-btn pd-btn-primario" [disabled]="guardandoOrden() || sinRecetaParaOrden()">
+            {{ guardandoOrden() ? 'Guardando…' : 'Crear orden' }}
+          </button>
+        </div>
+      </form>
+    }
+  }
+
   <!-- ================================================================ REGISTRAR -->
   @if (pestana() === 'registrar' && puedeRegistrar()) {
+    @if (ordenActiva(); as oa) {
+      <div class="pd-alerta" data-tono="info" role="status">
+        <span>Cumpliendo la orden <b>{{ oa.codigo }}</b>: {{ oa.cantidad }} {{ oa.productoNombre }}. Al guardar, la orden queda terminada.</span>
+        <button type="button" class="pd-btn pd-btn-sm" (click)="limpiar()">Registrar sin orden</button>
+      </div>
+    }
     @if (ultimoGuardado(); as g) {
       <div class="pd-alerta" data-tono="ok" role="status">
         <span>
@@ -138,7 +347,7 @@
                 <div class="pd-alerta" data-tono="aviso">
                   <span>{{ c.productoNombre }} todavía no tiene receta.</span>
                   @if (puedeVerRecetas()) {
-                    <a routerLink="/recetas">Crear la receta</a>
+                    <a routerLink="/recetas" [queryParams]="{ vista: 'recetas' }">Crear la receta</a>
                   }
                 </div>
               } @else {
@@ -146,7 +355,7 @@
                   <div class="pd-alerta" data-tono="aviso">
                     <span>La receta no dice cuánta leche lleva.</span>
                     @if (puedeVerRecetas()) {
-                      <a routerLink="/recetas">Completar la receta</a>
+                      <a routerLink="/recetas" [queryParams]="{ vista: 'recetas' }">Completar la receta</a>
                     }
                   </div>
                 }

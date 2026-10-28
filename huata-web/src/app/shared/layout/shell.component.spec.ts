@@ -60,7 +60,8 @@ describe('Menú de tareas', () => {
 
   it('busca sin distinguir acentos y no muestra módulos sin permiso', async () => {
     const { fixture, c } = await crear();
-    c.busquedaMenu.set('PRODUCCION');
+    // «almacén» está en Compras e Inventario: sin tilde también lo encuentra, y Compras no se ve sin permiso.
+    c.busquedaMenu.set('ALMACEN');
     fixture.detectChanges();
     expect(c.resultados().map((item) => item.ruta)).toEqual(['inventario']);
     expect(fixture.nativeElement.querySelector('a[href="/compras"]')).toBeNull();

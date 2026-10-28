@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { API_BASE_URL } from '../config/api-config';
-import { Compra, PageResponse, ProveedorCompra } from '../models/models';
+import { Compra, PageResponse, ProveedorCompra, Recepcion } from '../models/models';
 
 export interface ProveedorCompraRequest {
   nombre: string;
@@ -22,6 +22,21 @@ export interface CompraRequest {
   documento?: string;
   observaciones?: string;
   items: CompraItemRequest[];
+  /** false: queda pendiente de recepción (V61). true: llegó con la compra y entra ya al almacén. */
+  recibirAhora?: boolean;
+}
+
+export interface RecepcionItemRequest {
+  compraItemId: number;
+  cantidad: number;
+  lote?: string;
+  fechaVencimiento?: string;
+}
+
+export interface RecepcionRequest {
+  fecha?: string;
+  documento?: string;
+  items: RecepcionItemRequest[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -53,6 +68,20 @@ export class ComprasService {
 
   registrar(datos: CompraRequest) {
     return this.http.post<Compra>(`${API_BASE_URL}/compras`, datos);
+  }
+
+  /** Compras que todavía no llegan del todo: la bandeja de Recepciones. */
+  pendientes() {
+    return this.http.get<Compra[]>(`${API_BASE_URL}/compras/pendientes`);
+  }
+
+  recepciones() {
+    return this.http.get<Recepcion[]>(`${API_BASE_URL}/compras/recepciones`);
+  }
+
+  /** Lo que llegó de una compra: es lo que mete el insumo al almacén. */
+  recibir(compraId: number, datos: RecepcionRequest) {
+    return this.http.post<Compra>(`${API_BASE_URL}/compras/${compraId}/recepciones`, datos);
   }
 
   /** Anula una compra registrada por error: saca del almacén lo que entró por ella. */

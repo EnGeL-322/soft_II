@@ -1,20 +1,42 @@
 <section class="page pd">
   <header class="pd-head">
     <div class="pd-head-texto">
-      <span class="pd-migas">Producción</span>
-      <h1 class="pd-titulo">Compras</h1>
-      <p class="pd-subtitulo">Cada compra entra sola al inventario.</p>
+      <span class="pd-migas">Abastecimiento</span>
+      @if (vista() === 'compras') {
+        <h1 class="pd-titulo">Compras</h1>
+        <p class="pd-subtitulo">Lo que se compra. El stock sube cuando se recibe.</p>
+      } @else {
+        <h1 class="pd-titulo">Recepciones</h1>
+        <p class="pd-subtitulo">Confirma lo que realmente llegó: eso suma al stock y al kardex.</p>
+      }
     </div>
-    @if (puedeEscribir()) {
-      <div class="pd-head-acciones no-print">
+    <div class="pd-head-acciones no-print">
+      <nav class="pd-tabs" aria-label="Abastecimiento">
+        <a class="pd-tab" routerLink="/compras" [queryParams]="{ vista: 'compras' }" [attr.aria-selected]="vista() === 'compras'">Compras</a>
+        <a class="pd-tab" routerLink="/compras" [queryParams]="{ vista: 'recepciones' }" [attr.aria-selected]="vista() === 'recepciones'">
+          Recepciones
+          @if (pendientes().length) {
+            <span class="pd-contador">{{ pendientes().length }}</span>
+          }
+        </a>
+      </nav>
+      @if (puedeEscribir() && vista() === 'compras') {
         <button class="pd-btn pd-btn-primario" type="button" (click)="abrirFormulario()">
-          <app-icono nombre="agregar" [tamano]="18" /> Registrar compra
+          <app-icono nombre="agregar" [tamano]="18" /> Nueva compra
         </button>
-      </div>
-    }
+      }
+    </div>
   </header>
 
   <div class="pd-kpis">
+    <button type="button" class="pd-kpi" [attr.data-tono]="pendientes().length ? 'aviso' : 'ok'" routerLink="/compras" [queryParams]="{ vista: 'recepciones' }">
+      <span class="pd-kpi-icono"><app-icono nombre="entrega" [tamano]="20" /></span>
+      <div><span class="pd-kpi-etiqueta">Por recibir</span><span class="pd-kpi-valor">{{ pendientes().length }}</span></div>
+    </button>
+    <div class="pd-kpi" [attr.data-tono]="porComprar().length ? 'aviso' : null">
+      <span class="pd-kpi-icono"><app-icono nombre="alerta" [tamano]="20" /></span>
+      <div><span class="pd-kpi-etiqueta">Insumos que faltan para producir</span><span class="pd-kpi-valor">{{ porComprar().length }}</span></div>
+    </div>
     <div class="pd-kpi">
       <span class="pd-kpi-icono"><app-icono nombre="compras" [tamano]="20" /></span>
       <div><span class="pd-kpi-etiqueta">Compras registradas</span><span class="pd-kpi-valor">{{ resumen().total }}</span></div>
@@ -23,87 +45,321 @@
       <span class="pd-kpi-icono"><app-icono nombre="precio" [tamano]="20" /></span>
       <div><span class="pd-kpi-etiqueta">Monto en esta página</span><span class="pd-kpi-valor"><small>S/</small> {{ resumen().monto | number: '1.2-2' }}</span></div>
     </div>
-    <div class="pd-kpi">
-      <span class="pd-kpi-icono"><app-icono nombre="proveedores" [tamano]="20" /></span>
-      <div><span class="pd-kpi-etiqueta">Proveedores de insumos</span><span class="pd-kpi-valor">{{ proveedores().length }}</span></div>
-    </div>
-    <div class="pd-kpi">
-      <span class="pd-kpi-icono"><app-icono nombre="inventario" [tamano]="20" /></span>
-      <div><span class="pd-kpi-etiqueta">Insumos que se compran</span><span class="pd-kpi-valor">{{ insumosComprables().length }}</span></div>
-    </div>
   </div>
 
   @if (error() && !formularioAbierto()) {
     <div class="pd-alerta" data-tono="falta" role="alert"><span>{{ error() }}</span></div>
   }
 
-  <!-- ============================ LISTADO ============================ -->
-  <section class="pd-card" aria-labelledby="titulo-compras">
-    <div class="pd-card-head">
-      <h2 class="pd-card-titulo" id="titulo-compras">Compras registradas</h2>
-    </div>
-    <div class="pd-tabla-wrap">
-      <table class="pd-tabla">
-        <thead>
-          <tr>
-            <th>Fecha</th>
-            <th>Proveedor</th>
-            <th>Qué se compró</th>
-            <th>Documento</th>
-            <th>Estado</th>
-            <th class="num">Total</th>
-            @if (puedeEscribir()) {
-              <th class="acciones no-print"><span class="sr-only">Acciones</span></th>
-            }
-          </tr>
-        </thead>
-        <tbody>
-          @for (c of compras()?.content; track c.id) {
-            <tr [class.anulado]="!c.activo">
-              <td>{{ c.fecha }}</td>
-              <td class="pd-fuerte">{{ c.proveedorCompraNombre }}</td>
-              <td style="white-space: normal">{{ detalle(c) || '—' }}</td>
-              <td class="pd-muted">{{ c.documento || '—' }}</td>
-              <td>
-                @if (c.activo) {
-                  <span class="pd-chip" data-tono="ok">En almacén</span>
-                } @else {
-                  <span class="pd-chip" data-tono="falta" [title]="c.motivoAnulacion || ''">Anulada</span>
-                }
-              </td>
-              <td class="num pd-fuerte"><span class="tachado">S/ {{ c.total | number: '1.2-2' }}</span></td>
-              @if (puedeEscribir()) {
-                <td class="acciones no-print">
-                  @if (c.activo) {
-                    <button type="button" class="pd-btn pd-btn-sm pd-btn-peligro" (click)="anular(c)">Anular</button>
-                  }
-                </td>
-              }
-            </tr>
-          }
-        </tbody>
-      </table>
-      @if (compras()?.content?.length === 0 && !cargando()) {
-        <div class="pd-vacio">
-          <strong>Sin compras registradas</strong>
-          @if (puedeEscribir()) {
-            Usa «Registrar compra» para la primera.
+  @if (vista() === 'compras') {
+    <!-- ============================ SUGERENCIAS DE ABASTECIMIENTO ============================ -->
+    @if (porComprar().length || lecheQueFalta()) {
+      <section class="pd-card" aria-labelledby="titulo-sugerencias">
+        <div class="pd-card-head">
+          <div>
+            <h2 class="pd-card-titulo" id="titulo-sugerencias">Sugerencias de abastecimiento</h2>
+            <p class="pd-card-sub">Lo que falta para las órdenes de producción pendientes, ya descontado lo que está por llegar. No compra solo.</p>
+          </div>
+          @if (puedeEscribir() && porComprar().length) {
+            <div style="display: flex; gap: 8px; align-items: center">
+              <label class="cp-marcar">
+                <input type="checkbox" [checked]="marcadas().size === porComprar().length" (change)="marcarTodas($any($event.target).checked)" />
+                Todos
+              </label>
+              <button type="button" class="pd-btn pd-btn-primario" (click)="comprarBloque()" [disabled]="!marcadas().size">
+                Agregar bloque a compra ({{ marcadas().size }})
+              </button>
+            </div>
           }
         </div>
-      }
-    </div>
-    @if (compras(); as pg) {
-      <div class="pd-paginador">
-        <app-paginador
-          [page]="pg.page"
-          [size]="size"
-          [total]="pg.totalElements"
-          (pageChange)="cambiarPagina($event)"
-          (sizeChange)="cambiarTamano($event)"
-        />
-      </div>
+        <div class="pd-tabla-wrap">
+          <table class="pd-tabla">
+            <thead>
+              <tr>
+                @if (puedeEscribir()) {
+                  <th style="width: 1%"><span class="sr-only">Marcar</span></th>
+                }
+                <th>Insumo</th>
+                <th class="num">Necesario</th>
+                <th class="num">En almacén</th>
+                <th class="num">Por llegar</th>
+                <th class="num">Comprar</th>
+                <th>Para</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (n of porComprar(); track n.materiaPrimaId) {
+                <tr>
+                  @if (puedeEscribir()) {
+                    <td>
+                      <input type="checkbox" [checked]="marcadas().has(n.materiaPrimaId)" (change)="alternarMarcada(n.materiaPrimaId)" [attr.aria-label]="'Comprar ' + n.materiaPrimaNombre" />
+                    </td>
+                  }
+                  <td>
+                    <span class="pd-fuerte">{{ n.materiaPrimaNombre }}</span>
+                    <span class="pd-sub">{{ n.materiaPrimaCodigo }}</span>
+                  </td>
+                  <td class="num">{{ n.requerido | number: '1.0-3' }} {{ unidadDe(n.materiaPrimaId) }}</td>
+                  <td class="num">{{ n.disponible | number: '1.0-3' }}</td>
+                  <td class="num">{{ n.enCamino | number: '1.0-3' }}</td>
+                  <td class="num pd-fuerte">{{ n.aComprar | number: '1.0-3' }} {{ unidadDe(n.materiaPrimaId) }}</td>
+                  <td class="pd-muted">{{ n.ordenes.join(', ') }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        @if (lecheQueFalta(); as l) {
+          <div class="pd-card-foot">
+            <span class="pd-foot-info">
+              Para esas órdenes también faltan <b>{{ l.aComprar | number: '1.0-0' }} L de leche</b>: no se compra, entra al recibir las rutas.
+            </span>
+          </div>
+        }
+      </section>
     }
-  </section>
+
+    <!-- ============================ LISTADO ============================ -->
+    <section class="pd-card" aria-labelledby="titulo-compras">
+      <div class="pd-card-head">
+        <h2 class="pd-card-titulo" id="titulo-compras">Compras registradas</h2>
+      </div>
+      <div class="pd-tabla-wrap">
+        <table class="pd-tabla">
+          <thead>
+            <tr>
+              <th>Compra</th>
+              <th>Proveedor</th>
+              <th>Qué se compró</th>
+              <th>Estado</th>
+              <th>Registró</th>
+              <th class="num">Total</th>
+              @if (puedeEscribir()) {
+                <th class="acciones no-print"><span class="sr-only">Acciones</span></th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (c of compras()?.content; track c.id) {
+              @let est = estadoCompra(c);
+              <tr [class.anulado]="!c.activo">
+                <td>
+                  <span class="pd-fuerte">{{ c.codigo }}</span>
+                  <span class="pd-sub">{{ c.fecha }}{{ c.documento ? ' · ' + c.documento : '' }}</span>
+                </td>
+                <td class="pd-fuerte">{{ c.proveedorCompraNombre }}</td>
+                <td style="white-space: normal">{{ detalle(c) || '—' }}</td>
+                <td><span class="pd-chip" [attr.data-tono]="est.tono" [title]="c.motivoAnulacion || ''">{{ est.texto }}</span></td>
+                <td class="pd-muted">{{ c.registradoPor || '—' }}</td>
+                <td class="num pd-fuerte"><span class="tachado">S/ {{ c.total | number: '1.2-2' }}</span></td>
+                @if (puedeEscribir()) {
+                  <td class="acciones no-print">
+                    @if (c.activo) {
+                      <div style="display: flex; gap: 6px; justify-content: flex-end">
+                        @if (c.estado !== 'RECIBIDA') {
+                          <button type="button" class="pd-btn pd-btn-sm pd-btn-primario" (click)="abrirRecepcion(c)">Recibir</button>
+                        }
+                        <button type="button" class="pd-btn pd-btn-sm pd-btn-peligro" (click)="anular(c)">Anular</button>
+                      </div>
+                    }
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+        @if (compras()?.content?.length === 0 && !cargando()) {
+          <div class="pd-vacio">
+            <strong>Sin compras registradas</strong>
+            @if (puedeEscribir()) {
+              Usa «Nueva compra» para la primera.
+            }
+          </div>
+        }
+      </div>
+      @if (compras(); as pg) {
+        <div class="pd-paginador">
+          <app-paginador
+            [page]="pg.page"
+            [size]="size"
+            [total]="pg.totalElements"
+            (pageChange)="cambiarPagina($event)"
+            (sizeChange)="cambiarTamano($event)"
+          />
+        </div>
+      }
+    </section>
+  }
+
+  <!-- ============================ RECEPCIONES ============================ -->
+  @if (vista() === 'recepciones') {
+    <section class="pd-card" aria-labelledby="titulo-pendientes">
+      <div class="pd-card-head">
+        <div>
+          <h2 class="pd-card-titulo" id="titulo-pendientes">Compras por recibir</h2>
+          <p class="pd-card-sub">La leche no pasa por aquí: entra al recibir las rutas en planta.</p>
+        </div>
+      </div>
+      <div class="pd-tabla-wrap">
+        <table class="pd-tabla">
+          <thead>
+            <tr>
+              <th>Compra</th>
+              <th>Proveedor</th>
+              <th>Falta llegar</th>
+              <th>Estado</th>
+              <th class="acciones"><span class="sr-only">Acciones</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (c of pendientes(); track c.id) {
+              @let est = estadoCompra(c);
+              <tr>
+                <td>
+                  <span class="pd-fuerte">{{ c.codigo }}</span>
+                  <span class="pd-sub">{{ c.fecha }} · {{ c.registradoPor || '—' }}</span>
+                </td>
+                <td class="pd-fuerte">{{ c.proveedorCompraNombre }}</td>
+                <td style="white-space: normal">
+                  @for (i of c.items; track i.id) {
+                    @if ((i.pendiente ?? 0) > 0) {
+                      <span class="pd-sub" style="color: var(--text)">{{ i.materiaPrimaNombre }}: {{ i.pendiente | number: '1.0-3' }} de {{ i.cantidad | number: '1.0-3' }}</span>
+                    }
+                  }
+                </td>
+                <td><span class="pd-chip" [attr.data-tono]="est.tono">{{ est.texto }}</span></td>
+                <td class="acciones">
+                  @if (puedeEscribir()) {
+                    <button type="button" class="pd-btn pd-btn-sm pd-btn-primario" (click)="abrirRecepcion(c)">Registrar recepción</button>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        @if (!pendientes().length) {
+          <div class="pd-vacio"><strong>No hay compras por recibir</strong>Todo lo comprado ya está en el almacén.</div>
+        }
+      </div>
+    </section>
+
+    <section class="pd-card" aria-labelledby="titulo-recibidas">
+      <div class="pd-card-head">
+        <h2 class="pd-card-titulo" id="titulo-recibidas">Recepciones registradas</h2>
+      </div>
+      <div class="pd-tabla-wrap">
+        <table class="pd-tabla">
+          <thead>
+            <tr>
+              <th>Recepción</th>
+              <th>Compra</th>
+              <th>Qué llegó</th>
+              <th>Recibió</th>
+              <th class="num">Valor</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (r of recepciones(); track r.id) {
+              <tr>
+                <td>
+                  <span class="pd-fuerte">{{ r.codigo }}</span>
+                  <span class="pd-sub">{{ r.fecha }}{{ r.documento ? ' · ' + r.documento : '' }}</span>
+                </td>
+                <td>
+                  <span class="pd-fuerte">{{ r.compraCodigo }}</span>
+                  <span class="pd-sub">{{ r.proveedorNombre }}</span>
+                </td>
+                <td style="white-space: normal">
+                  @for (i of r.items; track $index) {
+                    <span class="pd-sub" style="color: var(--text)">
+                      {{ i.materiaPrimaNombre }}: +{{ i.cantidad | number: '1.0-3' }}
+                      @if (i.lote) {
+                        · lote {{ i.lote }}
+                      }
+                      @if (i.fechaVencimiento) {
+                        · vence {{ i.fechaVencimiento }}
+                      }
+                    </span>
+                  }
+                </td>
+                <td class="pd-muted">{{ r.recibidoPor || '—' }}</td>
+                <td class="num pd-fuerte">S/ {{ r.total | number: '1.2-2' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        @if (!recepciones().length) {
+          <div class="pd-vacio"><strong>Todavía no hay recepciones</strong>Aparecen aquí al recibir una compra.</div>
+        }
+      </div>
+    </section>
+  }
+
+  <!-- ============================ RECIBIR (modal) ============================ -->
+  @if (recibiendo(); as c) {
+    <div class="pd-fondo" (click)="cerrarRecepcion()"></div>
+    <form class="pd-modal ancho" role="dialog" aria-modal="true" aria-labelledby="titulo-recibir" (ngSubmit)="guardarRecepcion()">
+      <div class="pd-ventana-head">
+        <div>
+          <h2 id="titulo-recibir">Recibir {{ c.codigo }}</h2>
+          <p>{{ c.proveedorCompraNombre }} · comprada el {{ c.fecha }}. Escribe lo que realmente llegó; si no llegó algo, déjalo en 0.</p>
+        </div>
+        <button type="button" class="pd-cerrar" (click)="cerrarRecepcion()" aria-label="Cerrar">×</button>
+      </div>
+      <div class="pd-ventana-body">
+        @if (errorRecepcion()) {
+          <div class="pd-alerta" data-tono="falta" role="alert"><span>{{ errorRecepcion() }}</span></div>
+        }
+        <div class="pd-grid pd-grid-2">
+          <div class="pd-campo">
+            <label for="rc-fecha">Fecha de recepción</label>
+            <input id="rc-fecha" name="fechaRecepcion" type="date" [(ngModel)]="fechaRecepcion" [min]="c.fecha" [max]="hoy" />
+          </div>
+          <div class="pd-campo">
+            <label for="rc-doc">Guía, acta o factura <span class="pd-muted">(opcional)</span></label>
+            <input id="rc-doc" name="documentoRecepcion" [(ngModel)]="documentoRecepcion" maxlength="60" />
+          </div>
+        </div>
+        <div class="pd-filas">
+          @for (f of filasRecepcion(); track f.compraItemId; let i = $index) {
+            @let falla = problemaRecepcion(f);
+            <div class="pd-fila cp-recepcion" [class.con-error]="falla">
+              <div>
+                <span class="pd-fuerte">{{ f.nombre }}</span>
+                <span class="pd-ayuda" style="display: block">{{ f.codigo }} · faltan {{ f.pendiente | number: '1.0-3' }} {{ f.unidad }}</span>
+              </div>
+              <div class="pd-campo">
+                <label [for]="'rc-cant-' + i">Llegó</label>
+                <div class="pd-con-unidad">
+                  <input [id]="'rc-cant-' + i" [name]="'rc-cant-' + i" type="number" min="0" step="any" inputmode="decimal" [(ngModel)]="f.cantidad" />
+                  <span class="pd-unidad">{{ f.unidad }}</span>
+                </div>
+              </div>
+              <div class="pd-campo">
+                <label [for]="'rc-lote-' + i">Lote <span class="pd-muted">(opcional)</span></label>
+                <input [id]="'rc-lote-' + i" [name]="'rc-lote-' + i" maxlength="60" [(ngModel)]="f.lote" placeholder="Del proveedor" />
+              </div>
+              <div class="pd-campo">
+                <label [for]="'rc-vence-' + i">Vence <span class="pd-muted">(opcional)</span></label>
+                <input [id]="'rc-vence-' + i" [name]="'rc-vence-' + i" type="date" [(ngModel)]="f.fechaVencimiento" [min]="fechaRecepcion" />
+              </div>
+              @if (falla) {
+                <p class="cp-mensaje falta" role="alert">{{ falla }}</p>
+              }
+            </div>
+          }
+        </div>
+      </div>
+      <div class="pd-ventana-foot">
+        <span class="pd-foot-info pd-total">Entra al almacén <strong>S/ {{ totalRecepcion() | number: '1.2-2' }}</strong></span>
+        <button type="button" class="pd-btn" (click)="cerrarRecepcion()">Cancelar</button>
+        <button type="submit" class="pd-btn pd-btn-primario" [disabled]="guardandoRecepcion()">
+          {{ guardandoRecepcion() ? 'Guardando…' : 'Confirmar recepción' }}
+        </button>
+      </div>
+    </form>
+  }
+
 
   <!-- ============================ NUEVA COMPRA (panel lateral) ============================ -->
   @if (puedeEscribir() && formularioAbierto()) {
@@ -146,6 +402,14 @@
           </div>
         </div>
 
+        <label class="cp-llego">
+          <input type="checkbox" name="recibirAhora" [(ngModel)]="recibirAhora" />
+          <span>
+            <b>Llegó junto con la compra</b>
+            <small>Para compras al contado que se traen en el momento: entra al almacén ya, sin pasar por Recepciones.</small>
+          </span>
+        </label>
+
         @if (nuevoProveedorAbierto()) {
           <div class="pd-fila" style="grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; align-items: end">
             <div class="pd-campo">
@@ -165,7 +429,7 @@
             Insumos comprados
             @if (recetas()) {
               <span class="pd-muted" style="font-weight: 400">· solo los que lleva alguna receta.</span>
-              <a routerLink="/recetas" style="font-weight: 600">¿Falta uno? Agrégalo a una receta</a>
+              <a routerLink="/recetas" [queryParams]="{ vista: 'recetas' }" style="font-weight: 600">¿Falta uno? Agrégalo a una receta</a>
             }
           </p>
           <div class="pd-filas">

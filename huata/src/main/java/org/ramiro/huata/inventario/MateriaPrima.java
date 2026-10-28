@@ -41,4 +41,18 @@ public class MateriaPrima extends BaseEntity {
      */
     @Column(name = "leche_acopio", nullable = false)
     private boolean lecheAcopio;
+
+    /** Materia prima, insumo o empaque (V61). */
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private TipoMateriaPrima tipo = TipoMateriaPrima.MATERIA_PRIMA;
+
+    /** Otros nombres con que se le conoce ("sal de cocina, sal fina"): sirven para buscarlo (V61). */
+    @Column(length = 300)
+    private String sinonimos;
+
+    /** Codigo para mostrar: MP-0001. Sale del id, no se guarda: todo se relaciona por id. */
+    public String codigo() {
+        return getId() == null ? null : String.format("MP-%04d", getId());
+    }
 }

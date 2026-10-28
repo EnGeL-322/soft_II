@@ -43,7 +43,29 @@ public record LoteQuesoRequest(
         @PositiveOrZero Integer quesosRecorte,
         @PositiveOrZero Double recorteKg,
         /** Opcional: si falta, se calcula con los dias que dura el producto. */
-        LocalDate fechaVencimiento) {
+        LocalDate fechaVencimiento,
+        /** Opcional (V61): la orden de produccion que este lote cumple. */
+        Long ordenId) {
+
+    /** Sin orden de produccion: el registro directo, como antes de V61. */
+    public LoteQuesoRequest(
+            LocalDate fecha,
+            Long productoId,
+            OrigenLeche origenLeche,
+            Double litrosDestinados,
+            Integer unidadesProducidas,
+            String responsable,
+            String observaciones,
+            Long recetaId,
+            Integer cantidadObjetivo,
+            List<ManoObraItemRequest> manoObra,
+            Integer quesosReparados,
+            Integer quesosRecorte,
+            Double recorteKg,
+            LocalDate fechaVencimiento) {
+        this(fecha, productoId, origenLeche, litrosDestinados, unidadesProducidas, responsable, observaciones,
+                recetaId, cantidadObjetivo, manoObra, quesosReparados, quesosRecorte, recorteKg, fechaVencimiento, null);
+    }
 
     /** Sin fecha de vencimiento: la calcula el servidor con los dias que dura el producto. */
     public LoteQuesoRequest(
@@ -61,7 +83,7 @@ public record LoteQuesoRequest(
             Integer quesosRecorte,
             Double recorteKg) {
         this(fecha, productoId, origenLeche, litrosDestinados, unidadesProducidas, responsable, observaciones,
-                recetaId, cantidadObjetivo, manoObra, quesosReparados, quesosRecorte, recorteKg, null);
+                recetaId, cantidadObjetivo, manoObra, quesosReparados, quesosRecorte, recorteKg, null, null);
     }
 
     /** Sobre cuanto se calcula el consumo: lo que se puso a producir, o lo producido si no se informo. */

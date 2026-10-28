@@ -1,12 +1,22 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { API_BASE_URL } from '../config/api-config';
-import { AjusteInventarioRequest, MateriaPrima, MovimientoInventario, PageResponse, UnidadMedida } from '../models/models';
+import {
+  AjusteInventarioRequest,
+  MateriaPrima,
+  MovimientoInventario,
+  PageResponse,
+  TipoMateriaPrima,
+  UnidadMedida,
+} from '../models/models';
 
 export interface MateriaPrimaRequest {
   nombre: string;
   unidadMedida: UnidadMedida;
   costoUnitarioReferencial?: number;
+  /** V61: opcionales; al editar, si no se mandan se conservan. */
+  tipo?: TipoMateriaPrima;
+  sinonimos?: string;
 }
 
 @Injectable({ providedIn: 'root' })

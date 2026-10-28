@@ -2,17 +2,44 @@
   <header class="pd-head">
     <div class="pd-head-texto">
       <span class="pd-migas">Producción</span>
-      <h1 class="pd-titulo">Recetas y productos</h1>
-      <p class="pd-subtitulo">Qué hace la planta y qué lleva cada producto.</p>
+      @if (vista() === 'catalogo') {
+        <h1 class="pd-titulo">Catálogo</h1>
+        <p class="pd-subtitulo">Los productos terminados que la planta hace y vende.</p>
+      } @else {
+        <h1 class="pd-titulo">Recetas</h1>
+        <p class="pd-subtitulo">Qué lleva cada producto, por una unidad.</p>
+      }
     </div>
-    @if (puedeEscribir()) {
-      <div class="pd-head-acciones">
-        <button type="button" class="pd-btn pd-btn-primario" (click)="nuevoProducto()">
-          <app-icono nombre="agregar" [tamano]="18" /> Nuevo producto
-        </button>
-      </div>
-    }
+    <div class="pd-head-acciones">
+      <nav class="pd-tabs no-print" aria-label="Catálogo y recetas">
+        <a class="pd-tab" routerLink="/recetas" [queryParams]="{ vista: 'catalogo' }" [attr.aria-selected]="vista() === 'catalogo'">Catálogo</a>
+        <a class="pd-tab" routerLink="/recetas" [queryParams]="{ vista: 'recetas' }" [attr.aria-selected]="vista() === 'recetas'">
+          Recetas
+          @if (resumen().sinReceta) {
+            <span class="pd-contador">{{ resumen().sinReceta }}</span>
+          }
+        </a>
+      </nav>
+      @if (puedeEscribir()) {
+        @if (vista() === 'catalogo') {
+          <button type="button" class="pd-btn pd-btn-primario" (click)="nuevoProducto()">
+            <app-icono nombre="agregar" [tamano]="18" /> Nuevo producto
+          </button>
+        } @else {
+          <button type="button" class="pd-btn pd-btn-primario" (click)="nuevaReceta()" [disabled]="!productos().length">
+            <app-icono nombre="agregar" [tamano]="18" /> Nueva receta
+          </button>
+        }
+      }
+    </div>
   </header>
+
+  @if (vista() === 'recetas' && !productos().length) {
+    <div class="pd-alerta" data-tono="aviso">
+      <span>Todavía no hay productos. Crea primero un producto en el Catálogo; después podrás escribir su receta.</span>
+      <a routerLink="/recetas" [queryParams]="{ vista: 'catalogo' }">Ir al Catálogo</a>
+    </div>
+  }
 
   <div class="pd-kpis">
     <div class="pd-kpi" data-tono="ok">
@@ -37,10 +64,104 @@
     <div class="pd-alerta" data-tono="falta" role="alert"><span>{{ error() }}</span></div>
   }
 
-  <!-- ============================ PRODUCTOS ============================ -->
+  <!-- ============================ RECETAS ============================ -->
+  @if (vista() === 'recetas') {
+    <section class="pd-card" aria-labelledby="titulo-recetas">
+      <div class="pd-toolbar">
+        <h2 class="pd-card-titulo" id="titulo-recetas">Recetas por producto</h2>
+        <label class="pd-buscar pd-campo">
+          <app-icono nombre="buscar" [tamano]="16" />
+          <input type="search" placeholder="Buscar producto" aria-label="Buscar producto" [ngModel]="busqueda()" (ngModelChange)="busqueda.set($event)" />
+        </label>
+      </div>
+      <div class="pd-tabla-wrap">
+        <table class="pd-tabla">
+          <thead>
+            <tr>
+              <th>Producto</th>
+              <th>Vigente desde</th>
+              <th>Ingredientes por 1 unidad</th>
+              <th>Estado</th>
+              @if (puedeEscribir()) {
+                <th class="acciones"><span class="sr-only">Acciones</span></th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (p of productosVisibles(); track p.id) {
+              @let r = recetaActual(p);
+              <tr [class.anulado]="!p.activo">
+                <td>
+                  <span class="pd-fuerte">{{ p.nombre }}</span>
+                  <span class="pd-sub">{{ p.codigo }} · por {{ p.unidadVenta }}</span>
+                </td>
+                <td>{{ r ? r.vigenteDesde : '—' }}</td>
+                <td class="rc-receta">
+                  @if (r) {
+                    <span>{{ ingredientes(r).join(' · ') }}</span>
+                    <span class="pd-sub">{{ r.items.length }} {{ r.items.length === 1 ? 'ingrediente' : 'ingredientes' }}</span>
+                  } @else {
+                    <span class="pd-muted">—</span>
+                  }
+                  @if (recetaFutura(p); as f) {
+                    <span class="pd-sub">Nueva versión desde el {{ f.vigenteDesde }}</span>
+                  }
+                </td>
+                <td>
+                  @if (!p.activo) {
+                    <span class="pd-chip">Pausado</span>
+                  } @else if (r) {
+                    <span class="pd-chip" data-tono="ok">Vigente</span>
+                  } @else {
+                    <span class="pd-chip" data-tono="aviso">Sin receta</span>
+                  }
+                </td>
+                @if (puedeEscribir()) {
+                  <td class="acciones">
+                    <button type="button" class="pd-btn pd-btn-sm" [class.pd-btn-primario]="!r" (click)="abrirReceta(p)" [attr.aria-label]="(r ? 'Editar receta de ' : 'Crear receta de ') + p.nombre">
+                      {{ r ? 'Editar receta' : 'Crear receta' }}
+                    </button>
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <div class="pd-card-foot">
+        <span class="pd-foot-info">Los ingredientes se escriben una vez: cada uno queda en el maestro con su código y sirve para recetas y compras.</span>
+      </div>
+    </section>
+  }
+
+  @if (eligiendoProducto()) {
+    <div class="pd-fondo" (click)="eligiendoProducto.set(false)"></div>
+    <div class="pd-modal" role="dialog" aria-modal="true" aria-labelledby="titulo-elegir">
+      <div class="pd-ventana-head">
+        <div>
+          <h2 id="titulo-elegir">Nueva receta</h2>
+          <p>¿De qué producto? Solo aparecen los que todavía no tienen receta.</p>
+        </div>
+        <button type="button" class="pd-cerrar" (click)="eligiendoProducto.set(false)" aria-label="Cerrar">×</button>
+      </div>
+      <div class="pd-ventana-body">
+        <div class="pd-opciones">
+          @for (p of sinReceta(); track p.id) {
+            <button type="button" class="pd-opcion" (click)="elegirProductoParaReceta(p)">
+              <span class="pd-opcion-nombre">{{ p.nombre }}</span>
+              <span class="pd-muted">{{ p.codigo }} · por {{ p.unidadVenta }}</span>
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ============================ CATÁLOGO ============================ -->
+  @if (vista() === 'catalogo') {
   <section class="pd-card" aria-labelledby="titulo-productos">
     <div class="pd-toolbar">
-      <h2 class="pd-card-titulo" id="titulo-productos">Productos</h2>
+      <h2 class="pd-card-titulo" id="titulo-productos">Productos terminados</h2>
       <label class="pd-buscar pd-campo">
         <app-icono nombre="buscar" [tamano]="16" />
         <input type="search" placeholder="Buscar producto" aria-label="Buscar producto" [ngModel]="busqueda()" (ngModelChange)="busqueda.set($event)" />
@@ -50,8 +171,10 @@
       <table class="pd-tabla">
         <thead>
           <tr>
+            <th>Código</th>
             <th>Producto</th>
-            <th>Receta (para 1)</th>
+            <th>Vida útil</th>
+            <th>Receta</th>
             <th>Estado</th>
             @if (puedeEscribir()) {
               <th class="acciones"><span class="sr-only">Acciones</span></th>
@@ -62,18 +185,17 @@
           @for (p of productosVisibles(); track p.id) {
             @let r = recetaActual(p);
             <tr [class.anulado]="!p.activo">
+              <td class="pd-fuerte">{{ p.codigo }}</td>
               <td>
                 <span class="pd-fuerte">{{ p.nombre }}</span>
-                <span class="pd-sub">Se vende por {{ p.unidadVenta }}{{ p.vidaUtilDias ? ' · dura ' + p.vidaUtilDias + ' días' : '' }}</span>
+                <span class="pd-sub">Se vende por {{ p.unidadVenta }}{{ p.descripcion ? ' · ' + p.descripcion : '' }}</span>
               </td>
-              <td class="rc-receta">
+              <td>{{ p.vidaUtilDias ? p.vidaUtilDias + ' días' : 'Sin configurar' }}</td>
+              <td>
                 @if (r) {
-                  <span>{{ ingredientes(r).join(' · ') }}</span>
+                  <a class="pd-chip" data-tono="ok" routerLink="/recetas" [queryParams]="{ vista: 'recetas' }">Completa</a>
                 } @else {
                   <span class="pd-chip" data-tono="aviso">Sin receta</span>
-                }
-                @if (recetaFutura(p); as f) {
-                  <span class="pd-sub">Cambia desde el {{ f.vigenteDesde }}</span>
                 }
               </td>
               <td>
@@ -82,7 +204,7 @@
               @if (puedeEscribir()) {
                 <td class="acciones">
                   <div class="rc-acciones">
-                    <button type="button" class="pd-btn pd-btn-sm pd-btn-primario" (click)="abrirReceta(p)" [attr.aria-label]="(r ? 'Editar receta de ' : 'Crear receta de ') + p.nombre">
+                    <button type="button" class="pd-btn pd-btn-sm" [class.pd-btn-primario]="!r" (click)="abrirReceta(p)" [attr.aria-label]="(r ? 'Editar receta de ' : 'Crear receta de ') + p.nombre">
                       {{ r ? 'Receta' : 'Crear receta' }}
                     </button>
                     <button type="button" class="pd-btn pd-btn-sm" (click)="editarProducto(p)" [attr.aria-label]="'Cambiar datos de ' + p.nombre">Datos</button>
@@ -124,6 +246,7 @@
       </div>
     }
   </section>
+  }
 
   <!-- ============================ PRODUCTO (modal) ============================ -->
   @if (formularioProducto() != null && puedeEscribir()) {

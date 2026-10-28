@@ -35,7 +35,19 @@ public class CompraItem extends BaseEntity {
     @Column(name = "costo_unitario", nullable = false, precision = 12, scale = 4)
     private BigDecimal costoUnitario;
 
+    /** Cuanto de esta linea ya llego al almacen (V61). Nunca mas que lo comprado. */
+    @Column(name = "cantidad_recibida", nullable = false, precision = 12, scale = 4)
+    private BigDecimal cantidadRecibida = BigDecimal.ZERO;
+
     public BigDecimal total() {
         return cantidad.multiply(costoUnitario);
+    }
+
+    public BigDecimal totalRecibido() {
+        return cantidadRecibida.multiply(costoUnitario);
+    }
+
+    public BigDecimal pendiente() {
+        return cantidad.subtract(cantidadRecibida);
     }
 }

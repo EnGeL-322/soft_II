@@ -1,5 +1,13 @@
 import { MateriaPrima } from '../../core/models/models';
-import { avisoDePrecio, filaCompraVacia, porQueNoAparece, problemaDeFila } from './compra-formulario';
+import {
+  avisoDePrecio,
+  filaCompraVacia,
+  filasDeRecepcion,
+  filasRecibidas,
+  porQueNoAparece,
+  problemaDeFila,
+  problemaDeRecepcion,
+} from './compra-formulario';
 
 const CUAJO: MateriaPrima = { id: 9, nombre: 'cuajo', unidadMedida: 'GRAMO', stock: 0, activo: true, costoUnitarioReferencial: 0.02 };
 const SAL: MateriaPrima = { id: 4, nombre: 'Sal', unidadMedida: 'KG', stock: 0, activo: true };
@@ -56,15 +64,43 @@ describe('Registrar compra: precio sospechoso', () => {
 describe('Registrar compra: por qué no aparece lo que escribo', () => {
   it('existe en el inventario pero ninguna receta lo lleva (el caso «sal»)', () => {
     expect(porQueNoAparece('sal', MATERIAS)).toBe(
-      '«Sal» no lo lleva ninguna receta. Agrégalo a una receta en Recetas y productos para comprarlo.',
+      '«Sal» no lo lleva ninguna receta. Agrégalo a una receta (Catálogo y recetas → Recetas) para comprarlo.',
     );
   });
 
   it('no existe (el caso «zal»)', () => {
-    expect(porQueNoAparece('zal', MATERIAS)).toBe('«zal» no existe. Escríbelo en una receta (Recetas y productos) y aparecerá aquí.');
+    expect(porQueNoAparece('zal', MATERIAS)).toBe('«zal» no existe. Escríbelo en una receta (Catálogo y recetas → Recetas) y aparecerá aquí.');
   });
 
   it('la leche no se compra', () => {
     expect(porQueNoAparece('leche fresca', MATERIAS)).toBe('La leche no se compra: entra al almacén al recibir las rutas.');
+  });
+});
+
+describe('Recepción: lo que realmente llegó', () => {
+  const COMPRA = {
+    id: 1,
+    proveedorCompraId: 1,
+    proveedorCompraNombre: 'Insumos SAC',
+    fecha: '2026-10-28',
+    total: 0,
+    activo: true,
+    items: [
+      { id: 10, materiaPrimaId: 4, materiaPrimaNombre: 'Sal', unidadMedida: 'KG' as const, cantidad: 10, costoUnitario: 2, total: 20, cantidadRecibida: 4, pendiente: 6 },
+      { id: 11, materiaPrimaId: 9, materiaPrimaNombre: 'cuajo', unidadMedida: 'GRAMO' as const, cantidad: 500, costoUnitario: 0.1, total: 50, cantidadRecibida: 500, pendiente: 0 },
+    ],
+  };
+
+  it('propone solo lo que falta recibir, con todo lo pendiente', () => {
+    const filas = filasDeRecepcion(COMPRA, (u) => (u === 'KG' ? 'kg' : 'g'));
+    expect(filas.map((f) => [f.compraItemId, f.pendiente, f.cantidad, f.unidad])).toEqual([[10, 6, 6, 'kg']]);
+  });
+
+  it('no deja recibir más de lo pendiente ni algo ya vencido; cero es «no llegó»', () => {
+    const [f] = filasDeRecepcion(COMPRA, () => 'kg');
+    expect(problemaDeRecepcion({ ...f, cantidad: 7 }, '2026-10-28')).toBe('Quedan por recibir 6 kg.');
+    expect(problemaDeRecepcion({ ...f, fechaVencimiento: '2026-10-27' }, '2026-10-28')).toBe('Llega ya vencido: revisa la fecha.');
+    expect(problemaDeRecepcion({ ...f, cantidad: 0 }, '2026-10-28')).toBeNull();
+    expect(filasRecibidas([{ ...f, cantidad: 0 }, { ...f, cantidad: 2 }])).toHaveLength(1);
   });
 });

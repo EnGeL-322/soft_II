@@ -11,6 +11,9 @@ public interface CompraRepository extends JpaRepository<Compra, Long> {
 
     Page<Compra> findAllByOrderByFechaDescIdDesc(Pageable pageable);
 
+    /** Compras vigentes que no estan en ese estado; con RECIBIDA: lo que falta recibir (V61). */
+    java.util.List<Compra> findByActivoTrueAndEstadoNotOrderByFechaAscIdAsc(EstadoCompra estado);
+
     /** Sin paginar: usado por el reporte semanal de queso, que necesita el detalle completo del ciclo. */
     java.util.List<Compra> findByFechaBetweenOrderByFechaDescIdDesc(LocalDate desde, LocalDate hasta);
 }

@@ -45,4 +45,9 @@ public class Producto extends BaseEntity {
      */
     @Column(name = "vida_util_dias")
     private Integer vidaUtilDias;
+
+    /** Codigo para mostrar: P-0001. Sale del id, no se guarda. */
+    public String codigo() {
+        return getId() == null ? null : String.format("P-%04d", getId());
+    }
 }

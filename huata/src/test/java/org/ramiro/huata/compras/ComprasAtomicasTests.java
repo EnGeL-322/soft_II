@@ -94,6 +94,10 @@ class ComprasAtomicasTests {
         jdbc.update("delete from asientos_contables where origen_tipo = 'COMPRA' and origen_id in"
                 + " (select id from compras where documento = ?)", DOCUMENTO);
         jdbc.update("delete from movimientos_inventario where materia_prima_id in (?, ?)", primera.getId(), segunda.getId());
+        // Desde V61 la compra se recibe aparte: primero sus recepciones, que apuntan a las lineas.
+        jdbc.update("delete from recepcion_items where recepcion_id in (select r.id from recepciones_compra r"
+                + " join compras c on c.id = r.compra_id where c.documento = ?)", DOCUMENTO);
+        jdbc.update("delete from recepciones_compra where compra_id in (select id from compras where documento = ?)", DOCUMENTO);
         jdbc.update("delete from compra_items where compra_id in (select id from compras where documento = ?)", DOCUMENTO);
         jdbc.update("delete from compras where documento = ?", DOCUMENTO);
         jdbc.update("delete from materias_primas where id in (?, ?)", primera.getId(), segunda.getId());

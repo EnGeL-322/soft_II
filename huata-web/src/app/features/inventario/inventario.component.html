@@ -1,9 +1,21 @@
 <section class="page pd">
   <header class="pd-head">
     <div class="pd-head-texto">
-      <span class="pd-migas">Producción</span>
-      <h1 class="pd-titulo">Inventario</h1>
-      <p class="pd-subtitulo">Almacén y cámara. Se actualiza solo con cada compra, producción y venta.</p>
+      <span class="pd-migas">Inventario</span>
+      @switch (vista()) {
+        @case ('movimientos') {
+          <h1 class="pd-titulo">Kardex</h1>
+          <p class="pd-subtitulo">Cada entrada, consumo, venta y ajuste, con su documento.</p>
+        }
+        @case ('camara') {
+          <h1 class="pd-titulo">Lotes y vencimientos</h1>
+          <p class="pd-subtitulo">Producto terminado en cámara y lotes de insumos recibidos.</p>
+        }
+        @default {
+          <h1 class="pd-titulo">Stock</h1>
+          <p class="pd-subtitulo">Lo que hay en el almacén. Sube al recibir compras o leche y baja al producir.</p>
+        }
+      }
     </div>
     @if (puedeComprar()) {
       <div class="pd-head-acciones no-print">
@@ -43,22 +55,25 @@
     <div class="pd-toolbar">
       <div class="pd-tabs" role="tablist" aria-label="Inventario">
         <button type="button" class="pd-tab" role="tab" [attr.aria-selected]="vista() === 'insumos'" (click)="cambiarVista('insumos')">
-          Almacén <span class="pd-contador">{{ materiasPrimas().length }}</span>
+          Stock <span class="pd-contador">{{ materiasPrimas().length }}</span>
+        </button>
+        <button type="button" class="pd-tab" role="tab" [attr.aria-selected]="vista() === 'movimientos'" (click)="cambiarVista('movimientos')">
+          Kardex
         </button>
         @if (puedeVerTerminado()) {
           <button type="button" class="pd-tab" role="tab" [attr.aria-selected]="vista() === 'camara'" (click)="cambiarVista('camara')">
-            En cámara <span class="pd-contador">{{ unidadesEnCamara() }}</span>
+            Lotes y vencimientos
+            @if (vencimientos().length) {
+              <span class="pd-contador">{{ vencimientos().length }}</span>
+            }
           </button>
         }
-        <button type="button" class="pd-tab" role="tab" [attr.aria-selected]="vista() === 'movimientos'" (click)="cambiarVista('movimientos')">
-          Movimientos
-        </button>
       </div>
 
       @if (vista() === 'insumos') {
         <label class="pd-buscar pd-campo">
           <app-icono nombre="buscar" [tamano]="16" />
-          <input type="search" placeholder="Buscar insumo" aria-label="Buscar insumo" [ngModel]="busqueda()" (ngModelChange)="busqueda.set($event)" />
+          <input type="search" placeholder="Buscar por nombre, código o sinónimo" aria-label="Buscar insumo" [ngModel]="busqueda()" (ngModelChange)="busqueda.set($event)" />
         </label>
       }
       @if (vista() === 'movimientos') {
@@ -87,6 +102,7 @@
         <table class="pd-tabla">
           <thead>
             <tr>
+              <th>Código</th>
               <th>Insumo</th>
               <th>{{ recetaElegida() ? 'Para 1 ' + recetaElegida()!.unidadVenta : 'Se usa en' }}</th>
               <th>Estado</th>
@@ -97,12 +113,16 @@
           <tbody>
             @for (m of insumosVisibles(); track m.id) {
               <tr>
+                <td class="pd-fuerte">{{ m.codigo }}</td>
                 <td>
                   <span class="iv-nombre">
                     <span class="iv-icono" [class.leche]="m.lecheAcopio">
                       <app-icono [nombre]="m.lecheAcopio ? 'acopio' : 'inventario'" [tamano]="16" />
                     </span>
-                    <span class="pd-fuerte">{{ m.nombre }}</span>
+                    <span>
+                      <span class="pd-fuerte">{{ m.nombre }}</span>
+                      <span class="pd-sub">{{ m.lecheAcopio ? 'Leche del acopio' : textoTipo(m.tipo) }}{{ m.sinonimos ? ' · también: ' + m.sinonimos : '' }}</span>
+                    </span>
                   </span>
                 </td>
                 <td class="iv-uso">
@@ -205,6 +225,45 @@
           <div class="pd-vacio"><strong>No hay producto terminado en cámara</strong>Lo que se produce aparece aquí.</div>
         }
       </div>
+
+      @if (lotesDeInsumos().length) {
+        <div class="pd-card-body iv-vencen" style="border-top: 1px solid #e3eaf3; border-bottom: 0; padding-bottom: 6px">
+          <p class="pd-etiqueta" style="margin: 0">Lotes de insumos recibidos</p>
+        </div>
+        <div class="pd-tabla-wrap">
+          <table class="pd-tabla">
+            <thead>
+              <tr>
+                <th>Insumo</th>
+                <th>Lote</th>
+                <th>Recepción</th>
+                <th class="num">Recibido</th>
+                <th>Vence</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (l of lotesDeInsumos(); track $index) {
+                <tr>
+                  <td>
+                    <span class="pd-fuerte">{{ l.materiaPrimaNombre }}</span>
+                    <span class="pd-sub">{{ l.materiaPrimaCodigo }}</span>
+                  </td>
+                  <td>{{ l.lote || '—' }}</td>
+                  <td class="pd-muted">{{ l.recepcion }} · {{ l.fecha }}</td>
+                  <td class="num">{{ l.cantidad | number: '1.0-3' }} {{ unidad(l) }}</td>
+                  <td>
+                    @if (l.fechaVencimiento) {
+                      <span class="pd-chip" [attr.data-tono]="l.fechaVencimiento < hoy ? 'falta' : 'info'">{{ fechaCorta(l.fechaVencimiento) }}</span>
+                    } @else {
+                      <span class="pd-muted">—</span>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
     }
 
     <!-- ===== Movimientos ===== -->
@@ -319,6 +378,20 @@
         <div class="pd-campo">
           <label for="ed-nombre">Nombre</label>
           <input id="ed-nombre" name="nombre" maxlength="120" [(ngModel)]="nombreEdicion" required />
+        </div>
+        <div class="pd-grid pd-grid-2">
+          <div class="pd-campo">
+            <label for="ed-tipo">Tipo</label>
+            <select id="ed-tipo" name="tipo" [(ngModel)]="tipoEdicion">
+              @for (t of tipos; track t.valor) {
+                <option [ngValue]="t.valor">{{ t.texto }}</option>
+              }
+            </select>
+          </div>
+          <div class="pd-campo">
+            <label for="ed-sinonimos">Otros nombres <span class="pd-muted">(opcional)</span></label>
+            <input id="ed-sinonimos" name="sinonimos" maxlength="300" [(ngModel)]="sinonimosEdicion" placeholder="sal fina, sal de cocina" />
+          </div>
         </div>
         <div class="pd-grid pd-grid-2">
           <div class="pd-campo">

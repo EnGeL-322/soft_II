@@ -542,6 +542,8 @@ export interface DashboardResponse {
  */
 export interface Producto {
   id: number;
+  /** P-0001 (V61). */
+  codigo?: string;
   nombre: string;
   /** Cómo se cuenta lo que sale del lote ("unidad", "botella 1 L"). */
   unidadVenta: string;
@@ -682,8 +684,16 @@ export interface ResumenVentasQueso {
 
 export type UnidadMedida = 'KG' | 'LITRO' | 'UNIDAD' | 'GRAMO' | 'ML';
 
+/** Para qué sirve un artículo del maestro (V61). */
+export type TipoMateriaPrima = 'MATERIA_PRIMA' | 'INSUMO' | 'EMPAQUE';
+
 export interface MateriaPrima {
   id: number;
+  /** MP-0001: se muestra; todo se relaciona por id (V61). */
+  codigo?: string;
+  tipo?: TipoMateriaPrima;
+  /** Otros nombres con que se le conoce, separados por coma. */
+  sinonimos?: string | null;
   nombre: string;
   unidadMedida: UnidadMedida;
   costoUnitarioReferencial?: number;
@@ -732,14 +742,28 @@ export interface ProveedorCompra {
 export interface CompraItem {
   id: number;
   materiaPrimaId: number;
+  /** MP-0001 (V61). */
+  materiaPrimaCodigo?: string;
   materiaPrimaNombre: string;
+  unidadMedida?: UnidadMedida;
   cantidad: number;
   costoUnitario: number;
   total: number;
+  /** Lo que ya llegó al almacén (V61). */
+  cantidadRecibida?: number;
+  pendiente?: number;
 }
+
+/** Si ya llegó lo comprado (V61): la compra no es stock, la recepción sí. */
+export type EstadoCompra = 'PENDIENTE_RECEPCION' | 'RECIBIDA_PARCIAL' | 'RECIBIDA';
 
 export interface Compra {
   id: number;
+  /** OC-0001 (V61). */
+  codigo?: string;
+  estado?: EstadoCompra;
+  /** Usuario que la registró. */
+  registradoPor?: string | null;
   proveedorCompraId: number;
   proveedorCompraNombre: string;
   fecha: string;
@@ -991,4 +1015,81 @@ export interface SolicitudCambioZona {
   fechaDecision?: string;
   aprobador?: string;
   observacionDecision?: string;
+}
+
+// ---- Recepciones de compra y órdenes de producción (V61, prototipo aprobado por el cliente) ----
+
+export interface RecepcionItem {
+  materiaPrimaId: number;
+  materiaPrimaCodigo: string;
+  materiaPrimaNombre: string;
+  unidadMedida: UnidadMedida;
+  cantidad: number;
+  lote?: string | null;
+  fechaVencimiento?: string | null;
+}
+
+export interface Recepcion {
+  id: number;
+  /** RC-0001. */
+  codigo: string;
+  compraId: number;
+  compraCodigo: string;
+  proveedorNombre: string;
+  fecha: string;
+  documento?: string | null;
+  recibidoPor?: string | null;
+  total: number;
+  items: RecepcionItem[];
+}
+
+export type EstadoOrdenProduccion = 'PENDIENTE' | 'TERMINADA' | 'ANULADA';
+
+/** Un insumo de la orden: lo que le toca del almacén después de las órdenes planificadas antes. */
+export interface OrdenLinea {
+  materiaPrimaId: number;
+  materiaPrimaCodigo: string;
+  materiaPrimaNombre: string;
+  unidadMedida: UnidadMedida;
+  necesita: number;
+  disponible: number;
+  falta: number;
+  esLeche: boolean;
+}
+
+export interface OrdenProduccion {
+  id: number;
+  /** OP2026-0001. */
+  codigo: string;
+  productoId: number;
+  productoCodigo: string;
+  productoNombre: string;
+  unidadVenta: string;
+  recetaId: number;
+  cantidad: number;
+  fechaPlan: string;
+  estado: EstadoOrdenProduccion;
+  /** Solo en PENDIENTE: si el almacén alcanza para producirla ya. */
+  lista: boolean | null;
+  lineas: OrdenLinea[];
+  loteId?: number | null;
+  loteCodigo?: string | null;
+  observaciones?: string | null;
+  motivoAnulacion?: string | null;
+  registradoPor?: string | null;
+}
+
+/** Lo que falta comprar para las órdenes pendientes, ya descontado lo que está en camino. */
+export interface Necesidad {
+  materiaPrimaId: number;
+  materiaPrimaCodigo: string;
+  materiaPrimaNombre: string;
+  unidadMedida: UnidadMedida;
+  requerido: number;
+  disponible: number;
+  enCamino: number;
+  aComprar: number;
+  costoReferencial?: number | null;
+  esLeche: boolean;
+  ordenes: string[];
 }

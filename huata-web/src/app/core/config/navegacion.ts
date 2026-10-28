@@ -61,7 +61,10 @@ export const GRUPOS_NAV = [
   'Acopio',
   'Planta',
   'Personas y rutas',
+  // Producción → Abastecimiento → Inventario: el flujo del prototipo aprobado (2026-10-28).
   'Producción',
+  'Abastecimiento',
+  'Inventario',
   'Ventas y pagos',
   'Configuración',
 ] as const;
@@ -169,9 +172,13 @@ export const NAVEGACION: readonly ItemNav[] = [
   {
     ruta: 'recetas',
     icono: 'recetas',
-    etiqueta: 'Recetas y productos',
+    etiqueta: 'Catálogo y recetas',
     permiso: PERMISO.recetasRead,
     grupo: 'Producción',
+    subitems: [
+      { vista: 'catalogo', icono: 'produccion', etiqueta: 'Catálogo' },
+      { vista: 'recetas', icono: 'recetas', etiqueta: 'Recetas' },
+    ],
   },
   {
     ruta: 'produccion-queso',
@@ -180,6 +187,7 @@ export const NAVEGACION: readonly ItemNav[] = [
     permiso: PERMISO.produccionRead,
     grupo: 'Producción',
     subitems: [
+      { vista: 'ordenes', icono: 'lista', etiqueta: 'Órdenes de producción' },
       {
         vista: 'registrar',
         icono: 'agregar',
@@ -195,14 +203,23 @@ export const NAVEGACION: readonly ItemNav[] = [
     icono: 'compras',
     etiqueta: 'Compras',
     permiso: PERMISO.comprasRead,
-    grupo: 'Producción',
+    grupo: 'Abastecimiento',
+    subitems: [
+      { vista: 'compras', icono: 'compras', etiqueta: 'Compras' },
+      { vista: 'recepciones', icono: 'entrega', etiqueta: 'Recepciones' },
+    ],
   },
   {
     ruta: 'inventario',
     icono: 'inventario',
     etiqueta: 'Inventario',
     permiso: PERMISO.inventarioRead,
-    grupo: 'Producción',
+    grupo: 'Inventario',
+    subitems: [
+      { vista: 'stock', icono: 'inventario', etiqueta: 'Stock' },
+      { vista: 'kardex', icono: 'historial', etiqueta: 'Kardex' },
+      { vista: 'lotes', icono: 'calendario', etiqueta: 'Lotes y vencimientos' },
+    ],
   },
   {
     ruta: 'venta-queso',
@@ -254,10 +271,10 @@ export const DESCRIPCIONES_NAV: Readonly<Record<string, string>> = {
   rutas: 'Ubica proveedores, organiza rutas y sigue el recorrido.',
   zonas: 'Consulta las personas y rutas de cada zona.',
   'solicitudes-zona': 'Revisa las solicitudes para cambiar de zona.',
-  recetas: 'Define los productos y sus ingredientes.',
-  'produccion-queso': 'Registra los productos elaborados.',
-  compras: 'Registra compras de insumos y materias primas.',
-  inventario: 'Consulta existencias, vencimientos y movimientos.',
+  recetas: 'Catálogo de productos terminados y la receta de cada uno.',
+  'produccion-queso': 'Planifica órdenes, registra lo producido y revisa los lotes.',
+  compras: 'Compra insumos y confirma lo que llega al almacén.',
+  inventario: 'Stock del almacén, kardex y lotes con su vencimiento.',
   'venta-queso': 'Registra ventas y confirma los cobros.',
   pagos: 'Calcula y paga las liquidaciones de proveedores.',
   contabilidad: 'Consulta los movimientos contables del negocio.',

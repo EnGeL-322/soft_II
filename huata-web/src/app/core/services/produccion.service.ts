@@ -1,7 +1,15 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { API_BASE_URL } from '../config/api-config';
-import { CapacidadProduccion, Producto, Receta, TrabajadorProduccion, UnidadMedida } from '../models/models';
+import {
+  CapacidadProduccion,
+  Necesidad,
+  OrdenProduccion,
+  Producto,
+  Receta,
+  TrabajadorProduccion,
+  UnidadMedida,
+} from '../models/models';
 
 /**
  * Un ingrediente de la receta: uno existente (`materiaPrimaId`) o uno escrito por primera vez
@@ -30,9 +38,36 @@ export interface RecetaRequest {
   items: RecetaItemRequest[];
 }
 
+/** Planificar una producción (V61). Sin fecha: hoy. */
+export interface OrdenProduccionRequest {
+  productoId: number;
+  cantidad: number;
+  fechaPlan?: string;
+  observaciones?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ProduccionService {
   constructor(private readonly http: HttpClient) {}
+
+  // ---- Órdenes de producción (V61) ----
+
+  ordenes() {
+    return this.http.get<OrdenProduccion[]>(`${API_BASE_URL}/produccion/ordenes`);
+  }
+
+  crearOrden(datos: OrdenProduccionRequest) {
+    return this.http.post<OrdenProduccion>(`${API_BASE_URL}/produccion/ordenes`, datos);
+  }
+
+  anularOrden(id: number, motivo: string) {
+    return this.http.post<OrdenProduccion>(`${API_BASE_URL}/produccion/ordenes/${id}/anular`, { motivo });
+  }
+
+  /** Lo que falta comprar para las órdenes pendientes, sin contar lo que ya está en camino. */
+  necesidades() {
+    return this.http.get<Necesidad[]>(`${API_BASE_URL}/produccion/necesidades`);
+  }
 
   recetas() {
     return this.http.get<Receta[]>(`${API_BASE_URL}/produccion/recetas`);

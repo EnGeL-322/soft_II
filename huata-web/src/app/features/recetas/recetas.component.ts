@@ -1,6 +1,7 @@
-import { Component, HostListener, OnInit, computed, signal, inject } from '@angular/core';
+import { Component, DestroyRef, HostListener, OnInit, computed, signal, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize } from 'rxjs';
 import { PERMISO } from '../../core/config/navegacion';
 import { etiquetaUnidad } from '../../core/config/unidades';
@@ -44,7 +45,7 @@ import { IconoComponent } from '../../shared/ui/icono.component';
 @Component({
   selector: 'app-recetas',
   standalone: true,
-  imports: [FormsModule, IconoComponent],
+  imports: [FormsModule, IconoComponent, RouterLink],
   templateUrl: './recetas.component.html',
   styleUrl: './recetas.component.css',
 })
@@ -57,6 +58,16 @@ export class RecetasComponent implements OnInit {
   protected readonly notificaciones = inject(NotificacionesService);
   private readonly dialogo = inject(DialogoService);
   private readonly router = inject(Router);
+  private readonly ruta = inject(ActivatedRoute);
+  private readonly destroyRef = inject(DestroyRef);
+
+  /**
+   * Catálogo (los productos que se venden) y Recetas (qué lleva cada uno) son dos vistas de la misma
+   * pantalla (`?vista=`), como en el prototipo aprobado: separadas a la vista, un solo lugar en el código.
+   */
+  readonly vista = signal<'catalogo' | 'recetas'>('catalogo');
+  /** «Nueva receta»: primero se elige el producto. */
+  readonly eligiendoProducto = signal(false);
   readonly hoy = hoy();
   readonly trabajadores = signal<TrabajadorProduccion[]>([]);
   readonly guardandoTrabajador = signal(false);
@@ -158,6 +169,30 @@ export class RecetasComponent implements OnInit {
     this.cargar();
     this.cargarTrabajadores();
     this.cargarMateriasPrimas();
+    this.ruta.queryParamMap
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((p) => this.vista.set(p.get('vista') === 'recetas' ? 'recetas' : 'catalogo'));
+  }
+
+  /** Productos que se producen y todavía no tienen receta: los que ofrece «Nueva receta». */
+  readonly sinReceta = computed(() =>
+    this.productos().filter((p) => p.activo && !recetaVigente(this.recetas(), p.id, this.hoy)),
+  );
+
+  nuevaReceta(): void {
+    const pendientes = this.sinReceta();
+    if (pendientes.length === 1) {
+      this.abrirReceta(pendientes[0]);
+    } else if (pendientes.length) {
+      this.eligiendoProducto.set(true);
+    } else {
+      this.notificaciones.info('Todos los productos ya tienen receta. Para cambiar una, usa «Editar» en su fila.');
+    }
+  }
+
+  elegirProductoParaReceta(p: Producto): void {
+    this.eligiendoProducto.set(false);
+    this.abrirReceta(p);
   }
 
   private cargarMateriasPrimas(): void {
